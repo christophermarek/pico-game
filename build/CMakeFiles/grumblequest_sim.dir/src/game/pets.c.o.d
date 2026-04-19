@@ -50,4 +50,5 @@ CMakeFiles/grumblequest_sim.dir/src/game/pets.c.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/secure/_strings.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/secure/_common.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/secure/_string.h \
+  /Users/christophermarek/Desktop/other/PicoGame/src/game/../data/moves.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/../data/equipment.h

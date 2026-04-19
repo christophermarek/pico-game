@@ -5,21 +5,8 @@
 #include <math.h>
 
 /* ------------------------------------------------------------------ */
-/* Shared RNG                                                           */
-/* ------------------------------------------------------------------ */
-static uint32_t rng_state = 12345u;
-static uint32_t rng_next(void) {
-    rng_state = rng_state * 1664525u + 1013904223u;
-    return rng_state;
-}
-
-/* ------------------------------------------------------------------ */
 /* AABB tile collision helpers                                          */
 /* ------------------------------------------------------------------ */
-/* Player bounding box is ~10×14 px centred on position */
-#define PL_HALF_W 5
-#define PL_HALF_H 7
-
 static bool td_collides(const World *w, float x, float y) {
     int x0 = (int)(x - PL_HALF_W) / TILE;
     int x1 = (int)(x + PL_HALF_W - 1) / TILE;
@@ -29,23 +16,6 @@ static bool td_collides(const World *w, float x, float y) {
         for (int tx = x0; tx <= x1; tx++)
             if (!world_walkable(w, tx, ty)) return true;
     return false;
-}
-
-/* ------------------------------------------------------------------ */
-/* Wild encounter check                                                 */
-/* ------------------------------------------------------------------ */
-static void check_encounter(GameState *s, World *w) {
-    int tx = (int)(s->td.x / TILE);
-    int ty = (int)(s->td.y / TILE);
-    if (world_tile(w, tx, ty) != T_TGRASS) return;
-    /* ~1/60 chance per frame of movement */
-    if ((rng_next() % 60) == 0) {
-        /* Pick random species */
-        uint8_t sp = (uint8_t)(rng_next() % 3); /* Glub/Bramble/Korvax in wild */
-        uint8_t lv = (uint8_t)(2 + rng_next() % (s->skills[SK_COMBAT].level + 3));
-        extern void battle_start_wild(GameState *s, uint8_t species_id, uint8_t level);
-        battle_start_wild(s, sp, lv);
-    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -101,19 +71,15 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     float smag = hypotf(srx, sry);
     float wmul = (smag > 1e-5f) ? (TD_SPEED / smag) : 0.0f;
 
-    /* Hold B to run: ~1.7x speed while energy > 0. Drains energy every few
-     * movement frames. If energy hits 0, the run stalls until it regens
-     * above RUN_RESUME. Energy itself regens in game_tick(). */
-    const uint8_t RUN_RESUME = 12;
     bool moving  = (dwx != 0.0f || dwy != 0.0f);
     bool running = inp->b && moving && s->energy > 0 && !s->running_locked;
     if (running) {
-        wmul *= 1.70f;
-        if ((s->total_steps & 3u) == 0u) {
+        wmul *= TD_RUN_SPEED_MULT;
+        if ((s->total_steps % TD_RUN_DRAIN_STEPS) == 0u) {
             if (s->energy > 0) s->energy--;
         }
         if (s->energy == 0) s->running_locked = true;
-    } else if (s->running_locked && s->energy >= RUN_RESUME) {
+    } else if (s->running_locked && s->energy >= TD_RUN_ENERGY_RESUME) {
         s->running_locked = false;
     }
 
@@ -143,8 +109,8 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
 
     /* Walk frame */
     if (dx != 0.0f || dy != 0.0f) {
-        s->td.walk_frame += 0.15f;
-        if (s->td.walk_frame >= 2.0f) s->td.walk_frame = 0.0f;
+        s->td.walk_frame += TD_WALK_ANIM_STEP;
+        if (s->td.walk_frame >= WALK_FRAME_WRAP) s->td.walk_frame = 0.0f;
         s->total_steps++;
     } else {
         s->td.walk_frame = 0.0f;
@@ -163,7 +129,7 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
         float follow_dist = (float)TILE;
         if (dist2 > follow_dist * follow_dist) {
             float d = sqrtf(dist2);
-            float spd = TD_SPEED * 1.1f;
+            float spd = TD_SPEED * TD_PET_FOLLOW_MULT;
             pet->trail_x += (pdx / d) * spd;
             pet->trail_y += (pdy / d) * spd;
         }
@@ -185,9 +151,6 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
         player_do_action(s, w);
     }
 
-    /* Encounter check when moving */
-    if (dx != 0.0f || dy != 0.0f)
-        check_encounter(s, w);
 }
 
 /* ------------------------------------------------------------------ */
@@ -322,8 +285,8 @@ void player_update_sv(GameState *s, const Input *inp, World *w) {
 
     /* Walk frame */
     if (dx != 0.0f && p->on_ground) {
-        p->walk_frame += 0.2f;
-        if (p->walk_frame >= 2.0f) p->walk_frame = 0.0f;
+        p->walk_frame += SV_WALK_ANIM_STEP;
+        if (p->walk_frame >= WALK_FRAME_WRAP) p->walk_frame = 0.0f;
     } else if (p->on_ground) {
         p->walk_frame = 0.0f;
     }
@@ -334,7 +297,7 @@ void player_update_sv(GameState *s, const Input *inp, World *w) {
         float pdx = p->x - pet->trail_x;
         float dist = pdx < 0 ? -pdx : pdx;
         if (dist > TILE) {
-            float spd = SV_SPEED * 0.9f;
+            float spd = SV_SPEED * SV_PET_FOLLOW_MULT;
             pet->trail_x += (pdx > 0 ? spd : -spd);
         }
         pet->trail_y = p->y;
@@ -346,13 +309,12 @@ void player_update_sv(GameState *s, const Input *inp, World *w) {
         int fty = (int)((p->y + TILE / 2) / TILE);
         uint8_t t = world_sv_tile(w, ftx, fty);
         if (t == SVT_ORE) {
-            /* Quick SV mining */
             s->active_skill = SK_MINING;
-            skill_add_xp(s, SK_MINING, 15);
+            skill_add_xp(s, SK_MINING, XP_SV_MINING);
             state_log(s, "Mined ore!");
         } else if (t == SVT_TREE) {
             s->active_skill = SK_WOODCUT;
-            skill_add_xp(s, SK_WOODCUT, 12);
+            skill_add_xp(s, SK_WOODCUT, XP_SV_WOODCUT);
             state_log(s, "Cut wood!");
         }
     }

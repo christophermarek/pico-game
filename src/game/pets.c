@@ -1,5 +1,6 @@
 #include "pets.h"
 #include "../data/species.h"
+#include "../data/moves.h"
 #include "../data/equipment.h"
 #include <string.h>
 
@@ -12,7 +13,7 @@ void pet_init(Pet *p, uint8_t species_id, uint8_t level) {
     p->species_id = species_id;
     p->evo_stage  = 0;
     p->level      = level;
-    p->happiness  = 60;
+    p->happiness  = PET_DEFAULT_HAPPINESS;
 
     /* Determine evo stage from level */
     for (int stage = 3; stage >= 1; stage--) {
@@ -36,7 +37,7 @@ void pet_learn_moves(Pet *p, uint8_t evo_stage) {
     if (evo_stage > 3) evo_stage = 3;
     for (int i = 0; i < MOVE_SLOTS; i++) {
         p->moves[i]   = sp->moves_by_evo[evo_stage][i];
-        p->move_pp[i] = (p->moves[i] > 0) ? 30 : 0;
+        p->move_pp[i] = (p->moves[i] > 0) ? get_move(p->moves[i])->pp : 0;
     }
 }
 
@@ -45,7 +46,7 @@ void pet_learn_moves(Pet *p, uint8_t evo_stage) {
 /* ------------------------------------------------------------------ */
 static uint8_t pet_xp_to_level(uint32_t xp) {
     uint8_t lv = 1;
-    while (lv < 99 && xp >= xp_for_level((uint8_t)(lv + 1)))
+    while (lv < PET_LEVEL_CAP && xp >= xp_for_level((uint8_t)(lv + 1)))
         lv++;
     return lv;
 }
@@ -95,23 +96,6 @@ void pet_check_evo(GameState *s, uint8_t party_idx) {
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* Happiness combat modifiers                                           */
-/* ------------------------------------------------------------------ */
-void pet_apply_happiness_combat(const Pet *p, int8_t *atk_bonus, uint8_t *evade_chance) {
-    *atk_bonus    = 0;
-    *evade_chance = 0;
-    if (p->happiness >= 80) {
-        *atk_bonus    = 2;
-        *evade_chance = 5;
-    } else if (p->happiness >= 50) {
-        *atk_bonus = 0;
-    } else if (p->happiness >= 30) {
-        *atk_bonus = -1;
-    } else {
-        *atk_bonus = -3;
-    }
-}
 
 /* ------------------------------------------------------------------ */
 /* Equip an item                                                        */
@@ -132,22 +116,18 @@ void pet_equip(Pet *p, uint8_t equip_slot) {
 /* ------------------------------------------------------------------ */
 void pets_check_recruit(GameState *s) {
     uint16_t tl = total_level(s);
-    /* At 15: recruit Bramble (sp=1) */
-    /* At 30: recruit Korvax (sp=2) */
-    /* At 50: recruit Shadowkin (sp=4) */
     static const uint16_t thresholds[3] = {15, 30, 50};
     static const uint8_t  species[3]    = {1, 2, 4};
-    static bool recruited[3] = {false, false, false};
 
     for (int i = 0; i < 3; i++) {
-        if (!recruited[i] && tl >= thresholds[i]) {
+        if (!(s->recruited_flags & (1u << i)) && tl >= thresholds[i]) {
             if (s->party_count < PARTY_MAX) {
                 Pet *p = &s->party[s->party_count++];
                 pet_init(p, species[i], (uint8_t)(thresholds[i] / 3));
                 p->trail_x = s->td.x;
                 p->trail_y = s->td.y;
                 state_log(s, "A new friend joined!");
-                recruited[i] = true;
+                s->recruited_flags |= (1u << i);
             }
         }
     }

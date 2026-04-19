@@ -41,12 +41,11 @@ make test
 
 A pixel-art RPG combining:
 
-- 🐉 **Monster Collection** — Catch, train, and evolve 5 species (4 stages each)
-- ⚔️ **Turn-Based Combat** — Type effectiveness, stat modifiers, 32 moves
+- 🐉 **Monster Collection** — Train and evolve 5 species (4 stages each)
 - 🎯 **10 Skills** — Mining, Fishing, Woodcutting, Combat, Cooking, Magic, Farming, Crafting, Smithing, Herblore
-- 🏠 **Home Building** — Manage your mansion, craft equipment, farm berries
+- 🏠 **Home Building** — Manage your mansion, craft equipment for your pets, farm berries
 - 🗺️ **Dual Perspectives** — Top-down overworld + side-view platformer
-- 💾 **Auto-Save** — Progress saved every 10 seconds
+- 💾 **Auto-Save** — Progress saved every ~1 minute
 
 ---
 
@@ -55,30 +54,28 @@ A pixel-art RPG combining:
 ### Core Systems
 - ✅ Character customization (name, skin, hair, outfit)
 - ✅ Resource gathering (trees, rocks, ore, water)
-- ✅ Turn-based wild battles with catch mechanics
 - ✅ Pet evolution (5 species × 4 stages = 20 forms)
-- ✅ Equipment crafting (7 pieces with stat bonuses)
-- ✅ Happiness system (affects combat performance)
+- ✅ Equipment crafting (7 pieces with stat bonuses for pets)
+- ✅ Happiness system (affects pet growth)
 - ✅ Inventory management (25 item types, 20 slots)
 - ✅ Party system (4 active + 12 storage box)
-- ✅ Persistent save/load with auto-save
-- ✅ HUD with HP/hunger/energy bars
-- ✅ Day counter and log system
+- ✅ Persistent save/load with throttled auto-save
+- ✅ HUD with HP/hunger/energy bars and message log
+- ✅ Day counter and FPS display
 
 ### World
 - 🌍 30×20 tile overworld (480×320 px)
-- 🏰 11×6 tile player mansion
+- 🏰 Mansion with path, interior, and surrounding grounds
 - 🌲 Handcrafted biomes (forest, lake, quarry)
-- ⚡ Encounter zones (tall grass battles)
 - 🔄 Respawning resource nodes
 
 ### Technical
 - 🎮 Zero-dependency C11 core (HAL abstraction)
 - 🖥️ SDL2 desktop simulator (3× scale)
-- 📱 Raspberry Pi Pico target (ST7789 240×240 SPI)
-- 🧪 Headless test suite (11 suites, all passing)
+- 📱 Raspberry Pi Pico target (ST7789V 240×240 SPI, `pico/CMakeLists.txt`)
+- 🧪 Headless test suite (all passing)
 - 🎨 RGB565 direct rendering (no conversion overhead)
-- ⚡ 30 FPS target
+- ⚡ 30 FPS target with live FPS counter
 
 ---
 
@@ -89,47 +86,49 @@ PicoGame/
 ├── src/
 │   ├── hal.h               # Hardware abstraction interface
 │   ├── hal_sdl.c           # SDL2 desktop implementation
-│   ├── hal_pico.c          # Pico hardware (WIP)
+│   ├── hal_pico.c          # Raspberry Pi Pico implementation
+│   ├── pico_config.h       # Pico pin/SPI assignments
 │   ├── main.c              # Game loop
-│   ├── game/               # Core logic (state, world, battle, skills, pets)
-│   ├── render/             # Graphics (sprites, font, camera)
-│   ├── ui/                 # Screens (menu, HUD, char create, battle UI)
-│   └── data/               # Tables (species, moves, berries, equipment)
+│   ├── game/               # Core logic (state, world, player, skills, pets, save)
+│   ├── render/             # Graphics (sprites, font, camera, iso spritesheet)
+│   ├── ui/                 # Screens (menu, HUD, char create)
+│   └── data/               # Data tables (species, moves, berries, equipment)
+├── assets/                 # Source PNG spritesheets (baked by tools/)
+├── tools/
+│   ├── bake_iso_assets.py  # Regenerate PNG spritesheets from pixel art
+│   └── gen_pico_atlases.py # Convert PNGs to C arrays for Pico flash
+├── pico/
+│   └── CMakeLists.txt      # Pico SDK build (produces .uf2 firmware)
 ├── tests/                  # Integration tests + stub HAL
-├── CMakeLists.txt
+├── CMakeLists.txt          # SDL simulator + test build
 ├── Makefile
-├── README.md               # This file
-└── GAME_DESIGN.md          # Full design document
+└── README.md
 ```
 
 ---
 
 ## Game Loop
 
-1. **Explore** the overworld
+1. **Explore** the overworld (top-down or side-view)
 2. **Gather** resources by skilling (Mining, Fishing, Woodcutting)
-3. **Battle** wild monsters in tall grass
-4. **Catch** creatures with Orbs
-5. **Craft** equipment from materials
-6. **Evolve** your party
-7. **Return home** to manage inventory and pets
+3. **Craft** equipment from materials at your mansion
+4. **Equip** crafted gear on your active pet
+5. **Evolve** your party by levelling up
+6. **Return home** to manage inventory, farm berries, and place furniture
 
 ---
 
-## Monster Types & Effectiveness
+## Monster Species
 
-```
-Fire → Grass (2×)       Grass → Air (2×)
-Air → Electric (2×)     Electric → Fire (2×)
-Dark → Neutral (1×)
-```
+| Species | Type | Description |
+|---------|------|-------------|
+| Glub | Dark | Shadow blob |
+| Bramble | Grass | Thorny plant |
+| Korvax | Fire | Flame beast |
+| Wisp | Air | Wind elemental |
+| Shadowkin | Dark | Pure shadow |
 
-**Species:**
-- Glub (Dark) — Shadow blob
-- Bramble (Grass) — Thorny plant
-- Korvax (Fire) — Flame beast  
-- Wisp (Air) — Wind elemental
-- Shadowkin (Dark) — Pure shadow
+Each species has 4 evolution stages. Pets level up through exploration and unlock auto-recruited companions at total level milestones (15 / 30 / 50).
 
 ---
 
@@ -140,7 +139,7 @@ Dark → Neutral (1×)
 | Mining | Rock, Ore | Stone, Ore, Gem |
 | Fishing | Water | Fish, Seaweed |
 | Woodcutting | Tree | Log, Branch |
-| Combat | Battles | — |
+| Combat | (planned) | — |
 | Cooking | — | Meals |
 | Magic | — | Orbs |
 | Farming | Home | Berries |
@@ -202,7 +201,6 @@ make test
 - State initialization & inventory
 - World generation & collision
 - Skills & pets
-- Battle damage calculations
 - Save/load roundtrip
 - Full render pipeline
 
@@ -220,7 +218,17 @@ make test
 - SPI0 (SCK: GP18, TX: GP19, CS: GP17, DC: GP20, RST: GP21, BL: GP22)
 - Buttons: GP2–9 (internal pull-ups)
 
-**Build:** *(Pico SDK integration coming soon)*
+**Build:**
+
+```bash
+cd pico
+mkdir build && cd build
+cmake -DPICO_SDK_PATH=/path/to/pico-sdk ..
+make -j4
+# Flash grumblequest.uf2 to the Pico
+```
+
+Atlas C arrays are generated automatically from `assets/*.png` by `tools/gen_pico_atlases.py` during the CMake build.
 
 ---
 
@@ -236,13 +244,11 @@ make test
 ### v0.3
 - [ ] Day/night cycle
 - [ ] Weather system
-- [ ] Boss battles
 - [ ] More species (12–15 total)
-- [ ] More moves (64 total)
+- [ ] Turn-based combat
+- [ ] Wild encounters
 
 ### v1.0
-- [ ] Pico firmware build
-- [ ] Hardware prototype
 - [ ] Multiplayer (local UART link)
 - [ ] Achievements
 - [ ] Full content pass

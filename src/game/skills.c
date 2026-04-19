@@ -32,7 +32,7 @@ static uint32_t rng_next(void) {
 /* ------------------------------------------------------------------ */
 static uint8_t xp_to_level(uint32_t xp) {
     uint8_t lv = 1;
-    while (lv < 99 && xp >= xp_for_level((uint8_t)(lv + 1)))
+    while (lv < SKILL_LEVEL_CAP && xp >= xp_for_level((uint8_t)(lv + 1)))
         lv++;
     return lv;
 }
@@ -58,9 +58,9 @@ void skill_add_xp(GameState *s, uint8_t skill_id, uint32_t xp) {
         state_log(s, msg);
     }
 
-    /* Active pet gains half the skill XP */
+    /* Active pet gains a share of the skill XP */
     if (s->party_count > 0)
-        pet_add_xp(s, s->active_pet, xp / 2);
+        pet_add_xp(s, s->active_pet, xp / PET_XP_SHARE_DIVISOR);
 }
 
 /* ------------------------------------------------------------------ */
@@ -94,10 +94,10 @@ void skill_complete_action(GameState *s, World *w) {
     uint32_t xp_val = 0;
 
     switch (s->active_skill) {
-        case SK_WOODCUT: xp_val = 25 + (uint32_t)(rng_next() % 15); break;
-        case SK_MINING:  xp_val = 30 + (uint32_t)(rng_next() % 20); break;
-        case SK_FISHING: xp_val = 20 + (uint32_t)(rng_next() % 10); break;
-        default:         xp_val = 10; break;
+        case SK_WOODCUT: xp_val = XP_WOODCUT_BASE + (uint32_t)(rng_next() % XP_WOODCUT_RAND); break;
+        case SK_MINING:  xp_val = XP_MINING_BASE  + (uint32_t)(rng_next() % XP_MINING_RAND);  break;
+        case SK_FISHING: xp_val = XP_FISHING_BASE + (uint32_t)(rng_next() % XP_FISHING_RAND); break;
+        default:         xp_val = XP_DEFAULT; break;
     }
 
     inv_add(s, drop, 1);

@@ -1,4 +1,5 @@
 #include "world.h"
+#include "config.h"
 #include <string.h>
 
 static inline int td_idx(int x, int y) { return y * MAP_W + x; }
@@ -184,7 +185,7 @@ void world_deplete_node(World *w, int x, int y)
 {
     if (x < 0 || x >= MAP_W || y < 0 || y >= MAP_H)
         return;
-    w->node_respawn[td_idx(x, y)] = 60;
+    w->node_respawn[td_idx(x, y)] = NODE_RESPAWN_TICKS;
 }
 
 void world_tick(World *w)

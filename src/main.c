@@ -5,7 +5,6 @@
 #include "game/world.h"
 #include "game/player.h"
 #include "game/tick.h"
-#include "game/battle.h"
 #include "game/save.h"
 #include "render/renderer.h"
 #include "ui/menu.h"
@@ -45,7 +44,6 @@ int main(void) {
             case MODE_CHAR_CREATE: char_create_update(&state, &inp); break;
             case MODE_TOPDOWN:     player_update_td(&state, &inp, &world); break;
             case MODE_SIDE:        player_update_sv(&state, &inp, &world); break;
-            case MODE_BATTLE:      battle_update(&state, &inp); break;
             case MODE_MENU:        menu_update(&state, &inp); break;
             case MODE_BASE:
                 /* Basic: B button to leave base */
@@ -56,13 +54,13 @@ int main(void) {
                 break;
         }
 
-        /* Handle view toggle (sel button) outside of battle/menu */
+        /* Handle view toggle (sel button) */
         if (inp.sel_press &&
             (state.mode == MODE_TOPDOWN || state.mode == MODE_SIDE)) {
             state.mode = (state.mode == MODE_TOPDOWN) ? MODE_SIDE : MODE_TOPDOWN;
         }
 
-        /* Handle menu open (start button) outside of battle */
+        /* Handle menu open (start button) */
         if (inp.start_press &&
             (state.mode == MODE_TOPDOWN || state.mode == MODE_SIDE)) {
             menu_open(&state);
@@ -74,8 +72,12 @@ int main(void) {
             game_tick(&state, &world);
             last_game_tick = now;
 
-            /* Auto-save every tick */
-            save_write(&state);
+            /* Auto-save every 6 ticks (~1 min at TICK_MS=10 s) to reduce flash wear */
+            static uint32_t save_tick_count = 0;
+            if (++save_tick_count >= 6u) {
+                save_write(&state);
+                save_tick_count = 0;
+            }
         }
 
         /* Render */

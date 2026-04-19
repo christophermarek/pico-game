@@ -21,17 +21,32 @@ static PngAtlas g_actors, g_tiles, g_mansion, g_chars, g_base;
 #define ISO_ACTOR_SD 4
 
 /*
- * PNG atlases (repo root or parent when cwd is build/):
- *  assets/assets_iso_actors.png  — 4 player + 3 monster iso-foot frames (32×32 cells)
- *  assets/assets_iso_tiles.png   — iso terrain (64×48 cells, col 12 = depleted mark)
- *  assets/assets_iso_mansion.png — 4 bearing frames (192×128 each)
- *  assets/assets_chars.png       — 224×64: SV/TD player, SV tiles, monsters (all sizes)
- *  assets/assets_base.png        — 128×16: furniture types 1-7 (16×16 cells)
+ * PNG atlases (assets/ relative to project root, or ../assets/ from build/).
+ * All baked by tools/bake_iso_assets.py — re-run after changing art.
  *
- * assets_chars.png layout:
- *   Row 0 (y=0,  h=16): SV player×4, SV tiles×2, TD player×8  (16px cells)
- *   Row 1 (y=16, h=16): monster-small×8                         (16px cells)
- *   Row 2 (y=32, h=32): monster-large×4                         (32px cells)
+ *  assets_iso_actors.png  160×64  — iso-foot sprites, 32×32 cells:
+ *    Row 0: player ×4 (dir: DOWN/UP/LEFT/RIGHT)
+ *    Row 1: monster iso-foot ×4 (evo stages 0-3)
+ *
+ *  assets_iso_tiles.png   832×48  — iso terrain, 64×48 cells:
+ *    Cols 0-3: water (4 animation frames)
+ *    Cols 4-11: grass/path/sand/tree/rock/ore/flower/tgrass
+ *    Col  12: depleted-node overlay (center anchor, drawn on top)
+ *
+ *  assets_iso_mansion.png 768×128 — mansion building, 192×128 cells:
+ *    4 bearing frames (0=N, 1=E, 2=S, 3=W), anchor at (96, 56)
+ *
+ *  assets_chars.png       256×192 — character/monster sprites at SPRITE_SCALE=2
+ *    (stored at 2× game pixels; rendered via draw_png_frame_scaled(...,1,2))
+ *    1 row per sprite type; frame index within each row noted below.
+ *    Row 0 (y=0,   h=32): SV player ×4           (32px cells, cols 0-3)
+ *    Row 1 (y=32,  h=32): SV tiles ×2  tree/ore   (32px cells, cols 0-1)
+ *    Row 2 (y=64,  h=32): TD player ×8            (32px cells, cols 0-7)
+ *    Row 3 (y=96,  h=32): monster-small ×8        (32px cells, cols 0-7)
+ *    Row 4 (y=128, h=64): monster-large ×4        (64px cells, cols 0-3)
+ *
+ *  assets_base.png        224×32  — furniture sprites at SPRITE_SCALE=2, 32px cells:
+ *    Cols 0-6: FURN_BED/WORKBENCH/FORGE/FARM/CHEST/PET_BED/PET_HOUSE (type indices 1-7)
  */
 #define MANSION_FW  192
 #define MANSION_FH  128
@@ -43,57 +58,48 @@ static const PngFrame PNG_MANSION[4] = {
     { 384, 0, MANSION_FW, MANSION_FH, -MANSION_FAX, -MANSION_FAY },
     { 576, 0, MANSION_FW, MANSION_FH, -MANSION_FAX, -MANSION_FAY },
 };
-/* assets_chars.png — row 0: SV player (ox/oy=0 → top-left anchor) */
-static const PngFrame PNG_SV_PLAYER[4] = {
-    {  0, 0, 16, 16, 0, 0 },   /* walk0_right */
-    { 16, 0, 16, 16, 0, 0 },   /* walk1_right */
-    { 32, 0, 16, 16, 0, 0 },   /* walk0_left  */
-    { 48, 0, 16, 16, 0, 0 },   /* walk1_left  */
+/* assets_chars.png  256×192  — 1 row per sprite type, SPRITE_SCALE=2.
+ * Rendered via draw_png_frame_scaled(...,1,2) to halve stored size. */
+static const PngFrame PNG_SV_PLAYER[4] = {        /* Row 0  y=0   */
+    {   0,  0, 32, 32, 0, 0 },  /* walk0_right */
+    {  32,  0, 32, 32, 0, 0 },  /* walk1_right */
+    {  64,  0, 32, 32, 0, 0 },  /* walk0_left  */
+    {  96,  0, 32, 32, 0, 0 },  /* walk1_left  */
 };
-static const PngFrame PNG_SV_TREE = {  64, 0, 16, 16, 0, 0 };
-static const PngFrame PNG_SV_ORE  = {  80, 0, 16, 16, 0, 0 };
+static const PngFrame PNG_SV_TREE = {  0, 32, 32, 32, 0, 0 }; /* Row 1  y=32 */
+static const PngFrame PNG_SV_ORE  = { 32, 32, 32, 32, 0, 0 }; /* Row 1  y=32 */
 
-/* assets_chars.png — row 0: TD player (dir * 2 + walk_frame, cols 6-13) */
-static const PngFrame PNG_TD_PLAYER[8] = {
-    {  96, 0, 16, 16, 0, 0 }, /* DIR_DOWN  walk0 */
-    { 112, 0, 16, 16, 0, 0 }, /* DIR_DOWN  walk1 */
-    { 128, 0, 16, 16, 0, 0 }, /* DIR_UP    walk0 */
-    { 144, 0, 16, 16, 0, 0 }, /* DIR_UP    walk1 */
-    { 160, 0, 16, 16, 0, 0 }, /* DIR_LEFT  walk0 */
-    { 176, 0, 16, 16, 0, 0 }, /* DIR_LEFT  walk1 */
-    { 192, 0, 16, 16, 0, 0 }, /* DIR_RIGHT walk0 */
-    { 208, 0, 16, 16, 0, 0 }, /* DIR_RIGHT walk1 */
-};
-
-/* assets_chars.png — row 1: monster-small (stage*2 + walk_frame) */
-static const PngFrame PNG_MON_SM[8] = {
-    {   0, 16, 16, 16, 0, 0 }, /* stage0 f0 */
-    {  16, 16, 16, 16, 0, 0 }, /* stage0 f1 */
-    {  32, 16, 16, 16, 0, 0 }, /* stage1 f0 */
-    {  48, 16, 16, 16, 0, 0 }, /* stage1 f1 */
-    {  64, 16, 16, 16, 0, 0 }, /* stage2 f0 */
-    {  80, 16, 16, 16, 0, 0 }, /* stage2 f1 */
-    {  96, 16, 16, 16, 0, 0 }, /* stage3 f0 */
-    { 112, 16, 16, 16, 0, 0 }, /* stage3 f1 */
+static const PngFrame PNG_TD_PLAYER[8] = {        /* Row 2  y=64  */
+    {   0, 64, 32, 32, 0, 0 }, /* DIR_DOWN  walk0 */
+    {  32, 64, 32, 32, 0, 0 }, /* DIR_DOWN  walk1 */
+    {  64, 64, 32, 32, 0, 0 }, /* DIR_UP    walk0 */
+    {  96, 64, 32, 32, 0, 0 }, /* DIR_UP    walk1 */
+    { 128, 64, 32, 32, 0, 0 }, /* DIR_LEFT  walk0 */
+    { 160, 64, 32, 32, 0, 0 }, /* DIR_LEFT  walk1 */
+    { 192, 64, 32, 32, 0, 0 }, /* DIR_RIGHT walk0 */
+    { 224, 64, 32, 32, 0, 0 }, /* DIR_RIGHT walk1 */
 };
 
-/* assets_chars.png — rows 2-3: monster-large 32×32 (stage index) */
-static const PngFrame PNG_MON_LG[4] = {
-    {  0, 32, 32, 32, 0, 0 },
-    { 32, 32, 32, 32, 0, 0 },
-    { 64, 32, 32, 32, 0, 0 },
-    { 96, 32, 32, 32, 0, 0 },
+static const PngFrame PNG_MON_SM[8] = {           /* Row 3  y=96  */
+    {   0, 96, 32, 32, 0, 0 }, /* stage0 f0 */
+    {  32, 96, 32, 32, 0, 0 }, /* stage0 f1 */
+    {  64, 96, 32, 32, 0, 0 }, /* stage1 f0 */
+    {  96, 96, 32, 32, 0, 0 }, /* stage1 f1 */
+    { 128, 96, 32, 32, 0, 0 }, /* stage2 f0 */
+    { 160, 96, 32, 32, 0, 0 }, /* stage2 f1 */
+    { 192, 96, 32, 32, 0, 0 }, /* stage3 f0 */
+    { 224, 96, 32, 32, 0, 0 }, /* stage3 f1 */
 };
 
-/* assets_base.png — furniture types 1-7 in cols 0-6 */
+/* assets_base.png  224×32  — furniture types 1-7 in cols 0-6 (32×32 cells) */
 static const PngFrame PNG_FURNITURE[7] = {
-    {  0, 0, 16, 16, 0, 0 }, /* FURN_BED       (1) */
-    { 16, 0, 16, 16, 0, 0 }, /* FURN_WORKBENCH (2) */
-    { 32, 0, 16, 16, 0, 0 }, /* FURN_FORGE     (3) */
-    { 48, 0, 16, 16, 0, 0 }, /* FURN_FARM      (4) */
-    { 64, 0, 16, 16, 0, 0 }, /* FURN_CHEST     (5) */
-    { 80, 0, 16, 16, 0, 0 }, /* FURN_PET_BED   (6) */
-    { 96, 0, 16, 16, 0, 0 }, /* FURN_PET_HOUSE (7) */
+    {   0, 0, 32, 32, 0, 0 }, /* FURN_BED       (1) */
+    {  32, 0, 32, 32, 0, 0 }, /* FURN_WORKBENCH (2) */
+    {  64, 0, 32, 32, 0, 0 }, /* FURN_FORGE     (3) */
+    {  96, 0, 32, 32, 0, 0 }, /* FURN_FARM      (4) */
+    { 128, 0, 32, 32, 0, 0 }, /* FURN_CHEST     (5) */
+    { 160, 0, 32, 32, 0, 0 }, /* FURN_PET_BED   (6) */
+    { 192, 0, 32, 32, 0, 0 }, /* FURN_PET_HOUSE (7) */
 };
 
 /* assets_iso_tiles.png col 12 — iso depleted-node overlay (center anchor).
@@ -107,10 +113,11 @@ static const PngFrame PNG_PLAYER[4] = {
     {  64,   0, 32, 32, -16, -31 },
     {  96,   0, 32, 32, -16, -31 },
 };
-static const PngFrame PNG_MON[3] = {
+static const PngFrame PNG_MON[4] = {
     {   0,  32, 32, 32, -16, -21 },
     {  32,  32, 32, 32, -16, -21 },
     {  64,  32, 32, 32, -16, -21 },
+    {  96,  32, 32, 32, -16, -21 },
 };
 #define ISO_TILE_W 64
 #define ISO_TILE_H 48
@@ -156,45 +163,40 @@ static void draw_png_frame(const PngAtlas *a, const PngFrame *f, int ax, int ay)
     }
 }
 
-/* Nearest-neighbour down/up scale from atlas sub-rect to screen. */
-static void draw_png_frame_scaled(const PngAtlas *a, const PngFrame *f, int foot_sx, int foot_sy,
+/* Nearest-neighbour scale from atlas sub-rect to screen.
+ * Output size = frame size * (sn/sd).  ax/ay are the anchor point on screen
+ * (same semantics as draw_png_frame: top-left = anchor + frame.ox/oy). */
+static void draw_png_frame_scaled(const PngAtlas *a, const PngFrame *f, int ax, int ay,
                                   int sn, int sd)
 {
-    if (!a->loaded || !a->img.rgba || sd <= 0)
+    if (!a->loaded || !a->img.rgba || sn <= 0 || sd <= 0)
         return;
     if (f->x < 0 || f->y < 0 || f->x + f->w > a->img.w || f->y + f->h > a->img.h)
         return;
 
     int out_w = (f->w * sn) / sd;
     int out_h = (f->h * sn) / sd;
-    if (out_w < 1)
-        out_w = 1;
-    if (out_h < 1)
-        out_h = 1;
-    int oxs = (f->ox * sn) / sd;
-    int oys = (f->oy * sn) / sd;
-    int ox0 = foot_sx + oxs;
-    int oy0 = foot_sy + oys;
+    if (out_w < 1 || out_h < 1)
+        return;
+
+    int ox0 = ax + (f->ox * sn) / sd;
+    int oy0 = ay + (f->oy * sn) / sd;
 
     for (int dy = 0; dy < out_h; dy++) {
-        int sy = oy0 + dy;
-        if (sy < 0 || sy >= DISPLAY_H)
+        int screen_y = oy0 + dy;
+        if (screen_y < 0 || screen_y >= DISPLAY_H)
             continue;
         int src_y = f->y + (dy * f->h) / out_h;
-        if (src_y >= f->y + f->h)
-            src_y = f->y + f->h - 1;
         for (int dx = 0; dx < out_w; dx++) {
-            int sx = ox0 + dx;
-            if (sx < 0 || sx >= DISPLAY_W)
+            int screen_x = ox0 + dx;
+            if (screen_x < 0 || screen_x >= DISPLAY_W)
                 continue;
             int src_x = f->x + (dx * f->w) / out_w;
-            if (src_x >= f->x + f->w)
-                src_x = f->x + f->w - 1;
             int src = (src_y * a->img.w + src_x) * 4;
             uint8_t alpha = a->img.rgba[src + 3];
             if (alpha < 16)
                 continue;
-            hal_pixel(sx, sy,
+            hal_pixel(screen_x, screen_y,
                       RGB565(a->img.rgba[src + 0], a->img.rgba[src + 1], a->img.rgba[src + 2]));
         }
     }
@@ -274,6 +276,15 @@ static void iso_tile_frame(uint8_t tile_id, uint32_t tick, PngFrame *f)
     }
 }
 
+/* T_TREE / T_ROCK / T_ORE / T_FLOWER are overlay tiles: their PNG cell contains
+ * only the feature sprite (transparent background).  The floor pass draws the
+ * grass base; the overlay pass draws the feature on top via iso_draw_tile_onlay. */
+static bool tile_is_overlay(uint8_t tile_id)
+{
+    return tile_id == T_TREE || tile_id == T_ROCK ||
+           tile_id == T_ORE  || tile_id == T_FLOWER;
+}
+
 bool iso_draw_tile_full(uint8_t tile_id, int cx, int cy, uint32_t tick)
 {
     if (!iso_tile_id_on_sheet(tile_id))
@@ -281,18 +292,26 @@ bool iso_draw_tile_full(uint8_t tile_id, int cx, int cy, uint32_t tick)
     try_load_atlas(&g_tiles, "assets/assets_iso_tiles.png", "../assets/assets_iso_tiles.png");
     if (!g_tiles.loaded)
         return false;
+    /* Overlay tiles show grass as their floor; the feature is drawn in the
+     * overlay pass by iso_draw_tile_onlay. */
+    uint8_t floor_id = tile_is_overlay(tile_id) ? T_GRASS : tile_id;
     PngFrame f;
-    iso_tile_frame(tile_id, tick, &f);
+    iso_tile_frame(floor_id, tick, &f);
     draw_png_frame(&g_tiles, &f, cx, cy);
     return true;
 }
 
-bool iso_tile_png_covers_onlay(uint8_t tile_id)
+bool iso_draw_tile_onlay(uint8_t tile_id, int cx, int cy)
 {
-    if (!iso_tile_id_on_sheet(tile_id))
+    if (!tile_is_overlay(tile_id))
         return false;
     try_load_atlas(&g_tiles, "assets/assets_iso_tiles.png", "../assets/assets_iso_tiles.png");
-    return g_tiles.loaded;
+    if (!g_tiles.loaded)
+        return false;
+    PngFrame f;
+    iso_tile_frame(tile_id, 0, &f);
+    draw_png_frame(&g_tiles, &f, cx, cy);
+    return true;
 }
 
 void iso_draw_player_foot(int foot_sx, int foot_sy, uint8_t dir, uint8_t skin_idx,
@@ -311,7 +330,7 @@ void iso_draw_player_foot(int foot_sx, int foot_sy, uint8_t dir, uint8_t skin_id
 void iso_draw_monster_foot(int foot_sx, int foot_sy, uint8_t evo_stage, uint8_t frame)
 {
     (void)frame;
-    uint8_t e = (evo_stage > 2) ? 2 : evo_stage;
+    uint8_t e = (evo_stage > 3u) ? 3u : evo_stage;
     try_load_atlas(&g_actors, "assets/assets_iso_actors.png", "../assets/assets_iso_actors.png");
     draw_png_frame_scaled(&g_actors, &PNG_MON[e], foot_sx, foot_sy, ISO_ACTOR_SN, ISO_ACTOR_SD);
 }
@@ -327,13 +346,18 @@ bool iso_draw_mansion(int anchor_sx, int anchor_sy, uint8_t bearing)
     return true;
 }
 
+/* SPRITE_SCALE = 2: chars/base frames are stored at 2× game pixels.
+ * Render via draw_png_frame_scaled(..., 1, 2) to get back to 1:1 game pixels. */
+#define CHARS_SN 1
+#define CHARS_SD 2
+
 bool iso_draw_sv_player(int sx, int sy, uint8_t dir, uint8_t walk_frame)
 {
     try_load_atlas(&g_chars, "assets/assets_chars.png", "../assets/assets_chars.png");
     if (!g_chars.loaded)
         return false;
     uint8_t f = ((dir == DIR_LEFT) ? 2u : 0u) + (walk_frame & 1u);
-    draw_png_frame(&g_chars, &PNG_SV_PLAYER[f], sx, sy);
+    draw_png_frame_scaled(&g_chars, &PNG_SV_PLAYER[f], sx, sy, CHARS_SN, CHARS_SD);
     return true;
 }
 
@@ -343,9 +367,9 @@ bool iso_draw_sv_tile(int sx, int sy, uint8_t tile_id)
     if (!g_chars.loaded)
         return false;
     if (tile_id == T_TREE)
-        draw_png_frame(&g_chars, &PNG_SV_TREE, sx, sy);
+        draw_png_frame_scaled(&g_chars, &PNG_SV_TREE, sx, sy, CHARS_SN, CHARS_SD);
     else if (tile_id == T_ORE)
-        draw_png_frame(&g_chars, &PNG_SV_ORE, sx, sy);
+        draw_png_frame_scaled(&g_chars, &PNG_SV_ORE, sx, sy, CHARS_SN, CHARS_SD);
     else
         return false;
     return true;
@@ -353,11 +377,18 @@ bool iso_draw_sv_tile(int sx, int sy, uint8_t tile_id)
 
 bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame)
 {
+    return iso_draw_td_player_char_scaled(sx, sy, dir, walk_frame, CHARS_SN, CHARS_SD);
+}
+
+bool iso_draw_td_player_char_scaled(int sx, int sy, uint8_t dir, uint8_t walk_frame,
+                                    int sn, int sd)
+{
     try_load_atlas(&g_chars, "assets/assets_chars.png", "../assets/assets_chars.png");
     if (!g_chars.loaded)
         return false;
     uint8_t d = (dir > DIR_RIGHT) ? DIR_DOWN : dir;
-    draw_png_frame(&g_chars, &PNG_TD_PLAYER[d * 2u + (walk_frame & 1u)], sx, sy);
+    draw_png_frame_scaled(&g_chars, &PNG_TD_PLAYER[d * 2u + (walk_frame & 1u)],
+                          sx, sy, sn, sd);
     return true;
 }
 
@@ -367,17 +398,8 @@ bool iso_draw_monster_sm(int sx, int sy, uint8_t evo_stage, uint8_t walk_frame)
     if (!g_chars.loaded)
         return false;
     uint8_t s = (evo_stage > 3u) ? 3u : evo_stage;
-    draw_png_frame(&g_chars, &PNG_MON_SM[s * 2u + (walk_frame & 1u)], sx, sy);
-    return true;
-}
-
-bool iso_draw_monster_lg(int sx, int sy, uint8_t evo_stage)
-{
-    try_load_atlas(&g_chars, "assets/assets_chars.png", "../assets/assets_chars.png");
-    if (!g_chars.loaded)
-        return false;
-    uint8_t s = (evo_stage > 3u) ? 3u : evo_stage;
-    draw_png_frame(&g_chars, &PNG_MON_LG[s], sx, sy);
+    draw_png_frame_scaled(&g_chars, &PNG_MON_SM[s * 2u + (walk_frame & 1u)],
+                          sx, sy, CHARS_SN, CHARS_SD);
     return true;
 }
 
@@ -388,7 +410,8 @@ bool iso_draw_furniture(int sx, int sy, uint8_t furn_type)
     try_load_atlas(&g_base, "assets/assets_base.png", "../assets/assets_base.png");
     if (!g_base.loaded)
         return false;
-    draw_png_frame(&g_base, &PNG_FURNITURE[furn_type - 1u], sx, sy);
+    draw_png_frame_scaled(&g_base, &PNG_FURNITURE[furn_type - 1u],
+                          sx, sy, CHARS_SN, CHARS_SD);
     return true;
 }
 

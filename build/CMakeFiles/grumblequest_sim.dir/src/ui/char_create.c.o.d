@@ -41,4 +41,5 @@ CMakeFiles/grumblequest_sim.dir/src/ui/char_create.c.o: \
   /Users/christophermarek/Desktop/other/PicoGame/src/ui/../render/font.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/ui/../render/sprites.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/ui/../render/../game/state.h \
-  /Users/christophermarek/Desktop/other/PicoGame/src/ui/../render/../game/world.h
+  /Users/christophermarek/Desktop/other/PicoGame/src/ui/../render/../game/world.h \
+  /Users/christophermarek/Desktop/other/PicoGame/src/ui/../render/iso_spritesheet.h

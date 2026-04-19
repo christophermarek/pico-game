@@ -152,33 +152,6 @@ grumblequest_tests/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/build
 .PHONY : grumblequest_tests/fast
 
-src/game/battle.o: src/game/battle.c.o
-.PHONY : src/game/battle.o
-
-# target to build an object file
-src/game/battle.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_sim.dir/build.make CMakeFiles/grumblequest_sim.dir/src/game/battle.c.o
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o
-.PHONY : src/game/battle.c.o
-
-src/game/battle.i: src/game/battle.c.i
-.PHONY : src/game/battle.i
-
-# target to preprocess a source file
-src/game/battle.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_sim.dir/build.make CMakeFiles/grumblequest_sim.dir/src/game/battle.c.i
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/src/game/battle.c.i
-.PHONY : src/game/battle.c.i
-
-src/game/battle.s: src/game/battle.c.s
-.PHONY : src/game/battle.s
-
-# target to generate assembly for a file
-src/game/battle.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_sim.dir/build.make CMakeFiles/grumblequest_sim.dir/src/game/battle.c.s
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/src/game/battle.c.s
-.PHONY : src/game/battle.c.s
-
 src/game/pets.o: src/game/pets.c.o
 .PHONY : src/game/pets.o
 
@@ -524,33 +497,6 @@ src/render/sprites.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.s
 .PHONY : src/render/sprites.c.s
 
-src/ui/battle_ui.o: src/ui/battle_ui.c.o
-.PHONY : src/ui/battle_ui.o
-
-# target to build an object file
-src/ui/battle_ui.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_sim.dir/build.make CMakeFiles/grumblequest_sim.dir/src/ui/battle_ui.c.o
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o
-.PHONY : src/ui/battle_ui.c.o
-
-src/ui/battle_ui.i: src/ui/battle_ui.c.i
-.PHONY : src/ui/battle_ui.i
-
-# target to preprocess a source file
-src/ui/battle_ui.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_sim.dir/build.make CMakeFiles/grumblequest_sim.dir/src/ui/battle_ui.c.i
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.i
-.PHONY : src/ui/battle_ui.c.i
-
-src/ui/battle_ui.s: src/ui/battle_ui.c.s
-.PHONY : src/ui/battle_ui.s
-
-# target to generate assembly for a file
-src/ui/battle_ui.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_sim.dir/build.make CMakeFiles/grumblequest_sim.dir/src/ui/battle_ui.c.s
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/grumblequest_tests.dir/build.make CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.s
-.PHONY : src/ui/battle_ui.c.s
-
 src/ui/char_create.o: src/ui/char_create.c.o
 .PHONY : src/ui/char_create.o
 
@@ -691,9 +637,6 @@ help:
 	@echo "... test"
 	@echo "... grumblequest_sim"
 	@echo "... grumblequest_tests"
-	@echo "... src/game/battle.o"
-	@echo "... src/game/battle.i"
-	@echo "... src/game/battle.s"
 	@echo "... src/game/pets.o"
 	@echo "... src/game/pets.i"
 	@echo "... src/game/pets.s"
@@ -733,9 +676,6 @@ help:
 	@echo "... src/render/sprites.o"
 	@echo "... src/render/sprites.i"
 	@echo "... src/render/sprites.s"
-	@echo "... src/ui/battle_ui.o"
-	@echo "... src/ui/battle_ui.i"
-	@echo "... src/ui/battle_ui.s"
 	@echo "... src/ui/char_create.o"
 	@echo "... src/ui/char_create.i"
 	@echo "... src/ui/char_create.s"

@@ -45,7 +45,6 @@ CMakeFiles/grumblequest_sim.dir/src/main.c.o: \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/world.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/player.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/tick.h \
-  /Users/christophermarek/Desktop/other/PicoGame/src/game/battle.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/save.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/render/renderer.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/render/../game/state.h \

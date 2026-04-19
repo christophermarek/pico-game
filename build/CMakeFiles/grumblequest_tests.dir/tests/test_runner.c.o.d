@@ -73,7 +73,6 @@ CMakeFiles/grumblequest_tests.dir/tests/test_runner.c.o: \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include/__stddef_max_align_t.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include/__stddef_offsetof.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/tick.h \
-  /Users/christophermarek/Desktop/other/PicoGame/src/game/battle.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/save.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/skills.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/game/pets.h \

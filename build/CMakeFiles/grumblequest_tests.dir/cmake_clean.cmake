@@ -1,6 +1,4 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o"
-  "CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o.d"
   "CMakeFiles/grumblequest_tests.dir/src/game/pets.c.o"
   "CMakeFiles/grumblequest_tests.dir/src/game/pets.c.o.d"
   "CMakeFiles/grumblequest_tests.dir/src/game/player.c.o"
@@ -23,8 +21,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o.d"
   "CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o"
   "CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o.d"
-  "CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o"
-  "CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o.d"
   "CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o"
   "CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o.d"
   "CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o"

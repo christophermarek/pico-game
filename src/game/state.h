@@ -57,7 +57,6 @@ typedef struct Pet {
     uint8_t  equip_id;          /* index into equipment table, 0=none */
     uint8_t  moves[MOVE_SLOTS];
     uint8_t  move_pp[MOVE_SLOTS];
-    int8_t   b_atk_mod, b_def_mod, b_spd_mod; /* battle-temp modifiers */
     float    trail_x, trail_y;
 } Pet;
 
@@ -110,31 +109,6 @@ typedef struct {
 } XpDrop;
 
 /* ------------------------------------------------------------------ */
-/* Battle state                                                         */
-/* ------------------------------------------------------------------ */
-typedef struct {
-    bool    active;
-    bool    player_turn;
-    uint8_t enemy_species;
-    uint8_t enemy_evo;
-    uint8_t enemy_level;
-    int16_t enemy_hp, enemy_max_hp;
-    int8_t  enemy_atk, enemy_def, enemy_spd;
-    uint8_t enemy_moves[MOVE_SLOTS];
-    uint8_t enemy_pp[MOVE_SLOTS];
-    int8_t  e_atk_mod, e_def_mod, e_spd_mod;
-    uint8_t menu_cursor;    /* 0=FIGHT 1=BAG 2=SWAP 3=RUN */
-    uint8_t move_cursor;
-    bool    show_moves;
-    bool    show_bag;
-    bool    show_swap;
-    char    log[3][32];
-    uint8_t log_count;
-    int     anim_timer;
-    bool    can_catch;
-} BattleState;
-
-/* ------------------------------------------------------------------ */
 /* Home base / furniture                                                */
 /* ------------------------------------------------------------------ */
 #define FURNITURE_SLOTS 8
@@ -172,7 +146,6 @@ typedef enum {
     MTAB_ITEMS    = 1,
     MTAB_PARTY    = 2,
     MTAB_CRAFTING = 3,
-    MTAB_EQUIP    = 4,
 } MenuTab;
 
 /* ------------------------------------------------------------------ */
@@ -209,13 +182,11 @@ typedef struct GameState {
     uint32_t tick_count;
     uint16_t day;
 
-    XpDrop   xp_drops[8];
+    XpDrop   xp_drops[XP_DROP_MAX];
     uint8_t  xp_drop_count;
 
-    BattleState battle;
-
     FurnitureSlot furniture[FURNITURE_SLOTS];
-    FarmPatch     farm[3];
+    FarmPatch     farm[FARM_PATCH_COUNT];
     uint8_t       home_cursor_x, home_cursor_y;
 
     MenuTab  menu_tab;
@@ -226,10 +197,11 @@ typedef struct GameState {
 
     char     log[4][36];
     uint8_t  log_count;
+    uint32_t log_ms;        /* hal_ticks_ms() when the latest message was added */
+
+    uint8_t  recruited_flags; /* bitmask for auto-recruit milestones (bit 0/1/2) */
 
     uint32_t total_steps;
-    uint16_t total_battles;
-    uint16_t total_catches;
 } GameState;
 
 /* ------------------------------------------------------------------ */

@@ -65,29 +65,6 @@ static const Move MOVES[32] = {
     /*31 */ {"Shadow Force","dark",    80,  90, 10, CAT_PHYSICAL, EFF_NONE},
 };
 
-/* Type effectiveness chart */
-static inline float type_mult(const char *atk_type, const char *def_type) {
-    /* fire > grass; grass > air; air > electric; electric > fire */
-    if (strcmp(atk_type, "fire") == 0) {
-        if (strcmp(def_type, "grass") == 0)    return 2.0f;
-        if (strcmp(def_type, "electric") == 0) return 0.5f;
-    }
-    if (strcmp(atk_type, "grass") == 0) {
-        if (strcmp(def_type, "air") == 0)  return 2.0f;
-        if (strcmp(def_type, "fire") == 0) return 0.5f;
-    }
-    if (strcmp(atk_type, "air") == 0) {
-        if (strcmp(def_type, "electric") == 0) return 2.0f;
-        if (strcmp(def_type, "grass") == 0)    return 0.5f;
-    }
-    if (strcmp(atk_type, "electric") == 0) {
-        if (strcmp(def_type, "fire") == 0) return 2.0f;
-        if (strcmp(def_type, "air") == 0)  return 0.5f;
-    }
-    /* dark is neutral to most */
-    return 1.0f;
-}
-
 static inline const Move *get_move(uint8_t id) {
     if (id >= 32) id = 0;
     return &MOVES[id];

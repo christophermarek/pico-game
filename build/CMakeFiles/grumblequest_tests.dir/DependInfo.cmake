@@ -8,7 +8,6 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/Users/christophermarek/Desktop/other/PicoGame/src/game/battle.c" "CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/game/pets.c" "CMakeFiles/grumblequest_tests.dir/src/game/pets.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/game/pets.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/game/player.c" "CMakeFiles/grumblequest_tests.dir/src/game/player.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/game/player.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/game/save.c" "CMakeFiles/grumblequest_tests.dir/src/game/save.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/game/save.c.o.d"
@@ -20,7 +19,6 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/christophermarek/Desktop/other/PicoGame/src/render/iso_spritesheet.c" "CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/render/renderer.c" "CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/render/sprites.c" "CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o.d"
-  "/Users/christophermarek/Desktop/other/PicoGame/src/ui/battle_ui.c" "CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/ui/char_create.c" "CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/ui/hud.c" "CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o.d"
   "/Users/christophermarek/Desktop/other/PicoGame/src/ui/menu.c" "CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o" "gcc" "CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o.d"

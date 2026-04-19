@@ -5,16 +5,12 @@
 #include "colors.h"
 #include "config.h"
 #include "../ui/hud.h"
-#include "../ui/battle_ui.h"
 #include "../ui/menu.h"
 #include "../ui/char_create.h"
 #include "../game/td_cam.h"
 #include <stdint.h>
 #include <stdlib.h>
 
-#define TD_FEET_OFF 7.0f
-#define TD_PET_FEET 5.0f
-#define TD_CULL     72
 
 /* ------------------------------------------------------------------ */
 /* Overworld: world pixel → screen (player-centred iso + bearing)      */
@@ -64,7 +60,7 @@ static bool td_cell_on_screen(const GameState *s, const TdCamBasis *cam, int tx,
     float tcy = (float)(ty * TILE + TILE / 2);
     int   sx, sy;
     td_world_to_screen(s, cam, tcx, tcy, &sx, &sy);
-    return sx >= -TD_CULL && sx < DISPLAY_W + TD_CULL && sy >= -TD_CULL && sy < DISPLAY_H + TD_CULL;
+    return sx >= -TD_ISO_CULL && sx < DISPLAY_W + TD_ISO_CULL && sy >= -TD_ISO_CULL && sy < DISPLAY_H + TD_ISO_CULL;
 }
 
 /* ------------------------------------------------------------------ */
@@ -167,11 +163,11 @@ void render_topdown(GameState *s, const World *w)
 
     for (int i = 0; i < s->xp_drop_count; i++) {
         const XpDrop *d = &s->xp_drops[i];
-        if (d->timer < 5)
+        if (d->timer < 5)   /* hide during first few frames while fading in */
             continue;
         int dx, dy;
         td_world_to_screen(s, &cam, (float)d->x, (float)d->y, &dx, &dy);
-        dy -= (40 - d->timer);
+        dy -= (XP_DROP_TIMER - d->timer);
         if (dx >= 0 && dx < DISPLAY_W && dy >= 0 && dy < DISPLAY_H)
             spr_xp_drop(dx, dy, d->amount);
     }
@@ -282,6 +278,33 @@ static void render_base(GameState *s) {
 /* ------------------------------------------------------------------ */
 /* Frame dispatch                                                       */
 /* ------------------------------------------------------------------ */
+static void draw_fps(void)
+{
+    static uint32_t bucket_start = 0;
+    static uint32_t frame_count  = 0;
+    static uint32_t cached_fps   = 0;
+
+    uint32_t now = hal_ticks_ms();
+    frame_count++;
+    if (now - bucket_start >= 1000u) {
+        cached_fps   = frame_count;
+        frame_count  = 0;
+        bucket_start = now;
+    }
+
+    char buf[8];
+    int  n = 0;
+    uint32_t v = cached_fps;
+    if (v >= 100) buf[n++] = (char)('0' + v / 100);
+    if (v >=  10) buf[n++] = (char)('0' + (v / 10) % 10);
+    buf[n++] = (char)('0' + v % 10);
+    buf[n++] = 'F'; buf[n++] = 'P'; buf[n++] = 'S';
+    buf[n]   = '\0';
+
+    /* Right-aligned, 2 px from top-right corner */
+    font_draw_str(buf, DISPLAY_W - n * 6 - 2, 2, C_TEXT_DIM, 1);
+}
+
 void render_frame(GameState *s, const World *w) {
     switch (s->mode) {
     case MODE_CHAR_CREATE:
@@ -295,9 +318,6 @@ void render_frame(GameState *s, const World *w) {
         render_sideview(s, w);
         hud_draw(s);
         break;
-    case MODE_BATTLE:
-        battle_ui_render(s);
-        break;
     case MODE_MENU:
         menu_render(s);
         break;
@@ -309,4 +329,6 @@ void render_frame(GameState *s, const World *w) {
         hal_fill(C_BG_DARK);
         break;
     }
+
+    draw_fps();
 }

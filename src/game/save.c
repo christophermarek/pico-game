@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define SAVE_MAGIC   0x4735513Eu  /* 'G5Q1' as a uint32 */
-#define SAVE_VERSION 1u
+#define SAVE_VERSION 2u           /* bump whenever GameState layout changes */
 
 typedef struct {
     uint32_t  magic;

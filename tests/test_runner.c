@@ -16,7 +16,6 @@
 #include "game/world.h"
 #include "game/player.h"
 #include "game/tick.h"
-#include "game/battle.h"
 #include "game/save.h"
 #include "game/skills.h"
 #include "game/pets.h"
@@ -151,7 +150,7 @@ static void test_world(void)
     T(world_tile(&w, 4, 13) == T_ORE);
     world_deplete_node(&w, 4, 13);
     T(w.node_respawn[idx] > 0);
-    for (int i = 0; i < 60; i++)
+    for (int i = 0; i < NODE_RESPAWN_TICKS; i++)
         world_tick(&w);
     T(w.node_respawn[idx] == 0);
 
@@ -208,44 +207,7 @@ static void test_game_tick(void)
 }
 
 /* ------------------------------------------------------------------ */
-/* 8. battle                                                           */
-/* ------------------------------------------------------------------ */
-static void test_battle(void)
-{
-    int sum_low = 0, sum_high = 0;
-    for (int i = 0; i < 40; i++) {
-        int d1 = battle_calc_damage(20, 10, 40, 1.0f, 0);
-        int d2 = battle_calc_damage(40, 10, 40, 1.0f, 0);
-        T(d1 >= 1);
-        T(d2 >= 1);
-        sum_low += d1;
-        sum_high += d2;
-    }
-    T(sum_high > sum_low);
-
-    GameState s;
-    state_init(&s);
-    s.mode = MODE_TOPDOWN;
-    battle_start_wild(&s, SP_BRAMBLE, 4);
-    T(s.mode == MODE_BATTLE);
-    T(s.battle.active);
-    T(s.battle.enemy_hp > 0);
-
-    BattleState btmp;
-    memset(&btmp, 0, sizeof(btmp));
-    battle_add_log(&btmp, "hello");
-    T(btmp.log_count >= 1);
-
-    Input inp;
-    memset(&inp, 0, sizeof(inp));
-    battle_update(&s, &inp);
-
-    battle_end(&s, false);
-    T(s.mode == MODE_TOPDOWN);
-}
-
-/* ------------------------------------------------------------------ */
-/* 9. save / HAL persistence                                           */
+/* 8. save / HAL persistence                                           */
 /* ------------------------------------------------------------------ */
 static void test_save_roundtrip(void)
 {
@@ -318,10 +280,6 @@ static void test_render_and_ui(void)
     s.mode = MODE_SIDE;
     render_frame(&s, &w);
 
-    battle_start_wild(&s, SP_GLUB, 2);
-    render_frame(&s, &w);
-    battle_end(&s, false);
-
     s.mode = MODE_TOPDOWN;
     menu_open(&s);
     render_frame(&s, &w);
@@ -353,7 +311,6 @@ int main(void)
     test_world();
     test_pets_and_skills();
     test_game_tick();
-    test_battle();
     test_save_roundtrip();
     test_player();
     test_render_and_ui();

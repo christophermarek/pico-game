@@ -1,4 +1,5 @@
 #include "state.h"
+#include "hal.h"
 #include <string.h>
 #include <stddef.h>
 
@@ -44,18 +45,18 @@ void state_init(GameState *s) {
     /* Default player name */
     strncpy(s->custom.name, "Hero", sizeof(s->custom.name) - 1);
 
-    /* Starting pet: Glub level 5 */
+    /* Starting pet: Glub */
     {
         Pet *p       = &s->party[0];
         p->species_id = 0;    /* SP_GLUB */
         p->evo_stage  = 0;
-        p->level      = 5;
-        p->happiness  = 60;
-        p->max_hp     = (int16_t)(30 + 5 * 5);   /* base_hp + grow_hp * level */
+        p->level      = START_PET_LEVEL;
+        p->happiness  = PET_DEFAULT_HAPPINESS;
+        p->max_hp     = (int16_t)(30 + 5 * START_PET_LEVEL);
         p->hp         = p->max_hp;
-        p->atk        = (int8_t)(12 + 2 * 5);
-        p->def        = (int8_t)(10 + 2 * 5);
-        p->spd        = (int8_t)(11 + 2 * 5);
+        p->atk        = (int8_t)(12 + 2 * START_PET_LEVEL);
+        p->def        = (int8_t)(10 + 2 * START_PET_LEVEL);
+        p->spd        = (int8_t)(11 + 2 * START_PET_LEVEL);
         p->moves[0]   = 1;   /* Tackle */
         p->moves[1]   = 2;   /* Shadow Bite */
         p->moves[2]   = 0;
@@ -68,9 +69,9 @@ void state_init(GameState *s) {
     s->party_count = 1;
     s->active_pet  = 0;
 
-    /* Starting inventory: 3 bread, 3 orbs */
-    s->inv[0].item_id = ITEM_BREAD; s->inv[0].count = 3;
-    s->inv[1].item_id = ITEM_ORB;   s->inv[1].count = 3;
+    /* Starting inventory */
+    s->inv[0].item_id = ITEM_BREAD; s->inv[0].count = START_INV_BREAD_COUNT;
+    s->inv[1].item_id = ITEM_ORB;   s->inv[1].count = START_INV_ORB_COUNT;
 }
 
 /* ------------------------------------------------------------------ */
@@ -87,24 +88,24 @@ uint16_t total_level(const GameState *s) {
 /* Prepend message to log ring buffer                                   */
 /* ------------------------------------------------------------------ */
 void state_log(GameState *s, const char *msg) {
-    /* Shift entries down */
     for (int i = 3; i > 0; i--)
         memcpy(s->log[i], s->log[i - 1], sizeof(s->log[0]));
     strncpy(s->log[0], msg, sizeof(s->log[0]) - 1);
     s->log[0][sizeof(s->log[0]) - 1] = '\0';
     if (s->log_count < 4) s->log_count++;
+    s->log_ms = hal_ticks_ms();
 }
 
 /* ------------------------------------------------------------------ */
 /* Spawn a floating XP drop effect                                      */
 /* ------------------------------------------------------------------ */
 void state_add_xp_drop(GameState *s, int x, int y, uint16_t amount) {
-    if (s->xp_drop_count >= 8) return;
+    if (s->xp_drop_count >= XP_DROP_MAX) return;
     XpDrop *d = &s->xp_drops[s->xp_drop_count++];
     d->x      = x;
     d->y      = y;
     d->amount = amount;
-    d->timer  = 40;
+    d->timer  = XP_DROP_TIMER;
 }
 
 /* ------------------------------------------------------------------ */
@@ -123,7 +124,8 @@ bool inv_add(GameState *s, uint8_t item_id, uint8_t qty) {
     /* Try to stack onto existing slot */
     for (int i = 0; i < INV_SLOTS; i++) {
         if (s->inv[i].item_id == item_id) {
-            s->inv[i].count += qty;
+            uint16_t sum = (uint16_t)s->inv[i].count + qty;
+            s->inv[i].count = (sum > 255u) ? 255u : (uint8_t)sum;
             return true;
         }
     }

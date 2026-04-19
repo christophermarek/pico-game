@@ -1,25 +1,26 @@
 #include "tick.h"
 #include "pets.h"
+#include "config.h"
 #include "../data/equipment.h"
 
 void game_tick(GameState *s, World *w) {
     s->tick_count++;
 
     /* Hunger decay */
-    if (s->hunger >= 2)
-        s->hunger -= 2;
+    if (s->hunger >= HUNGER_DECAY_PER_TICK)
+        s->hunger -= HUNGER_DECAY_PER_TICK;
     else
         s->hunger = 0;
 
     /* HP damage from starvation */
     if (s->hunger == 0) {
-        if (s->hp >= 3) s->hp -= 3;
-        else            s->hp  = 0;
+        if (s->hp >= STARVATION_HP_LOSS) s->hp -= STARVATION_HP_LOSS;
+        else                             s->hp  = 0;
     }
 
     /* Energy regen when not skilling */
     if (!s->skilling) {
-        if (s->energy < 100) s->energy++;
+        if (s->energy < STAT_MAX) s->energy += ENERGY_REGEN_PER_TICK;
     }
 
     /* Per-pet tick */
@@ -33,16 +34,13 @@ void game_tick(GameState *s, World *w) {
         const Equipment *e = get_equipment(p->equip_id);
         if (e && e->happy_per_tick > 0) {
             int h = p->happiness + e->happy_per_tick;
-            if (h > 100) h = 100;
+            if (h > STAT_MAX) h = STAT_MAX;
             p->happiness = (uint8_t)h;
         }
-
-        /* Farm berries check */
-        /* (simple: just decay grow_ticks) */
     }
 
     /* Farm patches */
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < FARM_PATCH_COUNT; i++) {
         FarmPatch *fp = &s->farm[i];
         if (fp->berry_id > 0 && !fp->ready) {
             if (fp->grow_ticks > 0) fp->grow_ticks--;
@@ -50,8 +48,8 @@ void game_tick(GameState *s, World *w) {
         }
     }
 
-    /* Day counter — every 20 ticks */
-    if (s->tick_count % 20 == 0)
+    /* Day counter */
+    if (s->tick_count % TICKS_PER_DAY == 0)
         s->day++;
 
     /* World node respawns */

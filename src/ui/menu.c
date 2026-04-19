@@ -5,6 +5,7 @@
 #include "../render/font.h"
 #include "../render/sprites.h"
 #include "../game/skills.h"
+#include "../game/pets.h"
 #include "../data/species.h"
 #include "../data/equipment.h"
 
@@ -20,7 +21,7 @@ static const char *TAB_NAMES[TAB_COUNT] = {
 void menu_open(GameState *s) {
     s->prev_mode   = s->mode;
     s->mode        = MODE_MENU;
-    s->menu_tab    = MTAB_SKILLS;
+    /* Preserve menu_tab so the toolbar shortcut remembers the last section */
     s->menu_cursor = 0;
     s->menu_scroll = 0;
 }
@@ -61,7 +62,7 @@ static void draw_int_m(int x, int y, int val, uint16_t color) {
 static void draw_bar_m(int x, int y, int w, int cur, int max, uint16_t color) {
     hal_fill_rect(x, y, w, 3, C_BG);
     if (max > 0) {
-        int fill = (max > 0) ? (cur * w / max) : 0;
+        int fill = cur * w / max;
         if (fill > w) fill = w;
         if (fill > 0) hal_fill_rect(x, y, fill, 3, color);
     }
@@ -115,16 +116,17 @@ void menu_update(GameState *s, const Input *inp) {
             s->active_pet = s->menu_cursor;
         break;
     }
-    case MTAB_CRAFTING:
-    case MTAB_EQUIP: {
+    case MTAB_CRAFTING: {
         int max_c = EQUIP_COUNT - 1;
         if (inp->up   && !u_prev && s->menu_cursor > 0)       s->menu_cursor--;
         if (inp->down && !d_prev && s->menu_cursor < (uint8_t)max_c) s->menu_cursor++;
-        /* A to craft */
+        /* A to craft and equip on the active pet */
         if (inp->a_press) {
             uint8_t equip_idx = (uint8_t)(s->menu_cursor + 1);
             if (can_craft(s, equip_idx)) {
                 consume_recipe(s, equip_idx);
+                if (s->party_count > 0)
+                    pet_equip(&s->party[s->active_pet], equip_idx);
                 state_log(s, "Crafted!");
             } else {
                 state_log(s, "Missing items.");
@@ -170,7 +172,6 @@ void menu_render(GameState *s) {
             int sy   = content_y + row * 22;
 
             uint16_t border_c = (s->menu_cursor == i) ? C_BORDER_ACT : C_BORDER;
-            hal_fill_rect(sx, sy, 110, 20, C_PANEL);
             hal_fill_rect(sx, sy, 110, 20, C_BG);
             hal_fill_rect(sx, sy, 110, 1, border_c);
             hal_fill_rect(sx, sy+19, 110, 1, border_c);
@@ -252,9 +253,8 @@ void menu_render(GameState *s) {
         break;
     }
 
-    /* ---- CRAFTING / EQUIP ---- */
-    case MTAB_CRAFTING:
-    case MTAB_EQUIP: {
+    /* ---- CRAFTING ---- */
+    case MTAB_CRAFTING: {
         for (int i = 0; i < EQUIP_COUNT; i++) {
             const Equipment *e = &EQUIPMENT[i];
             int sy = content_y + i * 24;

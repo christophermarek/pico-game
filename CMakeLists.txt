@@ -27,7 +27,6 @@ set(GAME_CORE_SOURCES
     src/game/skills.c
     src/game/pets.c
     src/game/tick.c
-    src/game/battle.c
     src/game/save.c
     src/render/renderer.c
     src/render/sprites.c
@@ -35,7 +34,6 @@ set(GAME_CORE_SOURCES
     src/render/font.c
     src/ui/hud.c
     src/ui/menu.c
-    src/ui/battle_ui.c
     src/ui/char_create.c
 )
 

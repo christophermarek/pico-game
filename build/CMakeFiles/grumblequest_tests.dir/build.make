@@ -184,24 +184,10 @@ CMakeFiles/grumblequest_tests.dir/src/game/tick.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/grumblequest_tests.dir/src/game/tick.c.s"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Users/christophermarek/Desktop/other/PicoGame/src/game/tick.c -o CMakeFiles/grumblequest_tests.dir/src/game/tick.c.s
 
-CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
-CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/game/battle.c
-CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building C object CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o -MF CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/game/battle.c
-
-CMakeFiles/grumblequest_tests.dir/src/game/battle.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/grumblequest_tests.dir/src/game/battle.c.i"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /Users/christophermarek/Desktop/other/PicoGame/src/game/battle.c > CMakeFiles/grumblequest_tests.dir/src/game/battle.c.i
-
-CMakeFiles/grumblequest_tests.dir/src/game/battle.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/grumblequest_tests.dir/src/game/battle.c.s"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Users/christophermarek/Desktop/other/PicoGame/src/game/battle.c -o CMakeFiles/grumblequest_tests.dir/src/game/battle.c.s
-
 CMakeFiles/grumblequest_tests.dir/src/game/save.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/game/save.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/game/save.c
 CMakeFiles/grumblequest_tests.dir/src/game/save.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/grumblequest_tests.dir/src/game/save.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building C object CMakeFiles/grumblequest_tests.dir/src/game/save.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/game/save.c.o -MF CMakeFiles/grumblequest_tests.dir/src/game/save.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/game/save.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/game/save.c
 
 CMakeFiles/grumblequest_tests.dir/src/game/save.c.i: cmake_force
@@ -215,7 +201,7 @@ CMakeFiles/grumblequest_tests.dir/src/game/save.c.s: cmake_force
 CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/render/renderer.c
 CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o -MF CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/render/renderer.c
 
 CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.i: cmake_force
@@ -229,7 +215,7 @@ CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.s: cmake_force
 CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/render/sprites.c
 CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o -MF CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/render/sprites.c
 
 CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.i: cmake_force
@@ -243,7 +229,7 @@ CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.s: cmake_force
 CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/render/iso_spritesheet.c
 CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o -MF CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/render/iso_spritesheet.c
 
 CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.i: cmake_force
@@ -257,7 +243,7 @@ CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet.c.s: cmake_force
 CMakeFiles/grumblequest_tests.dir/src/render/font.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/render/font.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/render/font.c
 CMakeFiles/grumblequest_tests.dir/src/render/font.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/font.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building C object CMakeFiles/grumblequest_tests.dir/src/render/font.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/render/font.c.o -MF CMakeFiles/grumblequest_tests.dir/src/render/font.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/render/font.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/render/font.c
 
 CMakeFiles/grumblequest_tests.dir/src/render/font.c.i: cmake_force
@@ -271,7 +257,7 @@ CMakeFiles/grumblequest_tests.dir/src/render/font.c.s: cmake_force
 CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/ui/hud.c
 CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building C object CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building C object CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o -MF CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/ui/hud.c
 
 CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.i: cmake_force
@@ -285,7 +271,7 @@ CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.s: cmake_force
 CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/ui/menu.c
 CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building C object CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building C object CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o -MF CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/ui/menu.c
 
 CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.i: cmake_force
@@ -296,24 +282,10 @@ CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.s"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Users/christophermarek/Desktop/other/PicoGame/src/ui/menu.c -o CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.s
 
-CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
-CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/ui/battle_ui.c
-CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building C object CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o -MF CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/ui/battle_ui.c
-
-CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.i"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /Users/christophermarek/Desktop/other/PicoGame/src/ui/battle_ui.c > CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.i
-
-CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.s"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Users/christophermarek/Desktop/other/PicoGame/src/ui/battle_ui.c -o CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.s
-
 CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o: CMakeFiles/grumblequest_tests.dir/flags.make
 CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o: /Users/christophermarek/Desktop/other/PicoGame/src/ui/char_create.c
 CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o: CMakeFiles/grumblequest_tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building C object CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building C object CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o -MF CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o.d -o CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o -c /Users/christophermarek/Desktop/other/PicoGame/src/ui/char_create.c
 
 CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.i: cmake_force
@@ -334,7 +306,6 @@ grumblequest_tests_OBJECTS = \
 "CMakeFiles/grumblequest_tests.dir/src/game/skills.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/game/pets.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/game/tick.c.o" \
-"CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/game/save.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o" \
@@ -342,7 +313,6 @@ grumblequest_tests_OBJECTS = \
 "CMakeFiles/grumblequest_tests.dir/src/render/font.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o" \
-"CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o" \
 "CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o"
 
 # External object files for target grumblequest_tests
@@ -356,7 +326,6 @@ grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/game/player.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/game/skills.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/game/pets.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/game/tick.c.o
-grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/game/battle.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/game/save.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/render/renderer.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/render/sprites.c.o
@@ -364,11 +333,10 @@ grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/render/iso_spritesheet
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/render/font.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/ui/hud.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/ui/menu.c.o
-grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/ui/battle_ui.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/src/ui/char_create.c.o
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/build.make
 grumblequest_tests: CMakeFiles/grumblequest_tests.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Linking C executable grumblequest_tests"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/christophermarek/Desktop/other/PicoGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Linking C executable grumblequest_tests"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/grumblequest_tests.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

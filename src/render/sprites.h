@@ -22,7 +22,6 @@ void spr_player_sv(int sx, int sy, uint8_t dir, float walk_frame, bool jumping,
 /* Monsters */
 void spr_monster(int sx, int sy, uint8_t evo_stage, float walk_frame);
 void spr_monster_foot(int foot_sx, int foot_sy, uint8_t evo_stage, float walk_frame);
-void spr_monster_large(int sx, int sy, uint8_t evo_stage);
 
 /* Furniture */
 void spr_furniture(FurnitureType type, int sx, int sy);

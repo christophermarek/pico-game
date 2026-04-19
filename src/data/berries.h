@@ -49,8 +49,7 @@ static inline const Berry *get_berry_by_idx(int idx) {
  * Requires Pet to be fully defined — include game/state.h before calling.
  */
 #ifdef GRUMBLE_STATE_DEFINED
-static inline const char *apply_berry(Pet *pet, const char *berry_id, bool in_battle) {
-    (void)in_battle;
+static inline const char *apply_berry(Pet *pet, const char *berry_id) {
     const Berry *b = get_berry(berry_id);
     if (!b) return "No effect";
 

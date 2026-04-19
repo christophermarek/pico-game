@@ -44,6 +44,7 @@ CMakeFiles/grumblequest_sim.dir/src/ui/menu.c.o: \
   /Users/christophermarek/Desktop/other/PicoGame/src/ui/../render/../game/world.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/ui/../game/skills.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/ui/../game/world.h \
+  /Users/christophermarek/Desktop/other/PicoGame/src/ui/../game/pets.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/ui/../data/species.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/string.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_string.h \

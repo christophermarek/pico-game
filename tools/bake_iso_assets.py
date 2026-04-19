@@ -93,10 +93,14 @@ def map_mon(ch: str) -> int:
         return C_MON_PURPLE_M
     if ch == "d":
         return C_MON_PURPLE_D
+    if ch == "D":
+        return C_MON_DARK
     if ch == "c":
         return C_MON_CROWN
     if ch == "e":
         return C_EYE
+    if ch == "r":
+        return C_MON_RED_L
     return C_BLACK
 
 
@@ -255,10 +259,11 @@ def bake_cell_sand() -> Image.Image:
 
 
 def bake_cell_tree() -> Image.Image:
+    """Overlay-only: trunk + canopy on transparent bg (no grass base).
+    The floor pass draws T_GRASS beneath this tile at render time."""
     im = new_cell()
     cx, cy = 32, 24
     hw, hh = TILE, TILE // 2
-    iso_diamond_lit(im, cx, cy, hw, hh, C_GRASS_DARK, C_GRASS_LIGHT, h(0x1E4020))
     for y in range(8):
         put_px(im, cx - 1, cy - 4 + y, C_TREE_TRUNK)
         put_px(im, cx, cy - 4 + y, C_TREE_TRUNK)
@@ -289,10 +294,10 @@ def bake_cell_ore() -> Image.Image:
 
 
 def bake_cell_flower() -> Image.Image:
+    """Overlay-only: stem + petals on transparent bg (no grass base).
+    The floor pass draws T_GRASS beneath this tile at render time."""
     im = new_cell()
     cx, cy = 32, 24
-    hw, hh = TILE, TILE // 2
-    iso_diamond_lit(im, cx, cy, hw, hh, C_GRASS_DARK, C_GRASS_LIGHT, h(0x1E4020))
     horiz(im, cx - 1, cy + 1, 2, C_GRASS_LIGHT)
     for y in range(3):
         put_px(im, cx, cy + 1 + y, C_GRASS_LIGHT)
@@ -759,13 +764,34 @@ MON2_A = [
     "................",
 ]
 
+MON3_A = [
+    "....cccccccc....",
+    ".....c....c.....",
+    "...DDDDDDDDDd...",
+    "..dDDDDDDDDDDd..",
+    ".DDDDrr..rrDDDD.",
+    ".DDDDDDDDDDDDD..",
+    ".dDDDDDDDDDDDd..",
+    "..DDDDDDDDDDD...",
+    "...DDDDDDDDDd...",
+    "....DDDDDDDDD...",
+    "....DD....DD....",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+]
+
+
 def bake_actors(root: str) -> None:
-    out = Image.new("RGBA", (128, 64), (0, 0, 0, 0))
+    # 4 player cols + 4 monster cols = 8 cols × 32px = 256px wide; height = 64px
+    out = Image.new("RGBA", (160, 64), (0, 0, 0, 0))
     players = [PLAYER_DOWN, PLAYER_UP, PLAYER_LEFT, PLAYER_RIGHT]
     for i, rows in enumerate(players):
         cell = raster_cell(rows, 2, lambda ch: map_player(ch))
         out.paste(cell, (i * 32, 0), cell)
-    mons = [MON0_A, MON1_A, MON2_A]
+    mons = [MON0_A, MON1_A, MON2_A, MON3_A]
     for i, rows in enumerate(mons):
         cell = raster_cell(rows, 2, map_mon)
         out.paste(cell, (i * 32, 32), cell)
@@ -774,11 +800,15 @@ def bake_actors(root: str) -> None:
     print("Wrote", path)
 
 
+SPRITE_SCALE = 2   # All new char/base sprites baked at 2× game pixels
+
+
 def bake_sv_player_frame(walk_frame: int, dir_left: bool) -> Image.Image:
-    """16×16 side-view player cell (walk_frame ∈ {0,1}, dir_left ∈ {True,False})."""
-    im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    """32×32 side-view player cell (2× game pixels)."""
+    S = SPRITE_SCALE
+    im = Image.new("RGBA", (16 * S, 16 * S), (0, 0, 0, 0))
     def R(x: int, y: int, w: int, hh: int, u16: int) -> None:
-        fill_rect_px(im, x, y, w, hh, u16)
+        fill_rect_px(im, x * S, y * S, w * S, hh * S, u16)
     skin   = C_SKIN_TONES[0]
     hair   = C_HAIR_COLS[0]
     outfit = C_OUTFIT_COLS[0]
@@ -799,10 +829,11 @@ def bake_sv_player_frame(walk_frame: int, dir_left: bool) -> Image.Image:
 
 
 def bake_sv_tile(tile_id: int) -> Image.Image:
-    """Flat 16×16 side-view tile for T_TREE or T_ORE."""
-    im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    """32×32 side-view tile for T_TREE or T_ORE (2× game pixels)."""
+    S = SPRITE_SCALE
+    im = Image.new("RGBA", (16 * S, 16 * S), (0, 0, 0, 0))
     def R(x: int, y: int, w: int, hh: int, u16: int) -> None:
-        fill_rect_px(im, x, y, w, hh, u16)
+        fill_rect_px(im, x * S, y * S, w * S, hh * S, u16)
     if tile_id == T_TREE:
         R(0,  0, 16, 16, C_GRASS_DARK)
         R(6, 10,  4,  6, C_TREE_TRUNK)
@@ -822,10 +853,11 @@ def bake_sv_tile(tile_id: int) -> Image.Image:
 
 
 def bake_td_player_frame(dir: int, walk_frame: int) -> Image.Image:
-    """16×16 top-down player cell. dir: 0=DOWN 1=UP 2=LEFT 3=RIGHT."""
-    im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    """32×32 top-down player cell (2× game pixels). dir: 0=DOWN 1=UP 2=LEFT 3=RIGHT."""
+    S = SPRITE_SCALE
+    im = Image.new("RGBA", (16 * S, 16 * S), (0, 0, 0, 0))
     def R(x: int, y: int, w: int, hh: int, u16: int) -> None:
-        fill_rect_px(im, x, y, w, hh, u16)
+        fill_rect_px(im, x * S, y * S, w * S, hh * S, u16)
     skin   = C_SKIN_TONES[0]
     hair   = C_HAIR_COLS[0]
     outfit = C_OUTFIT_COLS[0]
@@ -851,10 +883,11 @@ def bake_td_player_frame(dir: int, walk_frame: int) -> Image.Image:
 
 
 def bake_monster_frame(evo_stage: int, walk_frame: int) -> Image.Image:
-    """16×16 monster cell for given evolution stage and walk frame (0 or 1)."""
-    im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    """32×32 monster cell for given stage and walk frame (2× game pixels)."""
+    S = SPRITE_SCALE
+    im = Image.new("RGBA", (16 * S, 16 * S), (0, 0, 0, 0))
     def R(x: int, y: int, w: int, hh: int, u16: int) -> None:
-        fill_rect_px(im, x, y, w, hh, u16)
+        fill_rect_px(im, x * S, y * S, w * S, hh * S, u16)
     bob  = walk_frame & 1
     M    = C_MON_PURPLE_M
     D    = C_MON_PURPLE_D
@@ -902,10 +935,11 @@ def bake_monster_frame(evo_stage: int, walk_frame: int) -> Image.Image:
 
 
 def bake_monster_large_frame(evo_stage: int) -> Image.Image:
-    """32×32 monster cell at 2× scale (battle screen enemy)."""
-    im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    """64×64 monster-large cell (2× of 32×32 game pixels = 4× base pixel)."""
+    S = SPRITE_SCALE
+    im = Image.new("RGBA", (32 * S, 32 * S), (0, 0, 0, 0))
     def R2(x: int, y: int, w: int, hh: int, u16: int) -> None:
-        fill_rect_px(im, x * 2, y * 2, w * 2, hh * 2, u16)
+        fill_rect_px(im, x * 2 * S, y * 2 * S, w * 2 * S, hh * 2 * S, u16)
     M    = C_MON_PURPLE_M
     D    = C_MON_PURPLE_D
     dark = C_MON_DARK
@@ -935,10 +969,11 @@ def bake_monster_large_frame(evo_stage: int) -> Image.Image:
 
 
 def bake_furniture_frame(furn_type: int) -> Image.Image:
-    """16×16 furniture sprite. furn_type matches FURN_* enum (1-7)."""
-    im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    """32×32 furniture sprite (2× game pixels). furn_type matches FURN_* enum (1-7)."""
+    S = SPRITE_SCALE
+    im = Image.new("RGBA", (16 * S, 16 * S), (0, 0, 0, 0))
     def R(x: int, y: int, w: int, hh: int, u16: int) -> None:
-        fill_rect_px(im, x, y, w, hh, u16)
+        fill_rect_px(im, x * S, y * S, w * S, hh * S, u16)
     if furn_type == FURN_BED:
         R(0,  4, 16, 10, C_PATH_DARK)
         R(1,  5, 14,  8, C_PLAYER_BODY)
@@ -974,43 +1009,55 @@ def bake_furniture_frame(furn_type: int) -> Image.Image:
 
 def bake_chars(root: str) -> None:
     """
-    assets_chars.png  224 × 64
-      Row 0 (y=0,  h=16): SV player×4, SV tiles×2, TD player×8  (14 cells × 16px)
-      Row 1 (y=16, h=16): monster-small×8                         (8 cells × 16px)
-      Row 2 (y=32, h=32): monster-large×4                         (4 cells × 32px)
-    """
-    sheet = Image.new("RGBA", (224, 64), (0, 0, 0, 0))
+    assets_chars.png  256 × 192  — 1 row per sprite type, SPRITE_SCALE=2
 
-    # SV player: col 0=walk0_right, 1=walk1_right, 2=walk0_left, 3=walk1_left
+      Row 0 (y=0,   h=32): SV player ×4           (32px cells, cols 0-3)
+      Row 1 (y=32,  h=32): SV tiles ×2  (tree/ore)(32px cells, cols 0-1)
+      Row 2 (y=64,  h=32): TD player ×8            (32px cells, cols 0-7)
+      Row 3 (y=96,  h=32): monster-small ×8        (32px cells, cols 0-7)
+      Row 4 (y=128, h=64): monster-large ×4        (64px cells, cols 0-3)
+
+    Frame index within each row:
+      SV player:    walk_frame*2 + (1 if dir_left else 0)  — walk0/1 right, walk0/1 left
+      SV tiles:     0=T_TREE  1=T_ORE
+      TD player:    dir*2 + walk_frame  (dir: DOWN=0 UP=1 LEFT=2 RIGHT=3)
+      monster-sm:   stage*2 + walk_frame
+      monster-lg:   stage index (0-3)
+    """
+    CS = 16 * SPRITE_SCALE   # small cell (32px)
+    CL = 32 * SPRITE_SCALE   # large cell (64px)
+    W  = 8 * CS              # 256 — widest row is 8 × 32
+    H  = 4 * CS + CL         # 192
+    sheet = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+
+    # Row 0: SV player (walk0_right, walk1_right, walk0_left, walk1_left)
     for wf in range(2):
         for left in (False, True):
             col = wf + (2 if left else 0)
             cell = bake_sv_player_frame(wf, left)
-            sheet.paste(cell, (col * 16, 0), cell)
+            sheet.paste(cell, (col * CS, 0 * CS), cell)
 
-    # SV tiles: col 4=T_TREE, col 5=T_ORE
+    # Row 1: SV tiles (T_TREE=col0, T_ORE=col1)
     for i, tid in enumerate([T_TREE, T_ORE]):
         cell = bake_sv_tile(tid)
-        sheet.paste(cell, ((4 + i) * 16, 0), cell)
+        sheet.paste(cell, (i * CS, 1 * CS), cell)
 
-    # TD player: cols 6-13; layout: dir*2 + walk_frame  (dir: DOWN=0 UP=1 LEFT=2 RIGHT=3)
+    # Row 2: TD player (dir*2 + walk_frame)
     for d in range(4):
         for wf in range(2):
-            col = 6 + d * 2 + wf
             cell = bake_td_player_frame(d, wf)
-            sheet.paste(cell, (col * 16, 0), cell)
+            sheet.paste(cell, ((d * 2 + wf) * CS, 2 * CS), cell)
 
-    # Monster-small: cols 0-7 in row 1;  layout: stage*2 + walk_frame
+    # Row 3: monster-small (stage*2 + walk_frame)
     for stage in range(4):
         for wf in range(2):
-            col = stage * 2 + wf
             cell = bake_monster_frame(stage, wf)
-            sheet.paste(cell, (col * 16, 16), cell)
+            sheet.paste(cell, ((stage * 2 + wf) * CS, 3 * CS), cell)
 
-    # Monster-large: cols 0-3 in rows 2-3 (32×32 cells)
+    # Row 4: monster-large (64px cells, col = stage)
     for stage in range(4):
         cell = bake_monster_large_frame(stage)
-        sheet.paste(cell, (stage * 32, 32), cell)
+        sheet.paste(cell, (stage * CL, 4 * CS), cell)
 
     path = asset_out_path(root, "assets_chars.png")
     sheet.save(path)
@@ -1019,13 +1066,14 @@ def bake_chars(root: str) -> None:
 
 def bake_base(root: str) -> None:
     """
-    assets_base.png  128 × 16
-      Cols 0-6: FURN_BED … FURN_PET_HOUSE  (type indices 1-7, each 16×16)
+    assets_base.png  224 × 32  (cells at 2× game pixels = SPRITE_SCALE)
+      Cols 0-6: FURN_BED … FURN_PET_HOUSE  (type indices 1-7, each 32×32)
     """
-    sheet = Image.new("RGBA", (128, 16), (0, 0, 0, 0))
+    CS = 16 * SPRITE_SCALE
+    sheet = Image.new("RGBA", (7 * CS, CS), (0, 0, 0, 0))
     for ft in range(1, 8):
         cell = bake_furniture_frame(ft)
-        sheet.paste(cell, ((ft - 1) * 16, 0), cell)
+        sheet.paste(cell, ((ft - 1) * CS, 0), cell)
     path = asset_out_path(root, "assets_base.png")
     sheet.save(path)
     print("Wrote", path)

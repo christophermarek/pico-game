@@ -43,7 +43,6 @@ CMakeFiles/grumblequest_sim.dir/src/render/renderer.c.o: \
   /Users/christophermarek/Desktop/other/PicoGame/src/colors.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/render/../ui/hud.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/render/../ui/../game/state.h \
-  /Users/christophermarek/Desktop/other/PicoGame/src/render/../ui/battle_ui.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/render/../ui/menu.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/render/../ui/char_create.h \
   /Users/christophermarek/Desktop/other/PicoGame/src/render/../game/td_cam.h \

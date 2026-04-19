@@ -6,7 +6,54 @@
 #include "../data/species.h"
 
 /* ------------------------------------------------------------------ */
-/* Small helper to draw a horizontal bar                               */
+/* Layout constants (base values live in config.h)                     */
+/* ------------------------------------------------------------------ */
+#define STRIP_H      HUD_STRIP_H
+#define STRIP_Y      (DISPLAY_H - STRIP_H)
+
+/* Three stat bars, side by side, no text labels */
+#define BAR_X0       2
+#define BAR_W        18
+#define BAR_H        10
+#define BAR_Y        (STRIP_Y + 4)   /* centred vertically in the strip */
+#define BAR_GAP      2               /* pixels between bars */
+
+/* Message / idle-day text starts here */
+#define MSG_X        (BAR_X0 + 3 * (BAR_W + BAR_GAP) + 4)
+#define MSG_Y        (STRIP_Y + 5)   /* vertically centred: (18-8)/2 */
+
+#define MSG_TIMEOUT_MS  HUD_LOG_TIMEOUT_MS
+
+/* Tab shortcut icons on the right */
+#define ICON_W       13
+#define ICON_H       16              /* strip is 18 px; 1 px margin top+bottom */
+#define ICON_Y       (STRIP_Y + 1)
+#define ICON_GAP     1
+#define ICON_COUNT   4
+/* Total icon block width: ICON_COUNT * ICON_W + (ICON_COUNT-1) * ICON_GAP */
+#define ICON_BLOCK_W (ICON_COUNT * ICON_W + (ICON_COUNT - 1) * ICON_GAP)
+#define ICON_X0      (DISPLAY_W - ICON_BLOCK_W - 2)
+
+/* Room for message text: from MSG_X to start of icons */
+#define MSG_MAX_X    (ICON_X0 - 2)
+
+/* ------------------------------------------------------------------ */
+/* Tab icon definitions                                                 */
+/* Order matches the user-visible toolbar (bag first per UX request)   */
+/* ------------------------------------------------------------------ */
+static const struct {
+    uint8_t     mtab;
+    const char *label;   /* 2 chars, shown in icon */
+    uint16_t    color;
+} ICONS[ICON_COUNT] = {
+    { MTAB_ITEMS,    "BG", C_GOLD        },
+    { MTAB_SKILLS,   "SK", C_ENERGY_BLUE },
+    { MTAB_PARTY,    "PT", C_HP_GREEN    },
+    { MTAB_CRAFTING, "CF", C_HUNGER_ORG  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                              */
 /* ------------------------------------------------------------------ */
 static void draw_bar(int x, int y, int w, int h,
                      int cur, int max, uint16_t color) {
@@ -14,21 +61,15 @@ static void draw_bar(int x, int y, int w, int h,
     if (max > 0) {
         int fill = cur * w / max;
         if (fill > w) fill = w;
-        if (fill > 0)
-            hal_fill_rect(x, y, fill, h, color);
+        if (fill > 0) hal_fill_rect(x, y, fill, h, color);
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* Draw a short number string without printf                           */
-/* ------------------------------------------------------------------ */
 static void draw_int(int x, int y, int val, uint16_t color, int scale) {
-    char buf[8];
-    int n = 0;
+    char buf[8]; int n = 0;
     if (val < 0) { buf[n++] = '-'; val = -val; }
     if (val == 0) { buf[n++] = '0'; }
     else {
-        /* reverse digits */
         char tmp[7]; int tn = 0;
         while (val > 0) { tmp[tn++] = (char)('0' + val % 10); val /= 10; }
         for (int i = tn - 1; i >= 0; i--) buf[n++] = tmp[i];
@@ -38,52 +79,101 @@ static void draw_int(int x, int y, int val, uint16_t color, int scale) {
 }
 
 /* ------------------------------------------------------------------ */
-/* HUD strip at the bottom of the screen                               */
+/* Clipped string draw — truncates to fit within max_x pixels          */
+/* Builds a null-terminated copy limited by available width.           */
+/* ------------------------------------------------------------------ */
+static void draw_str_clipped(const char *str, int x, int y,
+                              uint16_t color, int max_x)
+{
+    int avail = max_x - x;
+    if (avail <= 0) return;
+
+    /* Find how many chars fit (font_str_width measures whole strings,
+     * so binary-search by building a prefix).  A simple linear scan is
+     * fine since messages are short (< 40 chars). */
+    char buf[40];
+    int  n = 0;
+    for (; str[n] && n < 38; n++) {
+        buf[n] = str[n]; buf[n + 1] = '\0';
+        if (font_str_width(buf, 1) > avail) {
+            buf[n] = '\0'; /* revert — previous length was the limit */
+            break;
+        }
+    }
+    font_draw_str(buf, x, y, color, 1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Four tab shortcut icons (right side of strip)                        */
+/* ------------------------------------------------------------------ */
+static void draw_tab_icons(const GameState *s) {
+    for (int i = 0; i < ICON_COUNT; i++) {
+        int      ix     = ICON_X0 + i * (ICON_W + ICON_GAP);
+        bool     active = ((uint8_t)s->menu_tab == ICONS[i].mtab);
+        uint16_t acc    = ICONS[i].color;
+
+        /* Background */
+        hal_fill_rect(ix, ICON_Y, ICON_W, ICON_H,
+                      active ? acc : C_BG_DARK);
+
+        /* 1-pixel border in accent colour */
+        hal_fill_rect(ix,           ICON_Y,            ICON_W, 1,      acc);
+        hal_fill_rect(ix,           ICON_Y + ICON_H-1, ICON_W, 1,      acc);
+        hal_fill_rect(ix,           ICON_Y,            1,      ICON_H, acc);
+        hal_fill_rect(ix + ICON_W-1, ICON_Y,           1,      ICON_H, acc);
+
+        /* 2-char label centred: 12px wide in 13px box → 1px from left edge */
+        uint16_t fg = active ? C_TEXT_WHITE : acc;
+        font_draw_str(ICONS[i].label, ix + 1, ICON_Y + 4, fg, 1);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Main HUD draw                                                        */
 /* ------------------------------------------------------------------ */
 void hud_draw(GameState *s) {
-    int strip_y = DISPLAY_H - 28;
-    int strip_h = 28;
+    /* === Bottom toolbar strip === */
+    hal_fill_rect(0, STRIP_Y,     DISPLAY_W, STRIP_H, C_BG_DARK);
+    hal_fill_rect(0, STRIP_Y,     DISPLAY_W, 1,       C_BORDER);    /* top border */
 
-    /* Dark background strip */
-    hal_fill_rect(0, strip_y, DISPLAY_W, strip_h, C_BG_DARK);
-    /* Border line */
-    hal_fill_rect(0, strip_y, DISPLAY_W, 1, C_BORDER);
+    /* Stat bars: HP (green) | Hunger (orange) | Energy (blue) */
+    draw_bar(BAR_X0,                           BAR_Y, BAR_W, BAR_H,
+             s->hp,     s->max_hp,             C_HP_GREEN);
+    draw_bar(BAR_X0 +   BAR_W + BAR_GAP,       BAR_Y, BAR_W, BAR_H,
+             s->hunger, 100,                   C_HUNGER_ORG);
+    draw_bar(BAR_X0 + 2*(BAR_W + BAR_GAP),     BAR_Y, BAR_W, BAR_H,
+             s->energy, 100,                   C_ENERGY_BLUE);
 
-    /* HP bar (green) */
-    font_draw_str("HP", 2, strip_y + 2, C_HP_GREEN, 1);
-    draw_bar(16, strip_y + 3, 48, 4, s->hp, s->max_hp, C_HP_GREEN);
-
-    /* Hunger bar (orange) */
-    font_draw_str("HN", 2, strip_y + 10, C_HUNGER_ORG, 1);
-    draw_bar(16, strip_y + 11, 48, 4, s->hunger, 100, C_HUNGER_ORG);
-
-    /* Energy bar (blue) */
-    font_draw_str("EN", 2, strip_y + 18, C_ENERGY_BLUE, 1);
-    draw_bar(16, strip_y + 19, 48, 4, s->energy, 100, C_ENERGY_BLUE);
-
-    /* Active pet HP bar (top-left) */
-    if (s->party_count > 0 && s->active_pet < s->party_count) {
-        const Pet *pet = &s->party[s->active_pet];
-        const Species *sp = get_species(pet->species_id);
-
-        /* Name */
-        const char *pname = sp->evo_names[pet->evo_stage];
-        font_draw_str(pname, 2, 2, C_TEXT_MAIN, 1);
-
-        /* Lv */
-        font_draw_str("Lv", 2, 10, C_TEXT_DIM, 1);
-        draw_int(14, 10, pet->level, C_TEXT_WHITE, 1);
-
-        /* HP bar */
-        draw_bar(2, 20, 60, 3, pet->hp, pet->max_hp, C_HP_GREEN);
+    /* Message (3-second timeout) — falls back to "Day X" when idle */
+    uint32_t now = hal_ticks_ms();
+    if (s->log_count > 0 && s->log_ms > 0 &&
+        now - s->log_ms < MSG_TIMEOUT_MS) {
+        draw_str_clipped(s->log[0], MSG_X, MSG_Y, C_TEXT_DIM, MSG_MAX_X);
+    } else {
+        /* Idle: show current day */
+        char buf[12]; int n = 0;
+        const char *pre = "Day ";
+        while (*pre) buf[n++] = *pre++;
+        uint16_t d = s->day;
+        if (d >= 100) buf[n++] = (char)('0' + d / 100);
+        if (d >=  10) buf[n++] = (char)('0' + (d / 10) % 10);
+        buf[n++] = (char)('0' + d % 10);
+        buf[n] = '\0';
+        font_draw_str(buf, MSG_X, MSG_Y, C_TEXT_DIM, 1);
     }
 
-    /* Day counter (top-right) */
-    font_draw_str("Day", DISPLAY_W - 36, 2, C_TEXT_DIM, 1);
-    draw_int(DISPLAY_W - 16, 2, (int)s->day, C_GOLD, 1);
+    /* Tab shortcut icons */
+    draw_tab_icons(s);
 
-    /* Most recent log line at bottom */
-    if (s->log_count > 0) {
-        font_draw_str(s->log[0], 70, strip_y + 10, C_TEXT_DIM, 1);
+    /* === Persistent overlays in the play area (not the strip) === */
+
+    /* Active pet info — top-left corner */
+    if (s->party_count > 0 && s->active_pet < s->party_count) {
+        const Pet     *pet  = &s->party[s->active_pet];
+        const Species *sp   = get_species(pet->species_id);
+        font_draw_str(sp->evo_names[pet->evo_stage], 2, 2,  C_TEXT_MAIN, 1);
+        font_draw_str("Lv",                           2, 10, C_TEXT_DIM,  1);
+        draw_int(14, 10, pet->level, C_TEXT_WHITE, 1);
+        draw_bar(2, 20, 60, 3, pet->hp, pet->max_hp, C_HP_GREEN);
     }
 }
