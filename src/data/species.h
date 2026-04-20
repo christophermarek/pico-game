@@ -1,23 +1,18 @@
 #pragma once
 #include <stdint.h>
-#include <string.h>
 
 /*
- * Monster species definitions.
- * moves_by_evo[stage][slot] = move ID (see moves.h)
- * evo_levels[stage] = level required to evolve to that stage (stage 0 = base)
+ * Monster species definitions (reserved for future pet system).
+ * evo_levels[stage] = level required to reach that stage (stage 0 = base)
  */
 typedef struct {
     uint8_t  id;
     char     name[12];
     char     evo_names[4][12];
-    /* Base stats at level 1 */
     uint8_t  base_hp, base_atk, base_def, base_spd;
-    /* Growth per level (added each level-up) */
     uint8_t  grow_hp, grow_atk, grow_def, grow_spd;
     char     type[12];
-    uint8_t  evo_levels[4]; /* stage 0=start, 1,2,3 = evolve-at level */
-    uint8_t  moves_by_evo[4][4];
+    uint8_t  evo_levels[4];
 } Species;
 
 /* Species IDs */
@@ -38,12 +33,6 @@ static const Species SPECIES_TABLE[SPECIES_COUNT] = {
         .grow_hp   =  5, .grow_atk =  2, .grow_def =  2, .grow_spd =  2,
         .type      = "dark",
         .evo_levels = {0, 16, 32, 48},
-        .moves_by_evo = {
-            {1, 2,  0,  0},  /* stage 0: Tackle, Shadow Bite */
-            {2, 3, 24,  0},  /* stage 1: Shadow Bite, Dark Pulse, Leer */
-            {3, 4, 24, 25},  /* stage 2: Dark Pulse, Night Slash, Leer, Slam */
-            {4, 5, 30, 31},  /* stage 3: Night Slash, Abyss Wave, Hex, Shadow Force */
-        },
     },
     /* 1: Bramble — grass type */
     {
@@ -54,12 +43,6 @@ static const Species SPECIES_TABLE[SPECIES_COUNT] = {
         .grow_hp   =  5, .grow_atk =  2, .grow_def =  3, .grow_spd =  2,
         .type      = "grass",
         .evo_levels = {0, 16, 32, 48},
-        .moves_by_evo = {
-            {1,  6,  0,  0},
-            {6,  7, 24,  0},
-            {7,  9, 24, 23},
-            {8,  9, 29, 27},
-        },
     },
     /* 2: Korvax — fire type */
     {
@@ -70,12 +53,6 @@ static const Species SPECIES_TABLE[SPECIES_COUNT] = {
         .grow_hp   =  4, .grow_atk =  3, .grow_def =  2, .grow_spd =  3,
         .type      = "fire",
         .evo_levels = {0, 16, 32, 48},
-        .moves_by_evo = {
-            {1,  10,  0,  0},
-            {10, 11, 24,  0},
-            {11, 12, 29, 24},
-            {12, 13, 29, 26},
-        },
     },
     /* 3: Wisp — electric type */
     {
@@ -86,12 +63,6 @@ static const Species SPECIES_TABLE[SPECIES_COUNT] = {
         .grow_hp   =  4, .grow_atk =  2, .grow_def =  2, .grow_spd =  3,
         .type      = "electric",
         .evo_levels = {0, 16, 32, 48},
-        .moves_by_evo = {
-            {1,  14,  0,  0},
-            {14, 15, 21,  0},
-            {15, 16, 21, 18},
-            {16, 17, 20, 29},
-        },
     },
     /* 4: Shadowkin — dark type */
     {
@@ -102,12 +73,6 @@ static const Species SPECIES_TABLE[SPECIES_COUNT] = {
         .grow_hp   =  5, .grow_atk =  3, .grow_def =  2, .grow_spd =  2,
         .type      = "dark",
         .evo_levels = {0, 18, 36, 54},
-        .moves_by_evo = {
-            {2, 22,  0,  0},
-            {2,  3, 30,  0},
-            {3,  4, 30, 28},
-            {4,  5, 31, 29},
-        },
     },
 };
 

@@ -25,7 +25,6 @@ set(GAME_CORE_SOURCES
     src/game/world.c
     src/game/player.c
     src/game/skills.c
-    src/game/pets.c
     src/game/tick.c
     src/game/save.c
     src/render/renderer.c
@@ -34,7 +33,6 @@ set(GAME_CORE_SOURCES
     src/render/font.c
     src/ui/hud.c
     src/ui/menu.c
-    src/ui/char_create.c
 )
 
 # -----------------------------------------------------------------------

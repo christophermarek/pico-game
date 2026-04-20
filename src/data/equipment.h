@@ -20,8 +20,6 @@ typedef struct {
     int8_t    atk_bonus;
     int8_t    def_bonus;
     int8_t    spd_bonus;
-    int8_t    happy_bonus;        /* flat happiness on equip */
-    int8_t    happy_per_tick;     /* happiness gained each game tick */
     RecipeStep recipe[RECIPE_MAX];
     uint8_t   recipe_count;
 } Equipment;
@@ -36,43 +34,43 @@ typedef struct {
 static const Equipment EQUIPMENT[EQUIP_COUNT] = {
     {
         "cloth_vest", "Cloth Vest",
-        .atk_bonus=0, .def_bonus=1, .spd_bonus=0, .happy_bonus=2, .happy_per_tick=0,
+        .atk_bonus=0, .def_bonus=1, .spd_bonus=0,
         .recipe      = {{12,2},{5,1},{0,0},{0,0}},
         .recipe_count = 2,
     },
     {
         "leaf_crown", "Leaf Crown",
-        .atk_bonus=1, .def_bonus=0, .spd_bonus=1, .happy_bonus=4, .happy_per_tick=1,
+        .atk_bonus=1, .def_bonus=0, .spd_bonus=1,
         .recipe      = {{6,3},{14,1},{0,0},{0,0}},
         .recipe_count = 2,
     },
     {
         "iron_collar", "Iron Collar",
-        .atk_bonus=2, .def_bonus=2, .spd_bonus=0, .happy_bonus=0, .happy_per_tick=0,
+        .atk_bonus=2, .def_bonus=2, .spd_bonus=0,
         .recipe      = {{1,3},{2,2},{0,0},{0,0}},
         .recipe_count = 2,
     },
     {
         "berry_charm", "Berry Charm",
-        .atk_bonus=0, .def_bonus=0, .spd_bonus=0, .happy_bonus=5, .happy_per_tick=2,
+        .atk_bonus=0, .def_bonus=0, .spd_bonus=0,
         .recipe      = {{14,2},{6,1},{12,1},{0,0}},
         .recipe_count = 3,
     },
     {
         "silk_cape", "Silk Cape",
-        .atk_bonus=0, .def_bonus=1, .spd_bonus=2, .happy_bonus=3, .happy_per_tick=1,
+        .atk_bonus=0, .def_bonus=1, .spd_bonus=2,
         .recipe      = {{12,4},{6,2},{0,0},{0,0}},
         .recipe_count = 2,
     },
     {
         "gem_amulet", "Gem Amulet",
-        .atk_bonus=2, .def_bonus=1, .spd_bonus=1, .happy_bonus=5, .happy_per_tick=1,
+        .atk_bonus=2, .def_bonus=1, .spd_bonus=1,
         .recipe      = {{7,1},{12,2},{14,1},{0,0}},
         .recipe_count = 3,
     },
     {
         "rune_plate", "Rune Plate",
-        .atk_bonus=3, .def_bonus=4, .spd_bonus=0, .happy_bonus=2, .happy_per_tick=0,
+        .atk_bonus=3, .def_bonus=4, .spd_bonus=0,
         .recipe      = {{1,4},{2,4},{7,1},{0,0}},
         .recipe_count = 3,
     },

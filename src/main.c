@@ -8,7 +8,6 @@
 #include "game/save.h"
 #include "render/renderer.h"
 #include "ui/menu.h"
-#include "ui/char_create.h"
 
 static GameState state;
 static World     world;
@@ -20,7 +19,7 @@ int main(void) {
     state_init(&state);
 
     if (!save_read(&state)) {
-        state.mode = MODE_CHAR_CREATE;
+        state.mode = MODE_TOPDOWN;
     }
 
     Input    inp;
@@ -35,44 +34,25 @@ int main(void) {
                     (uint8_t)((state.td_cam_bearing + TD_CAM_STEPS - 1u) % TD_CAM_STEPS);
             }
             if (inp.cam_r_press) {
-                state.td_cam_bearing = (uint8_t)((state.td_cam_bearing + 1u) % TD_CAM_STEPS);
+                state.td_cam_bearing =
+                    (uint8_t)((state.td_cam_bearing + 1u) % TD_CAM_STEPS);
             }
         }
 
-        /* Mode dispatch */
         switch (state.mode) {
-            case MODE_CHAR_CREATE: char_create_update(&state, &inp); break;
-            case MODE_TOPDOWN:     player_update_td(&state, &inp, &world); break;
-            case MODE_SIDE:        player_update_sv(&state, &inp, &world); break;
-            case MODE_MENU:        menu_update(&state, &inp); break;
-            case MODE_BASE:
-                /* Basic: B button to leave base */
-                if (inp.b_press) {
-                    state.mode = state.prev_mode;
-                    if (state.mode == MODE_BASE) state.mode = MODE_TOPDOWN;
-                }
-                break;
+            case MODE_TOPDOWN: player_update_td(&state, &inp, &world); break;
+            case MODE_MENU:    menu_update(&state, &inp); break;
         }
 
-        /* Handle view toggle (sel button) */
-        if (inp.sel_press &&
-            (state.mode == MODE_TOPDOWN || state.mode == MODE_SIDE)) {
-            state.mode = (state.mode == MODE_TOPDOWN) ? MODE_SIDE : MODE_TOPDOWN;
-        }
-
-        /* Handle menu open (start button) */
-        if (inp.start_press &&
-            (state.mode == MODE_TOPDOWN || state.mode == MODE_SIDE)) {
+        if (inp.start_press && state.mode == MODE_TOPDOWN) {
             menu_open(&state);
         }
 
-        /* Game tick (every TICK_MS) */
         uint32_t now = hal_ticks_ms();
         if (now - last_game_tick >= TICK_MS) {
             game_tick(&state, &world);
             last_game_tick = now;
 
-            /* Auto-save every 6 ticks (~1 min at TICK_MS=10 s) to reduce flash wear */
             static uint32_t save_tick_count = 0;
             if (++save_tick_count >= 6u) {
                 save_write(&state);
@@ -80,9 +60,7 @@ int main(void) {
             }
         }
 
-        /* Render */
         render_frame(&state, &world);
-        hal_show();
     }
 
     hal_deinit();

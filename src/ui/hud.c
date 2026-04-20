@@ -3,7 +3,6 @@
 #include "colors.h"
 #include "config.h"
 #include "../render/font.h"
-#include "../data/species.h"
 
 /* ------------------------------------------------------------------ */
 /* Layout constants (base values live in config.h)                     */
@@ -29,7 +28,7 @@
 #define ICON_H       16              /* strip is 18 px; 1 px margin top+bottom */
 #define ICON_Y       (STRIP_Y + 1)
 #define ICON_GAP     1
-#define ICON_COUNT   4
+#define ICON_COUNT   2
 /* Total icon block width: ICON_COUNT * ICON_W + (ICON_COUNT-1) * ICON_GAP */
 #define ICON_BLOCK_W (ICON_COUNT * ICON_W + (ICON_COUNT - 1) * ICON_GAP)
 #define ICON_X0      (DISPLAY_W - ICON_BLOCK_W - 2)
@@ -43,13 +42,11 @@
 /* ------------------------------------------------------------------ */
 static const struct {
     uint8_t     mtab;
-    const char *label;   /* 2 chars, shown in icon */
+    const char *label;
     uint16_t    color;
 } ICONS[ICON_COUNT] = {
-    { MTAB_ITEMS,    "BG", C_GOLD        },
-    { MTAB_SKILLS,   "SK", C_ENERGY_BLUE },
-    { MTAB_PARTY,    "PT", C_HP_GREEN    },
-    { MTAB_CRAFTING, "CF", C_HUNGER_ORG  },
+    { MTAB_ITEMS,  "BG", C_GOLD        },
+    { MTAB_SKILLS, "SK", C_ENERGY_BLUE },
 };
 
 /* ------------------------------------------------------------------ */
@@ -63,19 +60,6 @@ static void draw_bar(int x, int y, int w, int h,
         if (fill > w) fill = w;
         if (fill > 0) hal_fill_rect(x, y, fill, h, color);
     }
-}
-
-static void draw_int(int x, int y, int val, uint16_t color, int scale) {
-    char buf[8]; int n = 0;
-    if (val < 0) { buf[n++] = '-'; val = -val; }
-    if (val == 0) { buf[n++] = '0'; }
-    else {
-        char tmp[7]; int tn = 0;
-        while (val > 0) { tmp[tn++] = (char)('0' + val % 10); val /= 10; }
-        for (int i = tn - 1; i >= 0; i--) buf[n++] = tmp[i];
-    }
-    buf[n] = '\0';
-    font_draw_str(buf, x, y, color, scale);
 }
 
 /* ------------------------------------------------------------------ */
@@ -136,13 +120,11 @@ void hud_draw(GameState *s) {
     hal_fill_rect(0, STRIP_Y,     DISPLAY_W, STRIP_H, C_BG_DARK);
     hal_fill_rect(0, STRIP_Y,     DISPLAY_W, 1,       C_BORDER);    /* top border */
 
-    /* Stat bars: HP (green) | Hunger (orange) | Energy (blue) */
-    draw_bar(BAR_X0,                           BAR_Y, BAR_W, BAR_H,
-             s->hp,     s->max_hp,             C_HP_GREEN);
-    draw_bar(BAR_X0 +   BAR_W + BAR_GAP,       BAR_Y, BAR_W, BAR_H,
-             s->hunger, 100,                   C_HUNGER_ORG);
-    draw_bar(BAR_X0 + 2*(BAR_W + BAR_GAP),     BAR_Y, BAR_W, BAR_H,
-             s->energy, 100,                   C_ENERGY_BLUE);
+    /* Stat bars: HP (green) | Energy (blue) */
+    draw_bar(BAR_X0,                       BAR_Y, BAR_W, BAR_H,
+             s->hp,     s->max_hp,         C_HP_GREEN);
+    draw_bar(BAR_X0 + BAR_W + BAR_GAP,    BAR_Y, BAR_W, BAR_H,
+             s->energy, 100,               C_ENERGY_BLUE);
 
     /* Message (3-second timeout) — falls back to "Day X" when idle */
     uint32_t now = hal_ticks_ms();
@@ -164,16 +146,4 @@ void hud_draw(GameState *s) {
 
     /* Tab shortcut icons */
     draw_tab_icons(s);
-
-    /* === Persistent overlays in the play area (not the strip) === */
-
-    /* Active pet info — top-left corner */
-    if (s->party_count > 0 && s->active_pet < s->party_count) {
-        const Pet     *pet  = &s->party[s->active_pet];
-        const Species *sp   = get_species(pet->species_id);
-        font_draw_str(sp->evo_names[pet->evo_stage], 2, 2,  C_TEXT_MAIN, 1);
-        font_draw_str("Lv",                           2, 10, C_TEXT_DIM,  1);
-        draw_int(14, 10, pet->level, C_TEXT_WHITE, 1);
-        draw_bar(2, 20, 60, 3, pet->hp, pet->max_hp, C_HP_GREEN);
-    }
 }

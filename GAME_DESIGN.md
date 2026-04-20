@@ -1,6 +1,6 @@
 # GrumbleQuest — Game Design Document
 
-**Genre:** Monster-Collecting RPG + Life Simulation  
+**Genre:** Resource-Gathering RPG  
 **Platform:** Raspberry Pi Pico (ST7789 240×240 display) + SDL2 Desktop Simulator  
 **Engine:** Custom C11 (zero dependencies except SDL2 for sim)  
 **Status:** Playable prototype with core systems implemented
@@ -9,27 +9,21 @@
 
 ## Overview
 
-**GrumbleQuest** is a pixel-art monster-collecting RPG with integrated life-sim mechanics. Players explore a handcrafted top-down overworld, gather resources through 10 distinct skills, raise and evolve companion creatures, battle wild monsters, craft equipment, and build their home base.
+**GrumbleQuest** is a pixel-art top-down RPG focused on exploration and resource gathering. Players explore a handcrafted isometric overworld, harvest resources through 4 skills, and manage their inventory.
 
 The game combines:
-- **Monster collection & evolution** (5 species, 4 stages each)
-- **Turn-based combat** with type effectiveness and stat modifiers
-- **Skilling system** (10 skills: Mining, Fishing, Woodcutting, Combat, Cooking, Magic, Farming, Crafting, Smithing, Herblore)
-- **Resource gathering & crafting** (25 item types, 7 equipment pieces)
-- **Pet management** (party of 4, storage box of 12, happiness system)
-- **Dual perspectives** (top-down overworld + side-view platformer)
-- **Persistent save system** with auto-save every 10 seconds
+- **Skilling system** (4 skills: Mining, Fishing, Woodcutting, Cooking)
+- **Resource gathering** (12 item types)
+- **Persistent save system** with auto-save every minute
 
 ---
 
 ## Core Loop
 
-1. **Explore** the 30×20 tile overworld (480×320 px)
+1. **Explore** the 30×20 tile overworld
 2. **Gather resources** by skilling at nodes (trees, rocks, ore, water)
-3. **Battle wild monsters** in tall grass encounter zones
-4. **Catch and evolve** creatures to build your party
-5. **Craft equipment** to boost pet stats and happiness
-6. **Return home** to manage inventory, swap party members, and upgrade your base
+3. **Level up skills** through XP earned from each action
+4. **Manage inventory** via the in-game menu
 
 ---
 
@@ -38,12 +32,11 @@ The game combines:
 ### Top-Down Overworld (30×20 tiles, 16px each)
 
 **Key Locations:**
-- **Player Mansion** — North end of the map (11×6 tile building), accessible via vertical path. Enter with A button to access base mode.
-- **Path Network** — East-west road at y=9, north-south spine at x=15 connecting mansion to crossroads
+- **Path Network** — East-west road at y=12, north-south spine at x=15
 - **Lake** — Northeast (elliptical water body with sand border, fishing spot)
 - **Forest** — Southwest (dense tree cluster with clearings, woodcutting nodes)
 - **Rock Quarry** — Southeast (stone and ore mining)
-- **Tall Grass Zones** — Three encounter areas for wild battles (northwest, east, south)
+- **Tall Grass Zones** — Three decorative meadow areas (northwest, east, south)
 - **Resource Nodes** — Trees, rocks, ore veins, water (respawn after 60 ticks ≈ 10 min)
 
 **Terrain Types:**
@@ -54,109 +47,19 @@ The game combines:
 - Trees (non-walkable, woodcutting resource)
 - Rocks (non-walkable, mining resource)
 - Ore (non-walkable, rare mining resource)
-- Tall Grass (walkable, 1/60 encounter chance per frame)
+- Tall Grass (walkable, decorative)
 - Flowers (walkable, decorative)
 
-### Side-View World (30×9 tiles)
-
-Accessible by pressing **SELECT** to toggle view mode. Platformer-style movement with:
-- **Ground layer** at y=8
-- **Platforms** (4 levels) — jump-through platforms
-- **Ore and tree nodes** — resource gathering in side-view
-- **Physics** — gravity (0.35 px/frame²), jumping (-5.5 px/frame), max fall speed (5.0 px/frame)
-
 ---
 
-## Monster System
-
-### Species (5 total, 4 evolution stages each)
-
-| Species | Type | Base→Final Evolution | Description |
-|---------|------|---------------------|-------------|
-| **Glub** | Dark | Glub → Glubmaw → Glublord → Abysgore | Shadow blob that grows horns and armor |
-| **Bramble** | Grass | Bramble → Thornling → Briarclaw → Verdantwrath | Thorny plant creature |
-| **Korvax** | Fire | Korvax → Emberhorn → Infernox → Pyrowrath | Flame-wreathed beast |
-| **Wisp** | Air | Wisp → Gustwing → Tempest → Stormlord | Wind elemental |
-| **Shadowkin** | Dark | Shadowkin → Darkspawn → Voidwalker → Shadowlord | Pure shadow entity |
-
-**Evolution Triggers:**
-- Stage 0 → Stage 1: Level 16–18
-- Stage 1 → Stage 2: Level 32–36
-- Stage 2 → Stage 3: Level 48–54
-
-**Stats:**
-- HP (30–90 base + 4–5 per level)
-- Attack (11–14 base + 2–3 per level)
-- Defense (8–13 base + 2–3 per level)
-- Speed (10–16 base + 2–3 per level)
-
-**Move Pool:** 32 moves, 4 slots per pet
-- Physical moves (Tackle, Shadow Bite, Night Slash, Slam)
-- Special moves (Dark Pulse, Flamethrower, Solar Beam, Hurricane)
-- Status moves (Leer, Growl, Swords Dance, Iron Defense, Recover)
-
-**Happiness System:**
-- Range: 0–100
-- Decays by 1 every game tick (10 seconds)
-- Restored by berries, equipment, and combat bonuses
-- High happiness grants combat bonuses: +ATK modifier, evade chance
-
----
-
-## Combat System
-
-### Turn-Based Battle
-
-**Flow:**
-1. Wild encounter triggers in tall grass (1/60 chance per movement frame)
-2. Enemy level scales with player combat skill
-3. Speed stat determines turn order
-4. Player chooses: FIGHT / BAG / SWAP / RUN
-5. Damage calculated with attack, defense, power, type multiplier, stat mods
-6. Victory awards XP to active pet and combat skill
-
-**Type Effectiveness Chart:**
-```
-Fire   → Grass (2×)     Grass  → Air      (2×)
-Air    → Electric (2×)  Electric → Fire   (2×)
-Fire   ← Electric (0.5×)  Grass  ← Fire     (0.5×)
-Air    ← Grass (0.5×)     Electric ← Air    (0.5×)
-Dark   → Neutral (1×)
-```
-
-**Stat Modifiers:**
-- Attacks and status moves can apply ±stages (−3 to +3)
-- Each stage = ±50% effectiveness
-- Capped at 0.25× minimum, 4× maximum
-
-**Damage Formula:**
-```c
-base_dmg = (atk × power / def / 50 + 2) × type_mult × (0.85–1.15 variance)
-final_dmg = apply_stat_mod(base_dmg, atk_mod)
-```
-
-**Catch Mechanics:**
-- Base rate: 30% + 70% × (1 − enemy_hp / enemy_max_hp)
-- Penalty: −15% per evolution stage
-- Minimum: 5%
-- Uses **Orb** item from inventory
-
----
-
-## Skills System (10 Total)
+## Skills System (4 Total)
 
 | Skill | Nodes | Items Dropped | XP Range |
 |-------|-------|---------------|----------|
 | **Mining** | Rock, Ore | Stone, Ore, Gem | 30–50 |
 | **Fishing** | Water | Fish, Seaweed | 20–30 |
 | **Woodcutting** | Tree | Log, Branch | 25–40 |
-| **Combat** | Battle | — | 5× enemy level |
-| **Cooking** | — | Meals from ingredients | — |
-| **Magic** | — | Orbs, spell items | — |
-| **Farming** | Farm patches | Berries (8 types) | — |
-| **Crafting** | Workbench | Thread, equipment | — |
-| **Smithing** | Forge | Iron Collar, Rune Plate | — |
-| **Herblore** | — | Potions from herbs | — |
+| **Cooking** | — | (future: meals from ingredients) | — |
 
 **Skilling Flow:**
 1. Face a resource node (tree, rock, ore, water)
@@ -164,7 +67,6 @@ final_dmg = apply_stat_mod(base_dmg, atk_mod)
 3. Action completes in 30 frames (1 second at 30 FPS)
 4. Skill XP awarded, item added to inventory, node depleted
 5. Node respawns after 60 ticks (≈10 min real time)
-6. Active pet gains half the skill XP
 
 **XP → Level Formula:**
 ```c
@@ -173,70 +75,24 @@ xp_for_level(n) = n² × 10 + n × 20
 
 ---
 
-## Inventory & Items (25 Types)
+## Inventory & Items (12 Types)
 
-### Resources
-- **Ore, Stone, Gem** — mining drops
-- **Fish, Seaweed** — fishing drops
-- **Log, Branch** — woodcutting drops
-- **Herb, Thread, Hide** — crafting materials
+| Item | Source |
+|------|--------|
+| Ore | Mining (rock/ore nodes) |
+| Stone | Mining (rock nodes) |
+| Gem | Mining (ore nodes, rare) |
+| Fish | Fishing |
+| Seaweed | Fishing (rare) |
+| Log | Woodcutting |
+| Branch | Woodcutting (rare) |
+| Meal | (future: cooking) |
+| Bread | Starting inventory |
+| Egg | (future: cooking) |
+| Coin | (future: economy) |
 
-### Consumables
-- **Meals** — restore HP/hunger
-- **Bread, Egg** — starting food
-- **Orb** — capture wild monsters
-
-### Berries (8 types)
-| Berry | Effect |
-|-------|--------|
-| Oran | +10 HP, +2 happiness |
-| Sitrus | +25 HP, +4 happiness |
-| Pecha | Cures burn, +5 happiness |
-| Rawst | Cures paralysis, +5 HP, +3 happiness |
-| Leppa | +10 PP per move, +2 happiness |
-| Wiki | +15 HP, +3 happiness, +1 ATK |
-| Mago | +15 HP, +3 happiness, +1 SPD |
-| Lum | Cures all status, +10 HP, +6 happiness, +5 PP |
-
-**Farming System:**
-- 3 farm patches at home base
-- Plant berries, wait for growth ticks
-- Harvest when ready
-
----
-
-## Equipment & Crafting (7 Pieces)
-
-| Equipment | Bonuses | Recipe |
-|-----------|---------|--------|
-| **Cloth Vest** | +1 DEF, +2 happiness | 2 Thread, 1 Log |
-| **Leaf Crown** | +1 ATK, +1 SPD, +4 happiness, +1 happy/tick | 3 Branch, 1 Herb |
-| **Iron Collar** | +2 ATK, +2 DEF | 3 Ore, 2 Stone |
-| **Berry Charm** | +5 happiness, +2 happy/tick | 2 Herb, 1 Branch, 1 Thread |
-| **Silk Cape** | +1 DEF, +2 SPD, +3 happiness, +1 happy/tick | 4 Thread, 2 Branch |
-| **Gem Amulet** | +2 ATK, +1 DEF, +1 SPD, +5 happiness, +1 happy/tick | 1 Gem, 2 Thread, 1 Herb |
-| **Rune Plate** | +3 ATK, +4 DEF, +2 happiness | 4 Ore, 4 Stone, 1 Gem |
-
-**Crafting Flow:**
-1. Open menu → CRAFTING tab
-2. Select equipment blueprint
-3. Check recipe requirements
-4. Craft (consumes ingredients)
-5. Equip to active pet
-
----
-
-## Home Base (MODE_BASE)
-
-**Accessible:** Press A at mansion door (15, 4)
-
-**Features:**
-- **Party Management** — swap active pet, view stats
-- **Storage Box** — 12 pet capacity
-- **Furniture System** (8 slots, future expansion)
-  - Bed, Workbench, Forge, Farm patches, Chest, Pet Bed, Pet House
-- **Farming** — 3 berry plots with growth timers
-- **Exit:** Press B to return to overworld
+- 20 inventory slots, items stack up to 255
+- Start with 3 Bread
 
 ---
 
@@ -246,35 +102,22 @@ xp_for_level(n) = n² × 10 + n × 20
 
 | Mode | Description | Controls |
 |------|-------------|----------|
-| **CHAR_CREATE** | Character customization (name, skin, hair, outfit) | Arrows/WASD, A to confirm, B to back |
-| **TOPDOWN** | Overworld exploration | Arrows/WSQD to move, A to interact, B to cancel, M for menu, V to toggle view |
-| **SIDE** | Platformer view | Arrows/WSQD, A/Space to jump |
-| **BATTLE** | Turn-based combat | Arrows to select, A to confirm, B to back |
-| **MENU** | Inventory/stats/crafting | Arrows/Left-Right tabs, A to select |
-| **BASE** | Home management | B to exit |
+| **TOPDOWN** | Overworld exploration | Arrows/WSQD to move, A to interact, B to run, M/Tab for menu |
+| **MENU** | Inventory/skills | Arrows/Left-Right tabs, B to close |
 
 ### HUD Elements
 
-**Bottom Strip (28px):**
+**Bottom Strip (18px):**
 - Player HP bar (green)
-- Hunger bar (orange, decays 2 points per tick)
-- Energy bar (blue, used for skills, regenerates when idle)
-- Recent log message
+- Energy bar (blue, drains while running, regenerates when idle)
+- Recent log message or "Day X" when idle
 
-**Top-Left Corner:**
-- Active pet name + level
-- Pet HP bar (green)
+**Tab shortcut icons (right side):** BG (Items), SK (Skills)
 
-**Top-Right Corner:**
-- Current day counter
+### Menu Tabs (Press M/Tab)
 
-### Menu Tabs (Press M/Start)
-
-1. **SKILLS** — View all 10 skill levels and XP progress
-2. **ITEMS** — 20-slot inventory grid with counts
-3. **PARTY** — 4 party members + 12 storage box slots
-4. **CRAFTING** — Equipment recipes and crafting interface
-5. **(Future) EQUIP** — Manage pet equipment
+1. **SKILLS** — View all 4 skill levels and XP progress bar
+2. **ITEMS** — 20-slot inventory grid with item names and counts
 
 ---
 
@@ -285,12 +128,12 @@ xp_for_level(n) = n² × 10 + n × 20
 | Action | Keys |
 |--------|------|
 | Move | Arrow Keys or W/S/Q/D |
-| Confirm (A button) | Z, Space, Enter, or A |
-| Cancel (B button) | X or B |
-| Menu | M (Start) |
-| Toggle View | V (Select) |
+| Confirm / Interact (A) | Z, Space, Enter, or A |
+| Cancel / Run (B) | X or B |
+| Menu open / Tab cycle | M or Tab |
+| Rotate camera | `[` / `]` |
 
-**Note:** Keyboard A is mapped to the face button A (confirm), not left movement. Use Q for strafe-left.
+**Note:** Keyboard A is mapped to the face button A (confirm), not left movement. Use Q for strafe-left. Hold B to run (drains energy).
 
 ### Pico Hardware (Planned)
 
@@ -304,21 +147,17 @@ xp_for_level(n) = n² × 10 + n × 20
 ## Save System
 
 **Format:** Binary file (`grumble_save.bin` on desktop, flash sector on Pico)  
-**Structure:**
-- Magic number: `0x4735513E` ("G5Q1")
-- Version: 1
-- Full `GameState` struct (all progress, inventory, pets, skills, world state)
+**Version:** 6
 
-**Auto-Save:** Every game tick (10 seconds)  
-**Load:** On startup; if invalid/missing, enters character creation
+**Auto-Save:** Every 6 game ticks (~1 minute of real time)  
+**Load:** On startup; if invalid/missing, starts a fresh game
 
 **Saved Data:**
-- Player stats (HP, hunger, energy, position, customization)
-- All 10 skill levels and XP
+- Player stats (HP, energy, position)
+- All 4 skill levels and XP
 - Full inventory (20 slots)
-- Party (4 pets) + box (12 pets) with stats, moves, happiness, equipment
 - World node respawn timers
-- Total steps, battles, catches
+- Total steps
 - Current day
 
 ---
@@ -329,7 +168,7 @@ xp_for_level(n) = n² × 10 + n × 20
 
 **Interface:** `hal.h`  
 **Implementations:**
-- `hal_sdl.c` — Desktop simulator (SDL2, 3× scale, 720×720 window + 24px debug strip)
+- `hal_sdl.c` — Desktop simulator (SDL2, 3× scale, 720×720 window)
 - `hal_pico.c` — Raspberry Pi Pico (ST7789 SPI display, GPIO buttons)
 - `hal_stub.c` — Headless test harness (RAM framebuffer, no SDL)
 
@@ -354,10 +193,8 @@ PicoGame/
 │   │   ├── state.{c,h}       # GameState, inventory, XP
 │   │   ├── world.{c,h}       # Map generation, collision
 │   │   ├── player.{c,h}      # Movement, actions
-│   │   ├── battle.{c,h}      # Combat system
-│   │   ├── tick.{c,h}        # Time-based decay/regen
+│   │   ├── tick.{c,h}        # Time-based regen
 │   │   ├── skills.{c,h}      # Skilling system
-│   │   ├── pets.{c,h}        # Monster management
 │   │   └── save.{c,h}        # Persistence
 │   ├── render/               # Graphics
 │   │   ├── renderer.{c,h}    # Camera, frame dispatch
@@ -365,14 +202,11 @@ PicoGame/
 │   │   └── font.{c,h}        # 5×7 pixel font
 │   ├── ui/                   # Interface screens
 │   │   ├── hud.{c,h}         # Status bars
-│   │   ├── menu.{c,h}        # Inventory/skills menu
-│   │   ├── battle_ui.{c,h}   # Combat interface
-│   │   └── char_create.{c,h} # Character customization
-│   └── data/                 # Game data tables
-│       ├── species.h         # Monster definitions
-│       ├── moves.h           # Move pool + type chart
-│       ├── berries.h         # Berry effects
-│       └── equipment.h       # Craftable gear
+│   │   └── menu.{c,h}        # Inventory/skills menu
+│   └── data/                 # Game data tables (reserved for future systems)
+│       ├── species.h         # Monster definitions (future)
+│       ├── berries.h         # Berry effects (future)
+│       └── equipment.h       # Craftable gear (future)
 ├── tests/
 │   ├── hal_stub.{c,h}        # Headless HAL for CI
 │   └── test_runner.c         # Integration tests
@@ -383,23 +217,12 @@ PicoGame/
 
 ### Build System
 
-**CMake + Make wrapper:**
 ```bash
 make build   # Compile sim + tests
 make test    # Run test suite
 make dev     # Run simulator (blocking)
 make clean   # Remove build/
 ```
-
-**Targets:**
-- `grumblequest_sim` — SDL2 desktop build
-- `grumblequest_tests` — Headless unit/integration tests
-- *(Future)* `grumblequest.uf2` — Pico firmware
-
-**Dependencies:**
-- SDL2 (sim only)
-- C11 compiler (Clang/GCC)
-- CMake 3.13+
 
 ---
 
@@ -408,23 +231,12 @@ make clean   # Remove build/
 **Palette:** RGB565 (5:6:5 bit depth, ST7789 native)  
 **Resolution:** 240×240 effective (scaled 3× in sim)  
 **Tile Size:** 16×16 pixels  
-**Style:** Low-res pixel art, hand-drawn aesthetic
-
-**Key Colors:**
-- Grass: Dark/light green
-- Water: Deep blue → light blue animated waves
-- Paths: Brown with light pebbles
-- Trees: Dark/mid/light green canopy + brown trunk
-- Rocks: Gray with highlights
-- Mansion: Stone gray, dark roof panels, gold accents
-- UI: Dark purple panels, gold borders, cyan text
+**Style:** Low-res pixel art, isometric top-down
 
 **Animations:**
 - Water waves (4-frame cycle)
-- Walk frames (2-frame bob)
-- Monster sprites (bobbing, evolving)
-- XP floaters (rising text)
-- Skill progress bar
+- Walk animation (2-frame bob)
+- Skill progress bar (shown while gathering)
 
 ---
 
@@ -439,7 +251,6 @@ make clean   # Remove build/
 ### Optimizations
 - RGB565 framebuffer (no conversion overhead)
 - Direct SPI writes (DMA on Pico)
-- Fixed-point math (avoid float on embedded)
 - Static allocations (no heap)
 - Tile-based culling (only draw visible region)
 - 30 FPS target (33ms frame budget)
@@ -449,23 +260,88 @@ make clean   # Remove build/
 ## Future Expansion
 
 ### Planned Features
-- **Cooking system** — combine ingredients into meals
-- **Magic system** — spell casting with orbs
-- **Herblore** — potion crafting
-- **Furniture placement** — decorate home interior
-- **Multiplayer** — local link cable (UART between Picos)
-- **Day/night cycle** — time-of-day visuals + encounters
-- **Weather system** — rain/snow affects spawns
-- **Boss battles** — rare encounters, unique loot
-- **Achievements** — track milestones
+- **Home Base / Mansion** — Enter the player's mansion as a dedicated room (see design notes below)
+- **Side-View Platformer** — Toggle between top-down and a scrolling platformer with physics (see design notes below)
+- **Crafting System** — Equipment recipes crafted at workbench (see design notes below)
+- **Farming** — Berry plots at home base with growth timers (see design notes below)
+- **Hunger system** — Hunger decay per tick, starvation HP loss, food restoration
+- **Cooking system** — Combine ingredients into meals at the cooking station
+- **Magic system** — Spell casting with spell items
+- **Smithing** — Iron and rune equipment at the forge
+- **Herblore** — Potion crafting from herbs
+- **Floating XP drops** — Rising "+42 XP" text shown on skill actions
+- **Character creation** — Name entry + skin tone, hair colour, and outfit selection on first launch
+- **Furniture placement** — Decorate home interior (Bed, Workbench, Forge, Farm, Chest)
+- **Turn-based battle system** — Wild encounters in tall grass, type effectiveness, stat modifiers
+- **Pet / Monster System** — Catch and raise companion creatures with evolution, happiness, and party management
+- **Multiplayer** — Local link cable (UART between Picos)
+- **Day/night cycle** — Time-of-day visuals + encounters
+- **Weather system** — Rain/snow affects spawns
+- **Achievements** — Track milestones
 - **Music + SFX** — I2S audio output
 
-### Content Additions
-- More species (target: 12–15)
-- More moves (target: 64)
-- More equipment (target: 20+)
-- Larger world (procedural generation?)
-- Side quests / NPC dialogue
+### Home Base / Mansion (Future)
+
+Player's home accessible by pressing A at the door tile:
+
+- Dedicated `MODE_BASE` screen with interior layout
+- **Farming** — 3 berry plots with grow-tick timers; plant, wait, harvest
+- **Furniture** — Place up to 8 pieces (Bed, Workbench, Forge, Farm Patch, Chest) via cursor
+- Sprites in `assets/assets_base.png` (32px cells, SPRITE_SCALE=2)
+- Mansion building sprite drawn on the overworld at the north end of the vertical path
+
+### Side-View Platformer (Future)
+
+Toggled via Select (V on desktop):
+
+- `MODE_SIDE`, 30×9 tile scrolling platformer
+- Physics: gravity (0.35 px/frame²), jump (−5.5 px/frame), max fall (5.0 px/frame)
+- One-way jump-through platforms (4 levels)
+- Ceiling collision when rising
+- Walk and jump animation
+- Ore/Tree nodes accessible via A button press
+
+### Crafting System (Future)
+
+Equipment crafted at the workbench in home base via the CRAFT menu tab:
+
+| Equipment | Bonuses | Recipe |
+|-----------|---------|--------|
+| Cloth Vest | +1 DEF | 2 Thread, 1 Log |
+| Leaf Crown | +1 ATK, +1 SPD | 3 Branch, 1 Herb |
+| Iron Collar | +2 ATK, +2 DEF | 3 Ore, 2 Stone |
+| Berry Charm | — | 2 Herb, 1 Branch, 1 Thread |
+| Silk Cape | +1 DEF, +2 SPD | 4 Thread, 2 Branch |
+| Gem Amulet | +2 ATK, +1 DEF, +1 SPD | 1 Gem, 2 Thread, 1 Herb |
+| Rune Plate | +3 ATK, +4 DEF | 4 Ore, 4 Stone, 1 Gem |
+
+Requires additional items: Thread, Hide, Herb, Potion (new drops/skills)
+
+### Farming System (Future)
+
+- 3 `FarmPatch` slots in `GameState` (berry_id, grow_ticks, ready flag)
+- Plant berry seeds at home base, wait for growth ticks, harvest
+- 8 berry types: Oran, Sitrus, Pecha, Rawst, Leppa, Wiki, Mago, Lum
+- Berries restore HP or cure status effects
+
+### Battle System (Future)
+
+- Wild encounters in tall grass (1/60 chance per movement frame)
+- Turn-based: FIGHT / BAG / RUN; speed stat determines order
+- Type chart: Fire → Grass (2×), Grass → Air, Air → Electric, Electric → Fire, Dark neutral
+- Damage formula: `(atk × power / def / 50 + 2) × type_mult × (0.85–1.15 variance)`
+
+### Pet / Monster System (Future)
+
+- 5 species (Glub, Bramble, Korvax, Wisp, Shadowkin), each with 4 evolution stages
+- Catch via Orb item during battles; party of 4 + box of 12
+- Happiness system, equipment bonuses, pet trailing on overworld
+
+### Character Creation & Customisation (Future)
+
+- First-launch screen: name entry, skin tone (4), hair colour (6), outfit colour (6)
+- `PlayerCustom` struct: name[12], skin_idx, hair_idx, outfit_idx
+- Palette arrays: `C_SKIN_TONES[4]`, `C_HAIR_COLS[6]`, `C_OUTFIT_COLS[6]`
 
 ---
 
@@ -480,8 +356,7 @@ make clean   # Remove build/
 5. **Embedded-first** — Runs on a $4 chip, scales to desktop
 
 **Inspirations:**
-- Pokémon (monster collection, turn-based combat)
-- RuneScape (skilling, resource gathering, crafting)
+- RuneScape (skilling, resource gathering)
 - Stardew Valley (life sim, home building)
 - GameBoy Color RPGs (art style, constraints)
 
@@ -492,33 +367,24 @@ make clean   # Remove build/
 ### Playing the Simulator
 
 ```bash
-# Clone repository
 git clone <repo-url>
 cd PicoGame
-
-# Build
 make build
-
-# Run
 make dev
 ```
 
 **First Launch:**
-1. Character creation screen appears
-2. Name your character (arrows to cycle letters, A to confirm)
-3. Choose skin tone, hair color, outfit
-4. Press A on "BEGIN ADVENTURE"
-5. You spawn south of your mansion
-6. Walk north on the path to find your home
-7. Press A to interact with resource nodes
-8. Walk through tall grass to trigger battles
+1. You spawn in the top-down overworld
+2. Press A facing a Tree, Rock, Ore, or Water tile to start gathering
+3. Resources are added to your inventory; skills gain XP
+4. Open the menu with M or Tab to view skills and inventory
 
 ### Controls Reminder
 - **Move:** Arrow keys or W/S/Q/D
 - **Interact:** Z, Space, Enter, or A
-- **Back/Cancel:** X or B
-- **Menu:** M
-- **Toggle View:** V
+- **Run:** Hold B (drains energy)
+- **Menu:** M or Tab
+- **Rotate camera:** `[` / `]`
 
 ### Testing
 
@@ -526,18 +392,7 @@ make dev
 make test
 ```
 
-Runs 11 test suites covering:
-- Config constants
-- Color palette
-- Data tables (species, moves, equipment, berries)
-- State initialization & inventory
-- World generation & collision
-- Pets & skills
-- Game tick mechanics
-- Battle damage formulas
-- Save/load roundtrip
-- Player movement
-- Full render pipeline
+Runs test suites covering: config constants, state init, world generation, skills, game tick, save/load, player movement, render pipeline.
 
 ---
 
@@ -554,10 +409,4 @@ Runs 11 test suites covering:
 
 ---
 
-## Contact & Contributing
-
-*(Add your contact info, GitHub repo link, Discord server, etc.)*
-
----
-
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20

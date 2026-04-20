@@ -50,7 +50,7 @@ void hal_display_init(void)
     int win_h = DISPLAY_H * SIM_SCALE + 24;
 
     win = SDL_CreateWindow(
-        "GrumbleQuest [SIM]  Iso map  Move: Arrows/W S Q D  Cam: [ ]  A: Z/Space  B: X",
+        "GrumbleQuest [SIM]  Move: Arrows/WSQD  Tab: Menu/Tabs  A: confirm  B: back  Cam: [ ]",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         win_w, win_h,
         SDL_WINDOW_SHOWN
@@ -200,7 +200,7 @@ void hal_input_poll(Input *inp)
                  k[SDL_SCANCODE_RETURN] || k[SDL_SCANCODE_KP_ENTER] ||
                  k[SDL_SCANCODE_A];
     inp->b     = k[SDL_SCANCODE_X]     || k[SDL_SCANCODE_B];
-    inp->start = k[SDL_SCANCODE_M];
+    inp->start = k[SDL_SCANCODE_M] || k[SDL_SCANCODE_TAB];
     inp->sel   = k[SDL_SCANCODE_V];
     inp->cam_l = k[SDL_SCANCODE_LEFTBRACKET];
     inp->cam_r = k[SDL_SCANCODE_RIGHTBRACKET];

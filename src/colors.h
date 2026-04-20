@@ -42,25 +42,6 @@
 #define C_PLAYER_BODY  HEX(0x7c3aed)
 #define C_PLAYER_DARK  HEX(0x6d28d9)
 #define C_PLAYER_LEGS  HEX(0x3730a3)
-#define C_SKIN         HEX(0xfde68a)
-#define C_HAIR         HEX(0x422006)
-#define C_EYE          HEX(0x1a0a2e)
-
-/* Skin tones [0..3] */
-static const uint16_t C_SKIN_TONES[4] = {
-    HEX(0xfde68a), HEX(0xf5cba7), HEX(0xc68642), HEX(0x8d5524)
-};
-/* Hair colours [0..5] */
-static const uint16_t C_HAIR_COLS[6] = {
-    HEX(0x422006), HEX(0x1a1a1a), HEX(0xfbbf24),
-    HEX(0xef4444), HEX(0x8b5cf6), HEX(0xe2e8f0)
-};
-/* Outfit colours [0..5] */
-static const uint16_t C_OUTFIT_COLS[6] = {
-    HEX(0x7c3aed), HEX(0x1d4ed8), HEX(0x16a34a),
-    HEX(0xdc2626), HEX(0xea580c), HEX(0x4b5563)
-};
-
 /* ---- Monsters ---- */
 #define C_MON_PURPLE_D HEX(0x6b21a8)
 #define C_MON_PURPLE_M HEX(0xa21caf)
