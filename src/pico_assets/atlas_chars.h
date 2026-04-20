@@ -2,5 +2,5 @@
 #pragma once
 #include <stdint.h>
 #define ATLAS_CHARS_W 256
-#define ATLAS_CHARS_H 192
-extern const uint8_t atlas_chars_rgba[196608];
+#define ATLAS_CHARS_H 32
+extern const uint8_t atlas_chars_rgba[32768];

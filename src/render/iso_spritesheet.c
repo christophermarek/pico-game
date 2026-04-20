@@ -14,50 +14,39 @@ typedef struct {
     bool tried;
 } PngAtlas;
 
-static PngAtlas g_actors, g_tiles, g_chars;
+static PngAtlas g_tiles, g_chars;
 
-#define ISO_ACTOR_SN 3
-#define ISO_ACTOR_SD 4
 
 /*
  * PNG atlases (assets/ relative to project root, or ../assets/ from build/).
  *
- *  assets_iso_actors.png  160×32  — iso-foot sprites, 32×32 cells:
- *    Row 0: player ×4 (dir: DOWN/UP/LEFT/RIGHT)
+ *  assets_iso_tiles.png   256×192  — iso terrain, 64×48 cells in 4×4 grid:
+ *    Row 0: water×4 (animation frames 0-3)
+ *    Row 1: grass, path, sand, tree
+ *    Row 2: rock, ore, flower, tgrass
+ *    Row 3: depleted mark, (unused), (unused), (unused)
  *
- *  assets_iso_tiles.png   832×48  — iso terrain, 64×48 cells:
- *    Cols 0-3: water (4 animation frames)
- *    Cols 4-11: grass/path/sand/tree/rock/ore/flower/tgrass
- *    Col  12: depleted-node overlay
- *
- *  assets_chars.png       192×96  — character sprites at SPRITE_SCALE=2
- *    Row 2 (y=64, h=32): TD player ×8  (32px cells, cols 0-7)
+ *  assets_chars.png       256×32  — character sprites at SPRITE_SCALE=2
+ *    Row 0 (y=0, h=32): TD player ×8  (32px cells, cols 0-7)
  */
 
 static const PngFrame PNG_TD_PLAYER[8] = {
-    {   0, 64, 32, 32, 0, 0 }, /* DIR_DOWN  walk0 */
-    {  32, 64, 32, 32, 0, 0 }, /* DIR_DOWN  walk1 */
-    {  64, 64, 32, 32, 0, 0 }, /* DIR_UP    walk0 */
-    {  96, 64, 32, 32, 0, 0 }, /* DIR_UP    walk1 */
-    { 128, 64, 32, 32, 0, 0 }, /* DIR_LEFT  walk0 */
-    { 160, 64, 32, 32, 0, 0 }, /* DIR_LEFT  walk1 */
-    { 192, 64, 32, 32, 0, 0 }, /* DIR_RIGHT walk0 */
-    { 224, 64, 32, 32, 0, 0 }, /* DIR_RIGHT walk1 */
+    {   0, 0, 32, 32, 0, 0 }, /* DIR_DOWN  walk0 */
+    {  32, 0, 32, 32, 0, 0 }, /* DIR_DOWN  walk1 */
+    {  64, 0, 32, 32, 0, 0 }, /* DIR_UP    walk0 */
+    {  96, 0, 32, 32, 0, 0 }, /* DIR_UP    walk1 */
+    { 128, 0, 32, 32, 0, 0 }, /* DIR_LEFT  walk0 */
+    { 160, 0, 32, 32, 0, 0 }, /* DIR_LEFT  walk1 */
+    { 192, 0, 32, 32, 0, 0 }, /* DIR_RIGHT walk0 */
+    { 224, 0, 32, 32, 0, 0 }, /* DIR_RIGHT walk1 */
 };
 
-static const PngFrame PNG_DEPLETED = { 768, 0, 64, 48, -32, -24 };
-
-static const PngFrame PNG_PLAYER[4] = {
-    {   0,  0, 32, 32, -16, -31 },
-    {  32,  0, 32, 32, -16, -31 },
-    {  64,  0, 32, 32, -16, -31 },
-    {  96,  0, 32, 32, -16, -31 },
-};
+static const PngFrame PNG_DEPLETED = { 0, 144, 64, 48, -32, -24 };  /* Row 3, col 0 */
 
 #define ISO_TILE_W 64
 #define ISO_TILE_H 48
-#define ISO_TILE_OX (-ISO_TILE_W / 2)
-#define ISO_TILE_OY (-ISO_TILE_H / 2)
+#define ISO_TILE_OX (-ISO_TILE_W / 2)     /* centre horizontally */
+#define ISO_TILE_OY (-ISO_TILE_H / 3)     /* anchor at diamond centre (row 16 of 48) not sprite centre (row 24) */
 
 static void try_load_atlas(PngAtlas *a, const char *p0, const char *p1)
 {
@@ -137,18 +126,23 @@ static void iso_tile_frame(uint8_t tile_id, uint32_t tick, PngFrame *f)
     f->h  = ISO_TILE_H;
     f->ox = ISO_TILE_OX;
     f->oy = ISO_TILE_OY;
+    
+    /* 4×4 grid layout: (col, row) → (x, y) */
+    int col = 0, row = 0;
     switch (tile_id) {
-    case T_WATER:  f->x = (int)((tick / 4u) % 4u) * ISO_TILE_W; f->y = 0; break;
-    case T_GRASS:  f->x = 4  * ISO_TILE_W; f->y = 0; break;
-    case T_PATH:   f->x = 5  * ISO_TILE_W; f->y = 0; break;
-    case T_SAND:   f->x = 6  * ISO_TILE_W; f->y = 0; break;
-    case T_TREE:   f->x = 7  * ISO_TILE_W; f->y = 0; break;
-    case T_ROCK:   f->x = 8  * ISO_TILE_W; f->y = 0; break;
-    case T_ORE:    f->x = 9  * ISO_TILE_W; f->y = 0; break;
-    case T_FLOWER: f->x = 10 * ISO_TILE_W; f->y = 0; break;
-    case T_TGRASS: f->x = 11 * ISO_TILE_W; f->y = 0; break;
-    default:       f->x = f->y = 0; break;
+    case T_WATER:  col = (int)((tick / 15u) % 4u); row = 0; break;  /* Row 0: water frames - animates every 15 frames (~0.5s per frame at 30fps) */
+    case T_GRASS:  col = 0; row = 1; break;  /* Row 1: terrain */
+    case T_PATH:   col = 1; row = 1; break;
+    case T_SAND:   col = 2; row = 1; break;
+    case T_TREE:   col = 3; row = 1; break;
+    case T_ROCK:   col = 0; row = 2; break;  /* Row 2: resources */
+    case T_ORE:    col = 1; row = 2; break;
+    case T_FLOWER: col = 2; row = 2; break;
+    case T_TGRASS: col = 3; row = 2; break;
+    default:       col = 0; row = 0; break;
     }
+    f->x = col * ISO_TILE_W;
+    f->y = row * ISO_TILE_H;
 }
 
 static bool tile_is_overlay(uint8_t tile_id)
@@ -178,14 +172,6 @@ bool iso_draw_tile_onlay(uint8_t tile_id, int cx, int cy)
     iso_tile_frame(tile_id, 0, &f);
     draw_png_frame(&g_tiles, &f, cx, cy);
     return true;
-}
-
-void iso_draw_player_foot(int foot_sx, int foot_sy, uint8_t dir)
-{
-    uint8_t d = dir;
-    if (d > DIR_RIGHT) d = DIR_DOWN;
-    try_load_atlas(&g_actors, "assets/assets_iso_actors.png", "../assets/assets_iso_actors.png");
-    draw_png_frame_scaled(&g_actors, &PNG_PLAYER[d], foot_sx, foot_sy, ISO_ACTOR_SN, ISO_ACTOR_SD);
 }
 
 #define CHARS_SN 1

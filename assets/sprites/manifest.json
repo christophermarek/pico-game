@@ -1,0 +1,28 @@
+{
+  "sheets": [
+    {
+      "output": "assets/assets_iso_tiles.png",
+      "cell_w": 64,
+      "cell_h": 48,
+      "grid": [
+        ["tiles/water_0", "tiles/water_1", "tiles/water_2", "tiles/water_3"],
+        ["tiles/grass",   "tiles/path",    "tiles/sand",    "tiles/tree"],
+        ["tiles/rock",    "tiles/ore",     "tiles/flower",  "tiles/tgrass"],
+        ["tiles/depleted", null,            null,            null]
+      ]
+    },
+    {
+      "output": "assets/assets_chars.png",
+      "cell_w": 32,
+      "cell_h": 32,
+      "grid": [
+        [
+          "chars/player_down_0",  "chars/player_down_1",
+          "chars/player_up_0",    "chars/player_up_1",
+          "chars/player_left_0",  "chars/player_left_1",
+          "chars/player_right_0", "chars/player_right_1"
+        ]
+      ]
+    }
+  ]
+}

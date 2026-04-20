@@ -2,53 +2,53 @@
 
 The SDL simulator loads these files at runtime (each path is tried as `./<path>` then `../<path>` when the working directory is `build/`):
 
-- `assets/assets_iso_actors.png`
 - `assets/assets_iso_tiles.png`
-- `assets/assets_iso_mansion.png`
+- `assets/assets_chars.png`
 
-## Regenerating
+## Editing Sprites
 
-The bake script writes all three PNGs into the **`assets/`** directory:
+Edit `assets/*.png` directly with your pixel art tool (Aseprite, GraphicsGale, Piskel, etc.). Changes are reflected immediately when you run the game (no rebuild needed).
 
 ```bash
-pip install pillow   # once
-python3 tools/bake_iso_assets.py
+# Edit sprites directly
+open assets/assets_iso_tiles.png
+open assets/assets_chars.png
+
+# Test your changes
+make dev
+
+# Generate blank templates (optional)
+python3 tools/sprite_template.py  # Creates assets/templates/*.png
 ```
+
+See [`SPRITES.md`](SPRITES.md) for the full sprite workflow guide.
 
 ## Requirements
 
-- **Simulator and unit tests** load these PNGs via **stb_image** ([`third_party/stb_image.h`](third_party/stb_image.h)). If a file is missing or unreadable, iso sprites are simply not drawn — for the mansion, the procedural C fallback in `spr_mansion_td` is used instead.
-- **Pico hardware** still has `hal_image_load_rgba` as a stub, so the procedural fallback runs on device.
+- **Simulator and unit tests** load these PNGs via **stb_image** ([`third_party/stb_image.h`](third_party/stb_image.h)). If a file is missing or unreadable, iso sprites are simply not drawn.
+- **Pico hardware** embeds the PNG data as C arrays via `tools/gen_pico_atlases.py`.
 
 ## terrain sheet
 
 - File: [`assets/assets_iso_tiles.png`](assets/assets_iso_tiles.png)
-- Size: `768×48` (one row of 12 cells × `64×48`)
+- Size: `256×192` (4×4 grid of 64×48 cells)
 - Anchor: cell centre `(cx, cy)` in screen space (offset `ox=-32`, `oy=-24`)
-- Columns 0–3: `T_WATER` animation frames (phase `0..3`, same as `(tick/4)%4` in game)
-- Columns 4–11: `T_GRASS`, `T_PATH`, `T_SAND`, `T_TREE`, `T_ROCK`, `T_ORE`, `T_FLOWER`, `T_TGRASS`
-
-`T_HOME` / `T_HOME_SOLID` under the mansion footprint render as grass; a path strip (column `MANSION_DOOR_TX`) runs up to the door tile (see `world.c`).
-
-## mansion sheet
-
-- File: [`assets/assets_iso_mansion.png`](assets/assets_iso_mansion.png)
-- Size: `768×128` (four `192×128` frames, one per camera bearing 0–3)
-- Anchor: pixel `(96, 56)` within each frame maps to the footprint centre `(MV_CX, MV_CY)` in world space. `iso_draw_mansion()` receives the screen projection of that point and shifts by `(-96, -56)` to position the frame.
-- Bearing 0 → column 0; bearing 1 → column 192; bearing 2 → column 384; bearing 3 → column 576
-- Content: plinth, lit/shaded walls, windows, door (south wall, bearings 0 and 3), pyramidal roof, chimney with smoke
-- Fallback: if the PNG is absent, `spr_mansion_td` falls through to the procedural C renderer
-
-## actors sheet
-
-- File: [`assets/assets_iso_actors.png`](assets/assets_iso_actors.png)
-- Size: `128×64`
-- Cell size: `32×32` source pixels; drawn at **75%** (`ISO_ACTOR_SN/SD` in `iso_spritesheet.c`)
 - Layout:
-  - Row 0: player frames — down, up, left, right
-  - Row 1: monster evo 0, evo 1, evo 2, (unused)
+  - Row 0: `T_WATER` animation frames (0-3)
+  - Row 1: `T_GRASS`, `T_PATH`, `T_SAND`, `T_TREE`
+  - Row 2: `T_ROCK`, `T_ORE`, `T_FLOWER`, `T_TGRASS`
+  - Row 3: Depleted-node overlay (col 0), unused (cols 1-3)
+
+## chars sheet
+
+- File: [`assets/assets_chars.png`](assets/assets_chars.png)
+- Size: `256×32`
+- Stored at 2× game pixels (SPRITE_SCALE=2), rendered at 1:1 via `draw_png_frame_scaled(..., 1, 2)`
+- Layout:
+  - Row 0 (y=0): Top-down player character sprites (8 frames: 4 dirs × 2 walk frames)
 
 ## Notes
 
 - PNG alpha is respected (transparent pixels are skipped).
-- Art in all sheets is generated to match the procedural rendering in `sprites.c` / `bake_iso_assets.py`.
+- Sprites are hand-edited in `assets/*.png` - these are the source of truth.
+- Desktop loads PNGs at runtime; Pico embeds them as C arrays during build.

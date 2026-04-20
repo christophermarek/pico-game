@@ -27,6 +27,8 @@ int main(void) {
 
     while (1) {
         hal_input_poll(&inp);
+        
+        state.frame_count++;  /* increment every frame for smooth animations */
 
         if (state.mode == MODE_TOPDOWN) {
             if (inp.cam_l_press) {

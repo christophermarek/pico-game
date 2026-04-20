@@ -1,0 +1,12 @@
+build/
+*.o
+*.elf
+*.uf2
+*.bin
+*.dis
+.DS_Store
+*.pyc
+__pycache__/
+.vscode/
+.idea/
+assets/templates/

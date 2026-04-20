@@ -7,7 +7,7 @@
  *
  * Because rotation happens BEFORE the iso skew, tiles always render as
  * axis-aligned 2:1 horizontal diamonds on screen. Only the *content* of the
- * world rotates with the camera. This is what the sprite tiles, the mansion
+ * world rotates with the camera. This is what the sprite tiles
  * quad, and the player's screen-relative input all assume.
  *
  * Input: screen velocity → inverse iso → inverse world rotation → world delta.
@@ -19,11 +19,17 @@
 
 #define TD_CAM_STEPS 4
 
-/* One world-tile step maps to this iso spacing (2:1 diamond). */
-#define TD_ISO_HW ((float)TILE)
-#define TD_ISO_HH ((float)TILE * 0.5f)
-#define TD_ISO_A  (TD_ISO_HW / (float)TILE)   /* = 1.0 */
-#define TD_ISO_B  (TD_ISO_HH / (float)TILE)   /* = 0.5 */
+/*
+ * One world-tile step maps to this iso spacing (2:1 diamond).
+ *
+ * The 64×48 tile sprite has a flat diamond of 64×32 px.
+ * Moving 1 tile in world X → screen (+32, +16), so:
+ *   A = 32 / TILE = 2.0,  B = 16 / TILE = 1.0
+ */
+#define TD_ISO_HW ((float)TILE * 2.0f)
+#define TD_ISO_HH ((float)TILE * 1.0f)
+#define TD_ISO_A  (TD_ISO_HW / (float)TILE)   /* = 2.0 */
+#define TD_ISO_B  (TD_ISO_HH / (float)TILE)   /* = 1.0 */
 
 typedef struct {
     uint8_t bearing; /* 0..3, clockwise 90° steps on the world grid */

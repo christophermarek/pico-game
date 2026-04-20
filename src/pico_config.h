@@ -15,7 +15,7 @@
  */
 
 /* SPI display */
-#define CONFIG_SPI_BAUD  40000000   /* 40 MHz — reliable across most ST7789 modules */
+#define CONFIG_SPI_BAUD  40000000   /* 40 MHz  */
 #define CONFIG_PIN_SCK   18
 #define CONFIG_PIN_MOSI  19
 #define CONFIG_PIN_DC    20

@@ -12,10 +12,7 @@ Usage:
 
 Output (created/overwritten):
     src/pico_assets/atlas_iso_tiles.h / .c
-    src/pico_assets/atlas_iso_actors.h / .c
-    src/pico_assets/atlas_iso_mansion.h / .c
     src/pico_assets/atlas_chars.h / .c
-    src/pico_assets/atlas_base.h / .c
     src/pico_assets/pico_atlases.h   ← central include
 
 Flash budget check is printed at the end.
@@ -29,10 +26,11 @@ from PIL import Image
 
 ATLASES = [
     ("atlas_iso_tiles",   "assets/assets_iso_tiles.png"),
-    ("atlas_iso_actors",  "assets/assets_iso_actors.png"),
-    ("atlas_iso_mansion", "assets/assets_iso_mansion.png"),
     ("atlas_chars",       "assets/assets_chars.png"),
-    ("atlas_base",        "assets/assets_base.png"),
+    # Removed: mansion, base, and iso actors are future features
+    # ("atlas_iso_mansion", "assets/assets_iso_mansion.png"),
+    # ("atlas_iso_actors",  "assets/assets_iso_actors.png"),
+    # ("atlas_base",        "assets/assets_base.png"),
 ]
 
 BYTES_PER_LINE = 32   # C source line width in bytes — balance readability vs file size

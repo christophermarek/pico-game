@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""
+gen_spritesheets.py — assemble sprite sheets from individual PNG files.
+
+Each sprite lives at assets/sprites/<name>.png at its natural cell size.
+The manifest at assets/sprites/manifest.json describes every sheet:
+
+  {
+    "sheets": [
+      {
+        "output": "assets/assets_iso_tiles.png",
+        "cell_w": 64,
+        "cell_h": 48,
+        "grid": [
+          ["tiles/water_0", "tiles/water_1", ...],
+          ["tiles/grass",   null, ...]
+        ]
+      },
+      ...
+    ]
+  }
+
+  "grid" is a 2-D array (rows × cols).  Each entry is either:
+    - a path relative to assets/sprites/ (without the .png extension), or
+    - null  →  that cell is left transparent.
+
+Usage:
+    python3 tools/gen_spritesheets.py [project_root]
+
+project_root defaults to the directory containing this script's parent.
+Exits with code 1 if any required sprite file is missing.
+"""
+
+import json
+import sys
+from pathlib import Path
+from PIL import Image
+
+
+def load_sprite(path: Path, cell_w: int, cell_h: int) -> Image.Image:
+    img = Image.open(path).convert("RGBA")
+    if img.size != (cell_w, cell_h):
+        print(f"  WARNING: {path.name} is {img.size}, expected ({cell_w}×{cell_h}) — resizing")
+        img = img.resize((cell_w, cell_h), Image.NEAREST)
+    return img
+
+
+def build_sheet(sheet: dict, sprites_dir: Path, root: Path) -> None:
+    output   = root / sheet["output"]
+    cell_w   = sheet["cell_w"]
+    cell_h   = sheet["cell_h"]
+    grid     = sheet["grid"]
+
+    rows = len(grid)
+    cols = max(len(row) for row in grid)
+
+    canvas = Image.new("RGBA", (cols * cell_w, rows * cell_h), (0, 0, 0, 0))
+
+    missing = []
+    for r, row in enumerate(grid):
+        for c, entry in enumerate(row):
+            if entry is None:
+                continue
+            sprite_path = sprites_dir / f"{entry}.png"
+            if not sprite_path.exists():
+                missing.append(str(sprite_path))
+                continue
+            sprite = load_sprite(sprite_path, cell_w, cell_h)
+            canvas.paste(sprite, (c * cell_w, r * cell_h))
+
+    if missing:
+        for m in missing:
+            print(f"  ERROR: missing sprite: {m}")
+        sys.exit(1)
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(output)
+    size_kb = output.stat().st_size / 1024
+    print(f"  {output.relative_to(root)}  ({cols}×{rows} cells @ {cell_w}×{cell_h})  {size_kb:.1f} KB")
+
+
+def main() -> None:
+    script_dir = Path(__file__).resolve().parent
+    root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else script_dir.parent
+
+    sprites_dir  = root / "assets" / "sprites"
+    manifest_path = sprites_dir / "manifest.json"
+
+    if not manifest_path.exists():
+        print(f"ERROR: manifest not found at {manifest_path}")
+        sys.exit(1)
+
+    with open(manifest_path) as f:
+        manifest = json.load(f)
+
+    print(f"Building sprite sheets from {sprites_dir.relative_to(root)}/")
+    for sheet in manifest["sheets"]:
+        build_sheet(sheet, sprites_dir, root)
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()

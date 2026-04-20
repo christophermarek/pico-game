@@ -35,8 +35,8 @@ void spr_tile_iso(uint8_t tile_id, int cx, int cy, uint32_t tick)
 
 void spr_player_td_foot(int foot_sx, int foot_sy, uint8_t dir, float walk_frame)
 {
-    (void)walk_frame;
-    iso_draw_player_foot(foot_sx, foot_sy, dir);
+    /* Now draws the character sprite directly (foot sprites removed) */
+    iso_draw_td_player_char(foot_sx, foot_sy, dir, (uint8_t)walk_frame);
 }
 
 void spr_player_td(int sx, int sy, uint8_t dir, float walk_frame)

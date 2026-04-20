@@ -179,14 +179,8 @@ bool hal_image_load_rgba(const char *path, HalImageRGBA *out) {
     } atlases[] = {
         { "assets_iso_tiles",   ATLAS_ISO_TILES_W,   ATLAS_ISO_TILES_H,
           atlas_iso_tiles_rgba   },
-        { "assets_iso_actors",  ATLAS_ISO_ACTORS_W,  ATLAS_ISO_ACTORS_H,
-          atlas_iso_actors_rgba  },
-        { "assets_iso_mansion", ATLAS_ISO_MANSION_W, ATLAS_ISO_MANSION_H,
-          atlas_iso_mansion_rgba },
         { "assets_chars",       ATLAS_CHARS_W,       ATLAS_CHARS_H,
           atlas_chars_rgba       },
-        { "assets_base",        ATLAS_BASE_W,        ATLAS_BASE_H,
-          atlas_base_rgba        },
     };
 
     for (int i = 0; i < (int)(sizeof atlases / sizeof atlases[0]); i++) {

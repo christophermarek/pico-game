@@ -1,6 +1,6 @@
 # GrumbleQuest
 
-A monster-collecting RPG with life-sim mechanics for Raspberry Pi Pico and desktop.
+A resource-gathering RPG for Raspberry Pi Pico and desktop.
 
 ![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%20Pico-red)
 ![Language](https://img.shields.io/badge/language-C11-blue)
@@ -29,9 +29,9 @@ make test
 |--------|------|
 | Move | Arrow Keys or **W/S/Q/D** |
 | Confirm (A) | **Z**, **Space**, **Enter**, or **A** |
-| Cancel (B) | **X** or **B** |
-| Menu | **M** |
-| Toggle View | **V** |
+| Run (B) | Hold **X** or **B** |
+| Menu | **M** or **Tab** |
+| Rotate Camera | **[** / **]** |
 
 **Note:** Keyboard `A` = face button A (confirm), use `Q` for left movement.
 
@@ -39,43 +39,44 @@ make test
 
 ## What is GrumbleQuest?
 
-A pixel-art RPG combining:
+A minimalist pixel-art RPG focusing on exploration and resource gathering:
 
-- 🐉 **Monster Collection** — Train and evolve 5 species (4 stages each)
-- 🎯 **10 Skills** — Mining, Fishing, Woodcutting, Combat, Cooking, Magic, Farming, Crafting, Smithing, Herblore
-- 🏠 **Home Building** — Manage your mansion, craft equipment for your pets, farm berries
-- 🗺️ **Dual Perspectives** — Top-down overworld + side-view platformer
+- 🎯 **4 Skills** — Mining, Fishing, Woodcutting, Cooking
+- 🗺️ **Top-Down Overworld** — Handcrafted 30×20 tile map with isometric rendering
+- 🔄 **Resource Nodes** — Trees, rocks, ore, water (respawn after ~10 minutes)
+- 📦 **Inventory** — 20 slots, 12 item types
 - 💾 **Auto-Save** — Progress saved every ~1 minute
+- 📊 **XP System** — Level up skills through gathering actions
 
 ---
 
 ## Features
 
-### Core Systems
-- ✅ Character customization (name, skin, hair, outfit)
-- ✅ Resource gathering (trees, rocks, ore, water)
-- ✅ Pet evolution (5 species × 4 stages = 20 forms)
-- ✅ Equipment crafting (7 pieces with stat bonuses for pets)
-- ✅ Happiness system (affects pet growth)
-- ✅ Inventory management (25 item types, 20 slots)
-- ✅ Party system (4 active + 12 storage box)
-- ✅ Persistent save/load with throttled auto-save
-- ✅ HUD with HP/hunger/energy bars and message log
-- ✅ Day counter and FPS display
+### Currently Implemented
+- ✅ Resource gathering (Mining, Fishing, Woodcutting)
+- ✅ Skill leveling with XP progression
+- ✅ Inventory management (20 slots)
+- ✅ Handcrafted overworld map with collision
+- ✅ Isometric camera with 4 rotation bearings
+- ✅ Node depletion and respawn system
+- ✅ Running (hold B to run, drains energy)
+- ✅ HUD with HP/energy bars and message log
+- ✅ Menu system (Skills tab, Items tab)
+- ✅ Persistent save/load
+- ✅ Day counter
 
-### World
-- 🌍 30×20 tile overworld (480×320 px)
-- 🏰 Mansion with path, interior, and surrounding grounds
-- 🌲 Handcrafted biomes (forest, lake, quarry)
-- 🔄 Respawning resource nodes
-
-### Technical
-- 🎮 Zero-dependency C11 core (HAL abstraction)
-- 🖥️ SDL2 desktop simulator (3× scale)
-- 📱 Raspberry Pi Pico target (ST7789V 240×240 SPI, `pico/CMakeLists.txt`)
-- 🧪 Headless test suite (all passing)
-- 🎨 RGB565 direct rendering (no conversion overhead)
-- ⚡ 30 FPS target with live FPS counter
+### Future Features
+- 🏠 Home base interior with furniture placement
+- 🌾 Farming system with berry growth timers
+- ⚔️ Equipment crafting (7 pieces)
+- 🍖 Hunger bar and cooking system
+- ✨ Magic and Herblore skills
+- 🔨 Smithing at forge
+- 🎮 Side-view platformer mode
+- 🐉 Pet/monster collection system
+- ⚔️ Turn-based battle system
+- 🎨 Character creation and customization
+- 🎵 Music + SFX
 
 ---
 
@@ -87,21 +88,18 @@ PicoGame/
 │   ├── hal.h               # Hardware abstraction interface
 │   ├── hal_sdl.c           # SDL2 desktop implementation
 │   ├── hal_pico.c          # Raspberry Pi Pico implementation
-│   ├── pico_config.h       # Pico pin/SPI assignments
 │   ├── main.c              # Game loop
-│   ├── game/               # Core logic (state, world, player, skills, pets, save)
+│   ├── game/               # Core logic (state, world, player, skills, save)
 │   ├── render/             # Graphics (sprites, font, camera, iso spritesheet)
-│   ├── ui/                 # Screens (menu, HUD, char create)
-│   └── data/               # Data tables (species, moves, berries, equipment)
-├── assets/                 # Source PNG spritesheets (baked by tools/)
+│   └── ui/                 # Screens (menu, HUD)
+├── assets/                 # Source PNG spritesheets (edit directly!)
 ├── tools/
-│   ├── bake_iso_assets.py  # Regenerate PNG spritesheets from pixel art
-│   └── gen_pico_atlases.py # Convert PNGs to C arrays for Pico flash
+│   ├── sprite_template.py  # Generate blank sprite templates
+│   └── gen_pico_atlases.py # Convert PNGs to C arrays for Pico
 ├── pico/
-│   └── CMakeLists.txt      # Pico SDK build (produces .uf2 firmware)
+│   └── CMakeLists.txt      # Pico SDK build
 ├── tests/                  # Integration tests + stub HAL
 ├── CMakeLists.txt          # SDL simulator + test build
-├── Makefile
 └── README.md
 ```
 
@@ -109,56 +107,23 @@ PicoGame/
 
 ## Game Loop
 
-1. **Explore** the overworld (top-down or side-view)
-2. **Gather** resources by skilling (Mining, Fishing, Woodcutting)
-3. **Craft** equipment from materials at your mansion
-4. **Equip** crafted gear on your active pet
-5. **Evolve** your party by levelling up
-6. **Return home** to manage inventory, farm berries, and place furniture
-
----
-
-## Monster Species
-
-| Species | Type | Description |
-|---------|------|-------------|
-| Glub | Dark | Shadow blob |
-| Bramble | Grass | Thorny plant |
-| Korvax | Fire | Flame beast |
-| Wisp | Air | Wind elemental |
-| Shadowkin | Dark | Pure shadow |
-
-Each species has 4 evolution stages. Pets level up through exploration and unlock auto-recruited companions at total level milestones (15 / 30 / 50).
+1. **Explore** the top-down overworld
+2. **Face resource nodes** (trees, rocks, ore, water)
+3. **Press A** to start skilling action
+4. **Gain XP** and collect items when action completes
+5. **Level up skills** through repeated gathering
+6. **Manage inventory** via the menu (M or Tab)
 
 ---
 
 ## Skills
 
-| Skill | Resource | Items |
-|-------|----------|-------|
-| Mining | Rock, Ore | Stone, Ore, Gem |
-| Fishing | Water | Fish, Seaweed |
-| Woodcutting | Tree | Log, Branch |
-| Combat | (planned) | — |
-| Cooking | — | Meals |
-| Magic | — | Orbs |
-| Farming | Home | Berries |
-| Crafting | Workbench | Equipment |
-| Smithing | Forge | Iron gear |
-| Herblore | — | Potions |
-
----
-
-## Equipment
-
-| Name | Bonuses | Recipe |
-|------|---------|--------|
-| Cloth Vest | +1 DEF | 2 Thread, 1 Log |
-| Leaf Crown | +1 ATK, +1 SPD, +1 happy/tick | 3 Branch, 1 Herb |
-| Iron Collar | +2 ATK, +2 DEF | 3 Ore, 2 Stone |
-| Silk Cape | +1 DEF, +2 SPD | 4 Thread, 2 Branch |
-| Gem Amulet | +2 ATK, +1 DEF, +1 SPD | 1 Gem, 2 Thread, 1 Herb |
-| Rune Plate | +3 ATK, +4 DEF | 4 Ore, 4 Stone, 1 Gem |
+| Skill | Resource | Items | XP Range |
+|-------|----------|-------|----------|
+| Mining | Rock, Ore | Stone, Ore, Gem | 30–50 |
+| Fishing | Water | Fish, Seaweed | 20–30 |
+| Woodcutting | Tree | Log, Branch | 25–40 |
+| Cooking | — | (future: meals) | — |
 
 ---
 
@@ -178,15 +143,6 @@ make dev     # Run simulator (blocking)
 make clean   # Remove build directory
 ```
 
-### Manual Build
-
-```bash
-mkdir -p build && cd build
-cmake ..
-cmake --build . -j8
-./grumblequest_sim
-```
-
 ---
 
 ## Testing
@@ -196,12 +152,12 @@ make test
 ```
 
 **Test Coverage:**
-- Config/colors
-- Data tables (species, moves, equipment, berries)
+- Config constants
 - State initialization & inventory
 - World generation & collision
-- Skills & pets
+- Skills system
 - Save/load roundtrip
+- Player movement
 - Full render pipeline
 
 ---
@@ -211,8 +167,7 @@ make test
 **BOM:**
 - Raspberry Pi Pico (RP2040)
 - ST7789 240×240 SPI display
-- 8 tactile buttons (or D-pad + 4 face buttons)
-- Wiring harness
+- 8 tactile buttons
 
 **Pinout:**
 - SPI0 (SCK: GP18, TX: GP19, CS: GP17, DC: GP20, RST: GP21, BL: GP22)
@@ -228,39 +183,13 @@ make -j4
 # Flash grumblequest.uf2 to the Pico
 ```
 
-Atlas C arrays are generated automatically from `assets/*.png` by `tools/gen_pico_atlases.py` during the CMake build.
-
----
-
-## Roadmap
-
-### v0.2 (Next)
-- [ ] Cooking system
-- [ ] Magic spells
-- [ ] Herblore potions
-- [ ] Furniture placement
-- [ ] Music + SFX
-
-### v0.3
-- [ ] Day/night cycle
-- [ ] Weather system
-- [ ] More species (12–15 total)
-- [ ] Turn-based combat
-- [ ] Wild encounters
-
-### v1.0
-- [ ] Multiplayer (local UART link)
-- [ ] Achievements
-- [ ] Full content pass
-
 ---
 
 ## Documentation
 
 - **Full Design Doc:** [GAME_DESIGN.md](GAME_DESIGN.md)
+- **Sprite Sheets:** [assets_iso_sheets.md](assets_iso_sheets.md)
 - **Architecture:** See `src/hal.h` for HAL abstraction
-- **Game Data:** See `src/data/*.h` for species/moves/items
-- **Build System:** `CMakeLists.txt` + `Makefile`
 
 ---
 
@@ -282,7 +211,7 @@ Atlas C arrays are generated automatically from `assets/*.png` by `tools/gen_pic
 ## Credits
 
 **Author:** *(Your name)*  
-**Inspired by:** Pokémon, RuneScape, Stardew Valley, GameBoy Color RPGs
+**Inspired by:** RuneScape, Stardew Valley, GameBoy Color RPGs
 
 **Built with:**
 - SDL2 (desktop sim)
@@ -292,11 +221,5 @@ Atlas C arrays are generated automatically from `assets/*.png` by `tools/gen_pic
 
 ---
 
-## Contributing
-
-*(Add contribution guidelines here)*
-
----
-
-**Status:** Playable prototype with core systems implemented  
-**Last Updated:** 2026-04-19
+**Status:** Playable prototype with core gathering systems implemented  
+**Last Updated:** 2026-04-20

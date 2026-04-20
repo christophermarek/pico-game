@@ -71,7 +71,7 @@ void render_topdown(GameState *s, const World *w)
         int   sx, sy;
         td_world_to_screen(s, &cam, tcx, tcy, &sx, &sy);
         uint8_t tile = world_tile(w, tx, ty);
-        spr_tile_iso_floor(tile, sx, sy, s->tick_count);
+        spr_tile_iso_floor(tile, sx, sy, s->frame_count);
     }
     for (int i = 0; i < n; i++) {
         int   tx  = cells[i].tx;
@@ -81,7 +81,7 @@ void render_topdown(GameState *s, const World *w)
         int   sx, sy;
         td_world_to_screen(s, &cam, tcx, tcy, &sx, &sy);
         uint8_t tile = world_tile(w, tx, ty);
-        spr_tile_iso_onlay(tile, sx, sy, s->tick_count);
+        spr_tile_iso_onlay(tile, sx, sy, s->frame_count);
         if (w->node_respawn[ty * MAP_W + tx] > 0)
             spr_iso_depleted_mark(sx, sy);
     }

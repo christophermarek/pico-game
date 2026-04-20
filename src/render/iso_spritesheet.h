@@ -3,8 +3,6 @@
 #include <stdint.h>
 #include "../game/state.h"
 
-void iso_draw_player_foot(int foot_sx, int foot_sy, uint8_t dir);
-
 bool iso_draw_tile_full(uint8_t tile_id, int cx, int cy, uint32_t tick);
 bool iso_draw_tile_onlay(uint8_t tile_id, int cx, int cy);
 

@@ -3,6 +3,7 @@
 #include "colors.h"
 #include "config.h"
 #include "../render/font.h"
+#include <stdio.h>
 
 /* ------------------------------------------------------------------ */
 /* Layout constants (base values live in config.h)                     */
@@ -142,6 +143,15 @@ void hud_draw(GameState *s) {
         buf[n++] = (char)('0' + d % 10);
         buf[n] = '\0';
         font_draw_str(buf, MSG_X, MSG_Y, C_TEXT_DIM, 1);
+    }
+
+    /* Player tile coordinates — right-aligned before tab icons */
+    {
+        char coords[16];
+        snprintf(coords, sizeof(coords), "%d,%d",
+                 (int)s->td.tile_x, (int)s->td.tile_y);
+        int cw = font_str_width(coords, 1);
+        font_draw_str(coords, ICON_X0 - cw - 3, MSG_Y, C_TEXT_DIM, 1);
     }
 
     /* Tab shortcut icons */

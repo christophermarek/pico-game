@@ -80,6 +80,7 @@ typedef struct GameState {
     uint8_t  action_ticks_left;
 
     uint32_t tick_count;
+    uint32_t frame_count;  /* increments every frame for animations */
     uint16_t day;
 
     MenuTab  menu_tab;

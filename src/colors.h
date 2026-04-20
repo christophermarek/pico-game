@@ -42,14 +42,6 @@
 #define C_PLAYER_BODY  HEX(0x7c3aed)
 #define C_PLAYER_DARK  HEX(0x6d28d9)
 #define C_PLAYER_LEGS  HEX(0x3730a3)
-/* ---- Monsters ---- */
-#define C_MON_PURPLE_D HEX(0x6b21a8)
-#define C_MON_PURPLE_M HEX(0xa21caf)
-#define C_MON_PURPLE_B HEX(0x7c3aed)
-#define C_MON_RED      HEX(0xdc2626)
-#define C_MON_RED_L    HEX(0xef4444)
-#define C_MON_DARK     HEX(0x1e1b4b)
-#define C_MON_CROWN    HEX(0xfbbf24)
 
 /* ---- HUD / UI ---- */
 #define C_BG           HEX(0x0d0d1a)
@@ -63,13 +55,11 @@
 #define C_GOLD         HEX(0xfbbf24)
 #define C_GOLD_LIGHT   HEX(0xfde68a)
 #define C_HP_GREEN     HEX(0x22c55e)
-#define C_HUNGER_ORG   HEX(0xf97316)
 #define C_ENERGY_BLUE  HEX(0x3b82f6)
 #define C_XP_PURPLE    HEX(0x7c3aed)
 #define C_WARN_RED     HEX(0xef4444)
-#define C_HAPPY_PINK   HEX(0xf472b6)
 
-/* ---- Sky / side-view ---- */
+/* ---- Sky (used for background) ---- */
 #define C_SKY_TOP      HEX(0x1a0a2e)
 #define C_SKY_MID      HEX(0x2d1b4e)
 #define C_SKY_BOT      HEX(0x4c1d95)

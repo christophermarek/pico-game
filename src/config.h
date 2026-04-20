@@ -32,8 +32,8 @@
 #define WALK_FRAME_WRAP    2.0f    /* animation frames per cycle */
 
 /* ---- Player collision box ---- */
-#define PL_HALF_W   5   /* half-width (px) of player AABB */
-#define PL_HALF_H   7   /* half-height (px) of player AABB */
+#define PL_HALF_W   5   /* half-width  (world px) of player AABB */
+#define PL_HALF_H   5   /* half-height (world px) — equal to W for symmetric iso feel */
 
 /* ---- Running (hold B) ---- */
 #define TD_RUN_SPEED_MULT     1.70f  /* speed multiplier while running */
@@ -72,7 +72,7 @@
 
 /* ---- Renderer ---- */
 #define TD_FEET_OFF  7.0f   /* iso depth-sort Y offset for player feet */
-#define TD_ISO_CULL  72     /* extra pixels beyond screen edge for tile culling */
+#define TD_ISO_CULL  100    /* extra pixels beyond screen edge for tile culling */
 
 /* ---- Node respawn ---- */
 #define NODE_RESPAWN_TICKS 60  /* game ticks before a harvested node reappears */
