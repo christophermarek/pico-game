@@ -3,9 +3,6 @@
 #include <stdbool.h>
 #include "config.h"
 
-/* ------------------------------------------------------------------ */
-/* Item IDs                                                             */
-/* ------------------------------------------------------------------ */
 typedef enum {
     ITEM_NONE    = 0,
     ITEM_ORE     = 1,
@@ -22,51 +19,36 @@ typedef enum {
     ITEM_COUNT   = 12,
 } ItemID;
 
-/* ------------------------------------------------------------------ */
-/* Skill                                                                */
-/* ------------------------------------------------------------------ */
 typedef struct {
     uint32_t xp;
     uint8_t  level;
 } Skill;
 
-/* ------------------------------------------------------------------ */
-/* Inventory                                                            */
-/* ------------------------------------------------------------------ */
 typedef struct {
     uint8_t item_id;
     uint8_t count;
 } InvSlot;
 
-/* ------------------------------------------------------------------ */
-/* Top-down player position                                             */
-/* ------------------------------------------------------------------ */
 typedef struct {
     float   x, y;
-    uint8_t dir;        /* world-space facing (interactions, facing_tile) */
-    uint8_t screen_dir; /* monitor-relative facing (sprite under rotated view) */
+    uint8_t dir;        /* world-space facing (for interactions and facing_tile) */
+    uint8_t screen_dir; /* monitor-relative facing (for sprite under rotated camera) */
     float   walk_frame;
     int16_t tile_x, tile_y;
 } PlayerTD;
 
-/* ------------------------------------------------------------------ */
-/* Menu                                                                 */
-/* ------------------------------------------------------------------ */
 typedef enum {
     MTAB_SKILLS   = 0,
     MTAB_ITEMS    = 1,
     MTAB_SETTINGS = 2,
 } MenuTab;
 
-/* ------------------------------------------------------------------ */
-/* Full game state                                                      */
-/* ------------------------------------------------------------------ */
 typedef struct GameState {
-    GameMode  mode;
-    GameMode  prev_mode;
+    GameMode mode;
+    GameMode prev_mode;
 
-    PlayerTD     td;
-    uint8_t      td_cam_bearing;
+    PlayerTD td;
+    uint8_t  td_cam_bearing;
 
     int16_t  hp, max_hp;
     uint8_t  energy;
@@ -81,7 +63,7 @@ typedef struct GameState {
     uint8_t  action_ticks_left;
 
     uint32_t tick_count;
-    uint32_t frame_count;  /* increments every frame for animations */
+    uint32_t frame_count;
     uint16_t day;
 
     MenuTab  menu_tab;
@@ -94,18 +76,14 @@ typedef struct GameState {
 
     uint32_t total_steps;
 
-    bool     debug_mode;       /* shows hitboxes + orientation overlay */
-    uint8_t  settings_cursor;  /* cursor within the settings tab */
+    bool     debug_mode;
+    uint8_t  settings_cursor;
 
-    /* Debug telemetry (populated by player_update_td every frame). */
-    float    dbg_dx, dbg_dy;         /* attempted world-space velocity */
-    bool     dbg_blocked_x;          /* X-axis move rejected by collision */
-    bool     dbg_blocked_y;          /* Y-axis move rejected (after X applied) */
+    /* Debug telemetry — written each frame by player_update_td. */
+    float    dbg_dx, dbg_dy;
+    bool     dbg_blocked_x, dbg_blocked_y;
 } GameState;
 
-/* ------------------------------------------------------------------ */
-/* API                                                                  */
-/* ------------------------------------------------------------------ */
 void     state_init(GameState *s);
 uint16_t total_level(const GameState *s);
 uint32_t xp_for_level(uint8_t level);
@@ -113,5 +91,3 @@ void     state_log(GameState *s, const char *msg);
 int      inv_count(const GameState *s, uint8_t item_id);
 bool     inv_add(GameState *s, uint8_t item_id, uint8_t qty);
 bool     inv_remove(GameState *s, uint8_t item_id, uint8_t qty);
-
-#define GRUMBLE_STATE_DEFINED 1

@@ -2,43 +2,32 @@
 #include "hal.h"
 #include <string.h>
 
-/* ------------------------------------------------------------------ */
-/* XP table                                                             */
-/* ------------------------------------------------------------------ */
 uint32_t xp_for_level(uint8_t level) {
     return (uint32_t)level * level * 10u + (uint32_t)level * 20u;
 }
 
-/* ------------------------------------------------------------------ */
-/* Initialise game state to defaults                                    */
-/* ------------------------------------------------------------------ */
 void state_init(GameState *s) {
     memset(s, 0, sizeof(*s));
 
-    s->mode     = MODE_TOPDOWN;
-    s->hp       = 100;
-    s->max_hp   = 100;
-    s->energy   = 100;
-    s->running_locked = false;
+    s->mode    = MODE_TOPDOWN;
+    s->hp      = 100;
+    s->max_hp  = 100;
+    s->energy  = 100;
 
-    for (int i = 0; i < SKILL_COUNT; i++) {
+    for (int i = 0; i < SKILL_COUNT; i++)
         s->skills[i].level = 1;
-        s->skills[i].xp    = 0;
-    }
 
-    s->td.x        = 14.0f * TILE + TILE / 2.0f;
-    s->td.y        = 10.0f * TILE + TILE / 2.0f;
+    s->td.x          = 14.0f * TILE + TILE / 2.0f;
+    s->td.y          = 10.0f * TILE + TILE / 2.0f;
     s->td.dir        = DIR_DOWN;
     s->td.screen_dir = DIR_DOWN;
-    s->td.tile_x   = 14;
-    s->td.tile_y   = 10;
+    s->td.tile_x     = 14;
+    s->td.tile_y     = 10;
 
-    s->inv[0].item_id = ITEM_BREAD; s->inv[0].count = START_INV_BREAD_COUNT;
+    s->inv[0].item_id = ITEM_BREAD;
+    s->inv[0].count   = START_INV_BREAD_COUNT;
 }
 
-/* ------------------------------------------------------------------ */
-/* Sum all skill levels                                                 */
-/* ------------------------------------------------------------------ */
 uint16_t total_level(const GameState *s) {
     uint16_t total = 0;
     for (int i = 0; i < SKILL_COUNT; i++)
@@ -46,9 +35,6 @@ uint16_t total_level(const GameState *s) {
     return total;
 }
 
-/* ------------------------------------------------------------------ */
-/* Prepend message to log ring buffer                                   */
-/* ------------------------------------------------------------------ */
 void state_log(GameState *s, const char *msg) {
     for (int i = 3; i > 0; i--)
         memcpy(s->log[i], s->log[i - 1], sizeof(s->log[0]));
@@ -58,9 +44,6 @@ void state_log(GameState *s, const char *msg) {
     s->log_ms = hal_ticks_ms();
 }
 
-/* ------------------------------------------------------------------ */
-/* Inventory helpers                                                    */
-/* ------------------------------------------------------------------ */
 int inv_count(const GameState *s, uint8_t item_id) {
     int total = 0;
     for (int i = 0; i < INV_SLOTS; i++) {

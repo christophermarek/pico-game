@@ -25,29 +25,17 @@ bool world_load_map(World *w, const char *path)
     fclose(f);
     return n == cells;
 }
-
-void world_save_map(const World *w, const char *path)
-{
-    FILE *f = fopen(path, "wb");
-    if (!f) return;
-    uint8_t hdr[7] = { 'P','M','A','P', 1, w->w, w->h };
-    fwrite(hdr, 1, 7, f);
-    fwrite(w->td_map, 1, (size_t)w->w * w->h, f);
-    fclose(f);
-}
 #else
 bool world_load_map(World *w, const char *path) { (void)w; (void)path; return false; }
-void world_save_map(const World *w, const char *path) { (void)w; (void)path; }
 #endif
 
 void world_init(World *w)
 {
-    if (!world_load_map(w, "assets/maps/map.bin") &&
-        !world_load_map(w, "../assets/maps/map.bin")) {
-        memset(w, 0, sizeof(*w));
-        w->w = MAP_W;
-        w->h = MAP_H;
-    }
+    if (world_load_map(w, "assets/maps/map.bin")) return;
+    if (world_load_map(w, "../assets/maps/map.bin")) return;
+    memset(w, 0, sizeof(*w));
+    w->w = MAP_W;
+    w->h = MAP_H;
 }
 
 uint8_t world_tile(const World *w, int x, int y)
