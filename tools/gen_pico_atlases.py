@@ -18,19 +18,14 @@ Output (created/overwritten):
 Flash budget check is printed at the end.
 """
 
-import os
 import sys
 from pathlib import Path
 from PIL import Image
 
 
 ATLASES = [
-    ("atlas_iso_tiles",   "build/assets_iso_tiles.png"),
-    ("atlas_chars",       "build/assets_chars.png"),
-    # Removed: mansion, base, and iso actors are future features
-    # ("atlas_iso_mansion", "assets/assets_iso_mansion.png"),
-    # ("atlas_iso_actors",  "assets/assets_iso_actors.png"),
-    # ("atlas_base",        "assets/assets_base.png"),
+    ("atlas_iso_tiles", "build/assets_iso_tiles.png"),
+    ("atlas_chars",     "build/assets_chars.png"),
 ]
 
 BYTES_PER_LINE = 32   # C source line width in bytes — balance readability vs file size

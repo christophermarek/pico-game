@@ -26,6 +26,7 @@ set(GAME_CORE_SOURCES
     ../src/game/tick.c
     ../src/game/save.c
     ../src/render/renderer.c
+    ../src/render/render_debug.c
     ../src/render/iso_spritesheet.c
     ../src/render/font.c
     ../src/ui/hud.c

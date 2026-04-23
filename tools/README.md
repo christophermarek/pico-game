@@ -1,36 +1,36 @@
 # Tools
 
-## Sprite Tools
+### `gen_spritesheets.py`
 
-### `sprite_template.py`
-Generates blank PNG templates with grid guides for creating new sprites from scratch.
+Assembles individual per-tile / per-frame PNGs under `assets/sprites/` into
+the two sheets the runtime loads (`build/assets_iso_tiles.png`,
+`build/assets_chars.png`). Driven by `assets/sprites/manifest.json`.
+
+Runs automatically from `make build` / `make dev` whenever a source sprite
+changes. Manual run:
 
 ```bash
-python3 tools/sprite_template.py
+python3 tools/gen_spritesheets.py [project_root] [--out-dir build]
 ```
-
-Creates templates in `assets/templates/`:
-- `tiles_template.png` - 4×4 grid for terrain tiles
-- `chars_template.png` - 8×1 grid for character animations
-
-Copy to `assets/` and edit.
 
 ### `gen_pico_atlases.py`
-Converts PNG sprite sheets to C arrays for Pico builds. **Automatically runs during Pico builds** - you don't need to run this manually.
+
+Converts the assembled sheets into C arrays (`src/pico_assets/atlas_*.c`)
+that the Pico hardware build links into flash. Runs automatically from the
+Pico CMake build.
 
 ```bash
-python3 tools/gen_pico_atlases.py .
+python3 tools/gen_pico_atlases.py <project_root>
 ```
 
-Reads from `assets/*.png` and generates:
-- `src/pico_assets/atlas_iso_tiles.c` (192 KB)
-- `src/pico_assets/atlas_chars.c` (32 KB)
-- `src/pico_assets/pico_atlases.h`
+### `map_editor.html`
+
+Browser map editor for `assets/maps/map.bin`. Start via `make editor`.
 
 ## Workflow
 
-1. Edit sprites: Open `assets/*.png` in your pixel art tool
-2. Test on desktop: `make dev` (loads PNGs at runtime)
-3. Build for Pico: `cd pico && cmake .. && make` (auto-converts PNGs to C arrays)
+1. Edit a sprite: `open assets/sprites/tiles/tree.png`
+2. `make dev` — sheets re-assemble, game reloads.
+3. For Pico: `cd pico && cmake .. && make` — atlases re-generated into flash.
 
-The PNG files are your source of truth!
+See [../SPRITES.md](../SPRITES.md) for the full sprite workflow.

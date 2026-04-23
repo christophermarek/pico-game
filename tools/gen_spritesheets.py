@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-gen_spritesheets.py — assemble sprite sheets from individual PNG files.
+gen_spritesheets.py — assemble sheets from individual sprite PNGs.
 
-Each sprite lives at assets/sprites/<name>.png at its natural cell size.
-The manifest at assets/sprites/manifest.json describes every sheet:
+Each sprite lives at assets/sprites/<subdir>/<name>.png at its natural cell
+size. The manifest at assets/sprites/manifest.json lists every sheet:
 
   {
     "sheets": [
       {
-        "output": "assets/assets_iso_tiles.png",
+        "output": "assets_iso_tiles.png",
         "cell_w": 64,
         "cell_h": 48,
         "grid": [
@@ -20,17 +20,12 @@ The manifest at assets/sprites/manifest.json describes every sheet:
     ]
   }
 
-  "grid" is a 2-D array (rows × cols).  Each entry is either:
-    - a path relative to assets/sprites/ (without the .png extension), or
-    - null  →  that cell is left transparent.
+  "output" is a basename. The script writes <root>/<out_dir>/<output>.
+  Grid entries are either a sprite path under assets/sprites/ (without
+  .png) or null for a transparent cell.
 
 Usage:
-    python3 tools/gen_spritesheets.py [project_root] [--out-dir DIR]
-
-project_root defaults to the directory containing this script's parent.
-Sheets are written to project_root/DIR/<output> (default DIR=build), so the
-generated PNGs live alongside build artefacts instead of being committed to
-assets/. The manifest's "output" should be a plain basename.
+    python3 tools/gen_spritesheets.py [project_root] [--out-dir build]
 
 Exits with code 1 if any required sprite file is missing.
 """
