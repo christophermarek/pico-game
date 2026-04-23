@@ -20,7 +20,7 @@ static const uint8_t DIR_MAP[4][4] = {
 
 #define OBSTACLE_REACH_MAX ((OBSTACLE_R > OBSTACLE_HALF) ? OBSTACLE_R : OBSTACLE_HALF)
 
-static inline bool tile_is_circle_obstacle(uint8_t tile_id) {
+static inline bool tile_is_circle(uint8_t tile_id) {
     return tile_id == T_TREE;
 }
 
@@ -32,7 +32,7 @@ static inline bool tile_is_circle_obstacle(uint8_t tile_id) {
 static bool hit_obstacle(uint8_t tile_id, float px, float py,
                          float ocx, float ocy) {
     float ddx = px - ocx, ddy = py - ocy;
-    if (tile_is_circle_obstacle(tile_id)) {
+    if (tile_is_circle(tile_id)) {
         float r = (float)(PL_RADIUS + OBSTACLE_R);
         return ddx * ddx + ddy * ddy < r * r;
     }

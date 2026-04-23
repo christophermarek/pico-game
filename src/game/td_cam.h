@@ -36,7 +36,7 @@ static inline TdCamBasis td_cam_basis(uint8_t bearing) {
 
 static inline void td_world_rotate(uint8_t bearing, float dwx, float dwy,
                                    float *rx, float *ry) {
-    switch (bearing & 3u) {
+    switch (bearing & (TD_CAM_STEPS - 1u)) {
     case 0: *rx =  dwx; *ry =  dwy; break;
     case 1: *rx = -dwy; *ry =  dwx; break;
     case 2: *rx = -dwx; *ry = -dwy; break;
@@ -46,7 +46,7 @@ static inline void td_world_rotate(uint8_t bearing, float dwx, float dwy,
 
 static inline void td_world_unrotate(uint8_t bearing, float rx, float ry,
                                      float *dwx, float *dwy) {
-    switch (bearing & 3u) {
+    switch (bearing & (TD_CAM_STEPS - 1u)) {
     case 0: *dwx =  rx; *dwy =  ry; break;
     case 1: *dwx =  ry; *dwy = -rx; break;
     case 2: *dwx = -rx; *dwy = -ry; break;

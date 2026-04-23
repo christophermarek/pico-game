@@ -59,11 +59,8 @@ cell dimensions here; `gen_spritesheets.py` reads this on every build.
 (`src/pico_assets/atlas_*.c`) linked into flash. The CMake Pico build runs
 this automatically when the PNGs change.
 
-## Blank templates
+## New sprites
 
-```bash
-python3 tools/sprite_template.py
-```
-
-Produces `assets/templates/*.png` with a semi-transparent grid overlay — a
-starting point for drawing new sheets from scratch.
+Create a blank PNG at the cell size (64×48 for tiles, 32×32 for chars),
+draw in your pixel art tool, drop it in `assets/sprites/tiles/` or
+`assets/sprites/chars/`, add it to `manifest.json`.
