@@ -1,7 +1,4 @@
-/*
- * Minimal HAL for the grumblequest_tests target — no SDL, no hardware.
- * Framebuffer and save live in RAM so tests run headless in CI.
- */
+/* Minimal HAL for grumblequest_tests — no SDL, no hardware; save + framebuffer in RAM. */
 
 #include "hal_stub.h"
 #include "hal.h"
@@ -15,28 +12,18 @@
 
 #define SAVE_BUF_MAX (256 * 1024u)
 
-static uint16_t      fb[DISPLAY_W * DISPLAY_H];
-static uint32_t      ticks_ms;
-static uint8_t       save_buf[SAVE_BUF_MAX];
-static size_t        save_len;
-static bool          save_valid;
-static bool          prev_a, prev_b, prev_start, prev_sel, prev_cam_l, prev_cam_r;
+static uint16_t fb[DISPLAY_W * DISPLAY_H];
+static uint32_t ticks_ms;
+static uint8_t  save_buf[SAVE_BUF_MAX];
+static size_t   save_len;
+static bool     save_valid;
 
 void hal_stub_reset(void)
 {
     memset(fb, 0, sizeof(fb));
-    ticks_ms = 0;
-    save_len = 0;
+    ticks_ms   = 0;
+    save_len   = 0;
     save_valid = false;
-    prev_a = prev_b = prev_start = prev_sel = false;
-    prev_cam_l = prev_cam_r = false;
-}
-
-uint16_t hal_stub_fb_get(int x, int y)
-{
-    if (x < 0 || x >= DISPLAY_W || y < 0 || y >= DISPLAY_H)
-        return 0;
-    return fb[y * DISPLAY_W + x];
 }
 
 void hal_display_init(void)
@@ -68,31 +55,16 @@ void hal_pixel(int x, int y, uint16_t color)
         fb[y * DISPLAY_W + x] = color;
 }
 
-void hal_blit(int x, int y, int w, int h, const uint16_t *buf)
-{
-    for (int row = 0; row < h; row++) {
-        int dy = y + row;
-        if (dy < 0 || dy >= DISPLAY_H) continue;
-        for (int col = 0; col < w; col++) {
-            int dx = x + col;
-            if (dx < 0 || dx >= DISPLAY_W) continue;
-            fb[dy * DISPLAY_W + dx] = buf[row * w + col];
-        }
-    }
-}
-
-void hal_show(void) { /* no-op */ }
+void hal_show(void) { }
 
 bool hal_image_load_rgba(const char *path, HalImageRGBA *out)
 {
-    if (!path || !out)
-        return false;
+    if (!path || !out) return false;
     memset(out, 0, sizeof(*out));
     int w = 0, h = 0;
     unsigned char *pix = stbi_load(path, &w, &h, NULL, 4);
     if (!pix || w <= 0 || h <= 0) {
-        if (pix)
-            stbi_image_free(pix);
+        if (pix) stbi_image_free(pix);
         return false;
     }
     out->w    = w;
@@ -103,34 +75,20 @@ bool hal_image_load_rgba(const char *path, HalImageRGBA *out)
 
 void hal_image_free(HalImageRGBA *img)
 {
-    if (!img)
-        return;
-    if (img->rgba)
-        stbi_image_free(img->rgba);
+    if (!img) return;
+    if (img->rgba) stbi_image_free(img->rgba);
     img->rgba = NULL;
     img->w = img->h = 0;
 }
 
-void hal_input_init(void)
-{
-    prev_a = prev_b = prev_start = prev_sel = false;
-    prev_cam_l = prev_cam_r = false;
-}
+void hal_input_init(void) { }
 
 void hal_input_poll(Input *inp)
 {
     memset(inp, 0, sizeof(*inp));
 }
 
-uint32_t hal_ticks_ms(void)
-{
-    return ticks_ms;
-}
-
-void hal_sleep_ms(uint32_t ms)
-{
-    ticks_ms += ms;
-}
+uint32_t hal_ticks_ms(void) { return ticks_ms; }
 
 bool hal_save(const void *data, size_t len)
 {
@@ -155,4 +113,4 @@ void hal_init(void)
     hal_input_init();
 }
 
-void hal_deinit(void) { /* no-op */ }
+void hal_deinit(void) { }

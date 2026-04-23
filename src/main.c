@@ -9,58 +9,48 @@
 #include "render/renderer.h"
 #include "ui/menu.h"
 
+#define SAVE_EVERY_TICKS 6u
+
 static GameState state;
 static World     world;
 
 int main(void) {
     hal_init();
 
-    if (!world_load_map(&world, "assets/maps/map.bin") &&
-        !world_load_map(&world, "../assets/maps/map.bin")) {
-        world.w = MAP_W;
-        world.h = MAP_H;
-    }
+    world_init(&world);
     state_init(&state);
-
-    if (!save_read(&state)) {
-        state.mode = MODE_TOPDOWN;
-    }
+    save_read(&state);
 
     Input    inp;
     uint32_t last_game_tick = hal_ticks_ms();
+    uint32_t save_tick_count = 0;
 
     while (1) {
         hal_input_poll(&inp);
-        
-        state.frame_count++;  /* increment every frame for smooth animations */
+        state.frame_count++;
 
         if (state.mode == MODE_TOPDOWN) {
-            if (inp.cam_l_press) {
+            if (inp.cam_l_press)
                 state.td_cam_bearing =
                     (uint8_t)((state.td_cam_bearing + TD_CAM_STEPS - 1u) % TD_CAM_STEPS);
-            }
-            if (inp.cam_r_press) {
+            if (inp.cam_r_press)
                 state.td_cam_bearing =
                     (uint8_t)((state.td_cam_bearing + 1u) % TD_CAM_STEPS);
-            }
         }
 
         switch (state.mode) {
             case MODE_TOPDOWN: player_update_td(&state, &inp, &world); break;
-            case MODE_MENU:    menu_update(&state, &world, &inp); break;
+            case MODE_MENU:    menu_update(&state, &world, &inp);      break;
         }
 
-        if (inp.start_press && state.mode == MODE_TOPDOWN) {
+        if (inp.start_press && state.mode == MODE_TOPDOWN)
             menu_open(&state);
-        }
 
         uint32_t now = hal_ticks_ms();
         if (now - last_game_tick >= TICK_MS) {
             game_tick(&state, &world);
             last_game_tick = now;
-
-            static uint32_t save_tick_count = 0;
-            if (++save_tick_count >= 6u) {
+            if (++save_tick_count >= SAVE_EVERY_TICKS) {
                 save_write(&state);
                 save_tick_count = 0;
             }

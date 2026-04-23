@@ -2,13 +2,11 @@
 #include "hal.h"
 
 /*
- * 5×7 pixel font.
- * Each glyph is stored as 5 bytes, one byte per column (left to right).
- * Within each byte, bit 0 = top row, bit 6 = bottom row.
+ * 5×7 pixel font. Each glyph = 5 bytes (one per column, left to right);
+ * within each byte bit 0 = top row, bit 6 = bottom row.
  * Covers ASCII 32 (' ') through 126 ('~').
  */
 
-/* Number of glyphs */
 #define FONT_FIRST 32
 #define FONT_LAST  126
 #define FONT_COLS  5

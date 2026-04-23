@@ -189,30 +189,14 @@ PicoGame/
 │   ├── config.h              # Game constants and tuning
 │   ├── colors.h              # RGB565 color palette
 │   ├── main.c                # Game loop
-│   ├── game/                 # Core game logic
-│   │   ├── state.{c,h}       # GameState, inventory, XP
-│   │   ├── world.{c,h}       # Map generation, collision
-│   │   ├── player.{c,h}      # Movement, actions
-│   │   ├── tick.{c,h}        # Time-based regen
-│   │   ├── skills.{c,h}      # Skilling system
-│   │   └── save.{c,h}        # Persistence
-│   ├── render/               # Graphics
-│   │   ├── renderer.{c,h}    # Camera, frame dispatch
-│   │   ├── sprites.{c,h}     # Tile/character drawing
-│   │   └── font.{c,h}        # 5×7 pixel font
-│   ├── ui/                   # Interface screens
-│   │   ├── hud.{c,h}         # Status bars
-│   │   └── menu.{c,h}        # Inventory/skills menu
-│   └── data/                 # Game data tables (reserved for future systems)
-│       ├── species.h         # Monster definitions (future)
-│       ├── berries.h         # Berry effects (future)
-│       └── equipment.h       # Craftable gear (future)
-├── tests/
-│   ├── hal_stub.{c,h}        # Headless HAL for CI
-│   └── test_runner.c         # Integration tests
-├── CMakeLists.txt            # Build configuration
-├── Makefile                  # Convenience targets
-└── GAME_DESIGN.md            # This document
+│   ├── game/                 # state, world, player, skills, tick, save
+│   ├── render/               # renderer, iso_spritesheet, font
+│   └── ui/                   # hud, menu
+├── tests/                    # Headless HAL + integration tests
+├── tools/                    # sprite & atlas generators, map editor
+├── pico/CMakeLists.txt       # Pico hardware build
+├── CMakeLists.txt            # Simulator + test build
+└── Makefile                  # Convenience targets
 ```
 
 ### Build System
