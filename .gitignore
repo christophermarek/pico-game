@@ -3,6 +3,7 @@ build/
 *.elf
 *.uf2
 *.bin
+!assets/maps/*.bin
 *.dis
 .DS_Store
 *.pyc
