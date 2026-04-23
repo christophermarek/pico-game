@@ -18,9 +18,8 @@
 #define TICK_MS      10000   /* game tick every 10 s */
 #define ACTION_TICKS 30      /* frames per skill action (~1 s at 30 FPS) */
 
-/* Stats / inventory */
+/* Stats */
 #define STAT_MAX    100
-#define INV_SLOTS   20
 
 /* Movement (pixels per frame) */
 #define TD_SPEED            1.5f
@@ -60,14 +59,10 @@
 #define XP_MINING_RAND   20
 #define XP_FISHING_BASE  20
 #define XP_FISHING_RAND  10
-#define XP_DEFAULT       10
 
 /* Per-tick economy */
 #define ENERGY_REGEN_PER_TICK    1
 #define TICKS_PER_DAY           20
-
-/* Starting inventory */
-#define START_INV_BREAD_COUNT    3
 
 /* HUD */
 #define HUD_LOG_TIMEOUT_MS  3000u

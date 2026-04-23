@@ -7,23 +7,17 @@
 #include "../game/state.h"
 #include "../game/world.h"
 
-#define TAB_COUNT 3
+#define TAB_COUNT 2
 #define SETTINGS_ITEM_COUNT 2
 #define SETTINGS_DEBUG 0
 #define SETTINGS_RESET 1
 
-static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "ITEMS", "SETTINGS" };
-
-static const char *ITEM_NAMES[ITEM_COUNT] = {
-    "---", "Ore", "Stone", "Fish", "Sweed",
-    "Log", "Branch", "Gem", "Bread",
-};
+static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "SETTINGS" };
 
 void menu_open(GameState *s) {
     s->prev_mode   = s->mode;
     s->mode        = MODE_MENU;
     s->menu_cursor = 0;
-    s->menu_scroll = 0;
 }
 
 void menu_close(GameState *s) {
@@ -59,17 +53,14 @@ void menu_update(GameState *s, World *w, const Input *inp) {
     if (inp->right && !lr_prev && (int)s->menu_tab < TAB_COUNT - 1) {
         s->menu_tab    = (MenuTab)(s->menu_tab + 1);
         s->menu_cursor = 0;
-        s->menu_scroll = 0;
     }
     if (inp->left && !ll_prev && s->menu_tab > 0) {
         s->menu_tab    = (MenuTab)(s->menu_tab - 1);
         s->menu_cursor = 0;
-        s->menu_scroll = 0;
     }
     if (inp->start_press) {
         s->menu_tab    = (MenuTab)(((int)s->menu_tab + 1) % TAB_COUNT);
         s->menu_cursor = 0;
-        s->menu_scroll = 0;
     }
     lr_prev = inp->right;
     ll_prev = inp->left;
@@ -79,12 +70,6 @@ void menu_update(GameState *s, World *w, const Input *inp) {
     switch (s->menu_tab) {
     case MTAB_SKILLS: {
         int max_c = SKILL_COUNT - 1;
-        if (inp->up   && !u_prev && s->menu_cursor > 0)              s->menu_cursor--;
-        if (inp->down && !d_prev && s->menu_cursor < (uint8_t)max_c) s->menu_cursor++;
-        break;
-    }
-    case MTAB_ITEMS: {
-        int max_c = INV_SLOTS - 1;
         if (inp->up   && !u_prev && s->menu_cursor > 0)              s->menu_cursor--;
         if (inp->down && !d_prev && s->menu_cursor < (uint8_t)max_c) s->menu_cursor++;
         break;
@@ -118,10 +103,10 @@ void menu_render(GameState *s) {
     hal_fill_rect(0, 0, DISPLAY_W, DISPLAY_H, C_BG_DARK);
 
     for (int i = 0; i < TAB_COUNT; i++) {
-        int      tx  = 5 + i * 78;
+        int      tx  = 5 + i * 118;
         uint16_t bg  = (i == (int)s->menu_tab) ? C_BORDER : C_PANEL;
         uint16_t col = (i == (int)s->menu_tab) ? C_TEXT_WHITE : C_TEXT_DIM;
-        hal_fill_rect(tx, 2, 74, 12, bg);
+        hal_fill_rect(tx, 2, 112, 12, bg);
         font_draw_str(TAB_NAMES[i], tx + 2, 4, col, 1);
     }
     hal_fill_rect(0, 14, DISPLAY_W, 1, C_BORDER);
@@ -148,28 +133,6 @@ void menu_render(GameState *s) {
                                xp_for_level(s->skills[i].level);
             draw_xp_bar(sx + 2, sy + 14, 226, (int)cur_xp,
                         (int)(next_xp ? next_xp : 1), C_XP_PURPLE);
-        }
-        break;
-
-    case MTAB_ITEMS:
-        for (int i = 0; i < INV_SLOTS; i++) {
-            int col = i % 4;
-            int row = i / 4;
-            int sx  = 5  + col * 58;
-            int sy  = content_y + row * 26;
-
-            uint16_t border_c = (s->menu_cursor == i) ? C_BORDER_ACT : C_BORDER;
-            hal_fill_rect(sx, sy,      55, 24, C_PANEL);
-            hal_fill_rect(sx, sy,      55,  1, border_c);
-            hal_fill_rect(sx, sy + 23, 55,  1, border_c);
-
-            const InvSlot *slot = &s->inv[i];
-            if (slot->count > 0 && slot->item_id < ITEM_COUNT) {
-                font_draw_str(ITEM_NAMES[slot->item_id], sx + 2, sy + 3, C_TEXT_WHITE, 1);
-                draw_int(sx + 42, sy + 14, slot->count, C_GOLD);
-            } else {
-                font_draw_str("---", sx + 15, sy + 8, C_TEXT_DIM, 1);
-            }
         }
         break;
 

@@ -30,7 +30,7 @@ static void st7789_data(const uint8_t *data, size_t len) {
 static inline void st7789_u8(uint8_t v) { st7789_data(&v, 1); }
 
 static uint16_t fb[DISPLAY_W * DISPLAY_H];
-static bool     prev_a, prev_b, prev_start, prev_sel;
+static bool     prev_a, prev_b, prev_start;
 
 void hal_display_init(void) {
     spi_init(spi0, CONFIG_SPI_BAUD);
@@ -148,14 +148,14 @@ void hal_image_free(HalImageRGBA *img) {
 void hal_input_init(void) {
     const int btns[] = {
         CONFIG_PIN_UP, CONFIG_PIN_DOWN, CONFIG_PIN_LEFT, CONFIG_PIN_RIGHT,
-        CONFIG_PIN_A,  CONFIG_PIN_B,    CONFIG_PIN_START, CONFIG_PIN_SEL
+        CONFIG_PIN_A,  CONFIG_PIN_B,    CONFIG_PIN_START
     };
-    for (int i = 0; i < 8; i++) {
+    for (size_t i = 0; i < sizeof(btns) / sizeof(btns[0]); i++) {
         gpio_init(btns[i]);
         gpio_set_dir(btns[i], GPIO_IN);
         gpio_pull_up(btns[i]);
     }
-    prev_a = prev_b = prev_start = prev_sel = false;
+    prev_a = prev_b = prev_start = false;
 }
 
 void hal_input_poll(Input *inp) {
@@ -166,21 +166,18 @@ void hal_input_poll(Input *inp) {
     inp->a     = !gpio_get(CONFIG_PIN_A);
     inp->b     = !gpio_get(CONFIG_PIN_B);
     inp->start = !gpio_get(CONFIG_PIN_START);
-    inp->sel   = !gpio_get(CONFIG_PIN_SEL);
     inp->cam_l = false;
     inp->cam_r = false;
 
     inp->a_press     = inp->a     && !prev_a;
     inp->b_press     = inp->b     && !prev_b;
     inp->start_press = inp->start && !prev_start;
-    inp->sel_press   = inp->sel   && !prev_sel;
     inp->cam_l_press = false;
     inp->cam_r_press = false;
 
     prev_a     = inp->a;
     prev_b     = inp->b;
     prev_start = inp->start;
-    prev_sel   = inp->sel;
 }
 
 uint32_t hal_ticks_ms(void) {

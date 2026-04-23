@@ -16,7 +16,7 @@ static SDL_Renderer *rend;
 static SDL_Texture  *tex;
 static uint16_t      fb[DISPLAY_W * DISPLAY_H];
 
-static bool prev_a, prev_b, prev_start, prev_sel, prev_cam_l, prev_cam_r;
+static bool prev_a, prev_b, prev_start, prev_cam_l, prev_cam_r;
 static uint32_t frame_start_ms;
 
 static inline void fb_clip_rect(int *x, int *y, int *w, int *h)
@@ -126,7 +126,7 @@ void hal_image_free(HalImageRGBA *img)
 
 void hal_input_init(void)
 {
-    prev_a = prev_b = prev_start = prev_sel = false;
+    prev_a = prev_b = prev_start = false;
     prev_cam_l = prev_cam_r = false;
 }
 
@@ -155,21 +155,18 @@ void hal_input_poll(Input *inp)
                  k[SDL_SCANCODE_A];
     inp->b     = k[SDL_SCANCODE_X]     || k[SDL_SCANCODE_B];
     inp->start = k[SDL_SCANCODE_M]     || k[SDL_SCANCODE_TAB];
-    inp->sel   = k[SDL_SCANCODE_V];
     inp->cam_l = k[SDL_SCANCODE_LEFTBRACKET];
     inp->cam_r = k[SDL_SCANCODE_RIGHTBRACKET];
 
     inp->a_press     = inp->a     && !prev_a;
     inp->b_press     = inp->b     && !prev_b;
     inp->start_press = inp->start && !prev_start;
-    inp->sel_press   = inp->sel   && !prev_sel;
     inp->cam_l_press = inp->cam_l && !prev_cam_l;
     inp->cam_r_press = inp->cam_r && !prev_cam_r;
 
     prev_a     = inp->a;
     prev_b     = inp->b;
     prev_start = inp->start;
-    prev_sel   = inp->sel;
     prev_cam_l = inp->cam_l;
     prev_cam_r = inp->cam_r;
 }

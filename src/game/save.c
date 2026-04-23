@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define SAVE_MAGIC   0x4735513Eu
-#define SAVE_VERSION 9u   /* bump when SaveData layout changes */
+#define SAVE_VERSION 10u  /* bump when SaveData layout changes */
 
 /*
  * Persistence-only slice of GameState. Transient state (debug telemetry,
@@ -19,7 +19,6 @@ typedef struct {
     uint8_t  energy;
 
     Skill    skills[SKILL_COUNT];
-    InvSlot  inv[INV_SLOTS];
 
     uint32_t tick_count;
     uint16_t day;
@@ -48,7 +47,6 @@ bool save_write(const GameState *s) {
     sf.data.max_hp          = s->max_hp;
     sf.data.energy          = s->energy;
     memcpy(sf.data.skills, s->skills, sizeof(sf.data.skills));
-    memcpy(sf.data.inv,    s->inv,    sizeof(sf.data.inv));
     sf.data.tick_count      = s->tick_count;
     sf.data.day             = s->day;
     sf.data.total_steps     = s->total_steps;
@@ -69,7 +67,6 @@ bool save_read(GameState *s) {
     s->max_hp         = sf.data.max_hp;
     s->energy         = sf.data.energy;
     memcpy(s->skills, sf.data.skills, sizeof(s->skills));
-    memcpy(s->inv,    sf.data.inv,    sizeof(s->inv));
     s->tick_count     = sf.data.tick_count;
     s->day            = sf.data.day;
     s->total_steps    = sf.data.total_steps;

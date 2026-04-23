@@ -433,10 +433,7 @@ void render_frame(GameState *s, const World *w) {
     case MODE_MENU:
         menu_render(s);
         break;
-    default:
-        hal_fill(C_BG_DARK);
-        break;
     }
-    draw_fps();
+    if (s->debug_mode) draw_fps();
     hal_show();
 }
