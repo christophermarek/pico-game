@@ -16,8 +16,7 @@ static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "ITEMS", "SETTINGS" };
 
 static const char *ITEM_NAMES[ITEM_COUNT] = {
     "---", "Ore", "Stone", "Fish", "Sweed",
-    "Log", "Branch", "Gem", "Meal", "Bread",
-    "Egg", "Coin",
+    "Log", "Branch", "Gem", "Bread",
 };
 
 void menu_open(GameState *s) {
@@ -132,24 +131,22 @@ void menu_render(GameState *s) {
     switch (s->menu_tab) {
     case MTAB_SKILLS:
         for (int i = 0; i < SKILL_COUNT; i++) {
-            int col = i % 2;
-            int row = i / 2;
-            int sx  = 5  + col * 115;
-            int sy  = content_y + row * 22;
+            int sx = 5;
+            int sy = content_y + i * 22;
 
             uint16_t border_c = (s->menu_cursor == i) ? C_BORDER_ACT : C_BORDER;
-            hal_fill_rect(sx, sy,      110, 20, C_BG);
-            hal_fill_rect(sx, sy,      110,  1, border_c);
-            hal_fill_rect(sx, sy + 19, 110,  1, border_c);
+            hal_fill_rect(sx, sy,      230, 20, C_BG);
+            hal_fill_rect(sx, sy,      230,  1, border_c);
+            hal_fill_rect(sx, sy + 19, 230,  1, border_c);
 
-            font_draw_str(SKILL_INFO[i].icon_str, sx + 1,  sy + 2, C_TEXT_MAIN,  1);
-            font_draw_str(SKILL_INFO[i].name,     sx + 16, sy + 2, C_TEXT_WHITE, 1);
-            draw_int(sx + 80, sy + 2, s->skills[i].level, C_GOLD);
+            font_draw_str(SKILL_INFO[i].icon_str, sx + 2,   sy + 2, C_TEXT_MAIN,  1);
+            font_draw_str(SKILL_INFO[i].name,     sx + 20,  sy + 2, C_TEXT_WHITE, 1);
+            draw_int(sx + 200, sy + 2, s->skills[i].level, C_GOLD);
 
             uint32_t cur_xp  = s->skills[i].xp - xp_for_level(s->skills[i].level);
             uint32_t next_xp = xp_for_level((uint8_t)(s->skills[i].level + 1)) -
                                xp_for_level(s->skills[i].level);
-            draw_xp_bar(sx + 1, sy + 14, 108, (int)cur_xp,
+            draw_xp_bar(sx + 2, sy + 14, 226, (int)cur_xp,
                         (int)(next_xp ? next_xp : 1), C_XP_PURPLE);
         }
         break;

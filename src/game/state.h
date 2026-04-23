@@ -12,11 +12,8 @@ typedef enum {
     ITEM_LOG     = 5,
     ITEM_BRANCH  = 6,
     ITEM_GEM     = 7,
-    ITEM_MEAL    = 8,
-    ITEM_BREAD   = 9,
-    ITEM_EGG     = 10,
-    ITEM_COIN    = 11,
-    ITEM_COUNT   = 12,
+    ITEM_BREAD   = 8,
+    ITEM_COUNT   = 9,
 } ItemID;
 
 typedef struct {

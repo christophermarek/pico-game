@@ -9,11 +9,11 @@
 
 ## Overview
 
-**GrumbleQuest** is a pixel-art top-down RPG focused on exploration and resource gathering. Players explore a handcrafted isometric overworld, harvest resources through 4 skills, and manage their inventory.
+**GrumbleQuest** is a pixel-art top-down RPG focused on exploration and resource gathering. Players explore a handcrafted isometric overworld, harvest resources through 3 skills, and manage their inventory.
 
 The game combines:
-- **Skilling system** (4 skills: Mining, Fishing, Woodcutting, Cooking)
-- **Resource gathering** (12 item types)
+- **Skilling system** (3 skills: Mining, Fishing, Woodcutting)
+- **Resource gathering** (8 item types)
 - **Persistent save system** with auto-save every minute
 
 ---
@@ -52,14 +52,13 @@ The game combines:
 
 ---
 
-## Skills System (4 Total)
+## Skills System (3 Total)
 
 | Skill | Nodes | Items Dropped | XP Range |
 |-------|-------|---------------|----------|
 | **Mining** | Rock, Ore | Stone, Ore, Gem | 30–50 |
 | **Fishing** | Water | Fish, Seaweed | 20–30 |
 | **Woodcutting** | Tree | Log, Branch | 25–40 |
-| **Cooking** | — | (future: meals from ingredients) | — |
 
 **Skilling Flow:**
 1. Face a resource node (tree, rock, ore, water)
@@ -75,7 +74,7 @@ xp_for_level(n) = n² × 10 + n × 20
 
 ---
 
-## Inventory & Items (12 Types)
+## Inventory & Items (8 Types)
 
 | Item | Source |
 |------|--------|
@@ -86,10 +85,7 @@ xp_for_level(n) = n² × 10 + n × 20
 | Seaweed | Fishing (rare) |
 | Log | Woodcutting |
 | Branch | Woodcutting (rare) |
-| Meal | (future: cooking) |
 | Bread | Starting inventory |
-| Egg | (future: cooking) |
-| Coin | (future: economy) |
 
 - 20 inventory slots, items stack up to 255
 - Start with 3 Bread

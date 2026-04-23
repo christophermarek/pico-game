@@ -31,8 +31,8 @@ Keyboard `A` is the face button A — use `Q` for left strafe.
 
 Explore a 30×20 handcrafted overworld rendered isometrically, gather
 resources at nodes (trees, rocks, ore, water), and level four skills
-(Mining, Fishing, Woodcutting, Cooking). Nodes respawn after 60 ticks
-(~10 min). Inventory holds 20 stacked slots across 12 item types.
+(Mining, Fishing, Woodcutting). Nodes respawn after 60 ticks
+(~10 min). Inventory holds 20 stacked slots across 8 item types.
 Save writes every ~1 min of real time.
 
 ## Project layout

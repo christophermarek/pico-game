@@ -176,22 +176,32 @@ void hal_input_poll(Input *inp)
 
 uint32_t hal_ticks_ms(void) { return SDL_GetTicks(); }
 
+/*
+ * On-disk format: [uint32_t len][data…]. hal_load fails fast if the length
+ * header doesn't match the caller's expected size, catching stale saves
+ * from before a GameState layout change on top of the magic/version check.
+ */
 bool hal_save(const void *data, size_t len)
 {
     FILE *f = fopen(SAVE_PATH, "wb");
     if (!f) return false;
-    size_t written = fwrite(data, 1, len, f);
+    uint32_t len32 = (uint32_t)len;
+    bool ok = fwrite(&len32, sizeof(len32), 1, f) == 1
+           && fwrite(data, 1, len, f) == len;
     fclose(f);
-    return written == len;
+    return ok;
 }
 
 bool hal_load(void *data, size_t len)
 {
     FILE *f = fopen(SAVE_PATH, "rb");
     if (!f) return false;
-    size_t got = fread(data, 1, len, f);
+    uint32_t saved_len;
+    bool ok = fread(&saved_len, sizeof(saved_len), 1, f) == 1
+           && saved_len == (uint32_t)len
+           && fread(data, 1, len, f) == len;
     fclose(f);
-    return got == len;
+    return ok;
 }
 
 void hal_init(void)

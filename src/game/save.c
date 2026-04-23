@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define SAVE_MAGIC   0x4735513Eu
-#define SAVE_VERSION 8u   /* bump when SaveData layout changes */
+#define SAVE_VERSION 9u   /* bump when SaveData layout changes */
 
 /*
  * Persistence-only slice of GameState. Transient state (debug telemetry,

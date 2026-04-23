@@ -190,11 +190,24 @@ uint32_t hal_ticks_ms(void) {
 #define FLASH_SAVE_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 #define FLASH_SAVE_ADDR   (XIP_BASE + FLASH_SAVE_OFFSET)
 
+/*
+ * Flash layout: page 0 holds a uint32_t length header (rest 0xFF-padded);
+ * data starts at page 1. Length mismatch on load is treated as missing
+ * save, which cleanly handles both erased sectors (len reads as 0xFFFFFFFF)
+ * and stale saves from a different GameState layout.
+ */
 bool hal_save(const void *data, size_t len) {
-    if (len > FLASH_SECTOR_SIZE) return false;
+    if (FLASH_PAGE_SIZE + len > FLASH_SECTOR_SIZE) return false;
+
     uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(FLASH_SAVE_OFFSET, FLASH_SECTOR_SIZE);
+
     uint8_t page[FLASH_PAGE_SIZE];
+    uint32_t len32 = (uint32_t)len;
+    memset(page, 0xFF, FLASH_PAGE_SIZE);
+    memcpy(page, &len32, sizeof(len32));
+    flash_range_program(FLASH_SAVE_OFFSET, page, FLASH_PAGE_SIZE);
+
     size_t offset = 0;
     while (offset < len) {
         size_t chunk = len - offset;
@@ -202,17 +215,21 @@ bool hal_save(const void *data, size_t len) {
         memcpy(page, (const uint8_t *)data + offset, chunk);
         if (chunk < FLASH_PAGE_SIZE)
             memset(page + chunk, 0xFF, FLASH_PAGE_SIZE - chunk);
-        flash_range_program(FLASH_SAVE_OFFSET + offset, page, FLASH_PAGE_SIZE);
+        flash_range_program(FLASH_SAVE_OFFSET + FLASH_PAGE_SIZE + offset,
+                            page, FLASH_PAGE_SIZE);
         offset += FLASH_PAGE_SIZE;
     }
+
     restore_interrupts(ints);
     return true;
 }
 
 bool hal_load(void *data, size_t len) {
     const uint8_t *src = (const uint8_t *)FLASH_SAVE_ADDR;
-    if (src[0] == 0xFF) return false;
-    memcpy(data, src, len);
+    uint32_t saved_len;
+    memcpy(&saved_len, src, sizeof(saved_len));
+    if (saved_len != (uint32_t)len) return false;
+    memcpy(data, src + FLASH_PAGE_SIZE, len);
     return true;
 }
 

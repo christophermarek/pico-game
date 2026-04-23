@@ -51,8 +51,7 @@
 #define SK_MINING        0
 #define SK_FISHING       1
 #define SK_WOODCUT       2
-#define SK_COOKING       3
-#define SKILL_COUNT      4
+#define SKILL_COUNT      3
 #define SKILL_LEVEL_CAP  99
 
 #define XP_WOODCUT_BASE  25
@@ -90,7 +89,7 @@
 #define T_ROCK       5
 #define T_FLOWER     6
 #define T_TGRASS     7
-#define T_ORE        9
+#define T_ORE        8
 
 /* Game mode */
 typedef enum {

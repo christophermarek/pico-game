@@ -35,7 +35,7 @@ static void test_config(void) {
     T(DISPLAY_W == 240 && DISPLAY_H == 240);
     T(MAP_W > 0 && MAP_H > 0);
     T(MAP_CELLS == MAP_W * MAP_H);
-    T(SKILL_COUNT == 4);
+    T(SKILL_COUNT == 3);
     T(INV_SLOTS > 0);
     T(TICK_MS > 0 && ACTION_TICKS > 0);
     T(FRAME_MS > 0);
@@ -65,11 +65,11 @@ static void test_state(void) {
     T(s.log_count >= 1);
     T(strncmp(s.log[0], "test log", 8) == 0);
 
-    int before = inv_count(&s, ITEM_COIN);
-    T(inv_add(&s, ITEM_COIN, 5));
-    T(inv_count(&s, ITEM_COIN) == before + 5);
-    T(inv_remove(&s, ITEM_COIN, 5));
-    T(inv_count(&s, ITEM_COIN) == before);
+    int before = inv_count(&s, ITEM_STONE);
+    T(inv_add(&s, ITEM_STONE, 5));
+    T(inv_count(&s, ITEM_STONE) == before + 5);
+    T(inv_remove(&s, ITEM_STONE, 5));
+    T(inv_count(&s, ITEM_STONE) == before);
 }
 
 static void test_world(void) {
