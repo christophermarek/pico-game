@@ -31,26 +31,24 @@
 #define TD_WALK_ANIM_STEP  0.15f   /* walk_frame advance per frame (top-down) */
 #define WALK_FRAME_WRAP    2.0f    /* animation frames per cycle */
 
-/* ---- Player collision box ---- */
-#define PL_HALF_W   5   /* half-width  (world px) of player AABB */
-#define PL_HALF_H   5   /* half-height (world px) — equal to W for symmetric iso feel */
-
-/* ---- Tree trunk collision sub-rectangle (local coords within a TILE×TILE cell) ---- */
-#define TREE_TRUNK_X0  4   /* local left edge  */
-#define TREE_TRUNK_X1  12  /* local right edge */
-#define TREE_TRUNK_Y0  8   /* local top edge (south/front half only) */
-/* TREE_TRUNK_Y1 == TILE (bottom of cell) */
+/* ---- Player collision (world px) ---- */
+#define PL_RADIUS   4   /* player is a circle centred on the foot anchor */
+/* Aliases kept for the broad-phase tile-iteration AABB (still axis-aligned). */
+#define PL_HALF_W   PL_RADIUS
+#define PL_HALF_H   PL_RADIUS
 
 /*
- * Obstacle collision — every non-walkable tile (tree, rock, ore, water) uses a
- * world-space circle centred on the TILE CENTRE. Simple, bearing-independent.
+ * Obstacle collision — shape is chosen per tile type to match the visual:
+ *   T_TREE               → circle of radius OBSTACLE_R (rounded trunk)
+ *   T_ROCK/T_ORE/T_WATER → axis-aligned square of half-extent OBSTACLE_HALF
+ * Player is always a circle (PL_RADIUS) anchored on the foot.
  *
- * NOTE: the tree sprite PNG is authored with the stump drawn ~24 screen px
- * below the tile-centre anchor (the art hangs off the bottom of the tile).
- * That's an art-side issue — the sprite needs to be re-anchored so the stump
- * sits on the tile centre. Collision stays authoritative at the tile centre.
+ * Circles slide smoothly around trunks; squares give rocks/ore the blocky,
+ * tile-aligned feel that fits their sprites. Keep both sizes small enough
+ * to leave walkable lanes between adjacent solid tiles.
  */
-#define OBSTACLE_R  5   /* collision radius (world px) for any blocking tile */
+#define OBSTACLE_R     3   /* circle radius (trees)            */
+#define OBSTACLE_HALF  5   /* square half-extent (rocks, etc.) */
 
 /* ---- Running (hold B) ---- */
 #define TD_RUN_SPEED_MULT     1.70f  /* speed multiplier while running */

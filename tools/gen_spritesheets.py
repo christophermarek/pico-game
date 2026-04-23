@@ -25,12 +25,17 @@ The manifest at assets/sprites/manifest.json describes every sheet:
     - null  →  that cell is left transparent.
 
 Usage:
-    python3 tools/gen_spritesheets.py [project_root]
+    python3 tools/gen_spritesheets.py [project_root] [--out-dir DIR]
 
 project_root defaults to the directory containing this script's parent.
+Sheets are written to project_root/DIR/<output> (default DIR=build), so the
+generated PNGs live alongside build artefacts instead of being committed to
+assets/. The manifest's "output" should be a plain basename.
+
 Exits with code 1 if any required sprite file is missing.
 """
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -45,8 +50,8 @@ def load_sprite(path: Path, cell_w: int, cell_h: int) -> Image.Image:
     return img
 
 
-def build_sheet(sheet: dict, sprites_dir: Path, root: Path) -> None:
-    output   = root / sheet["output"]
+def build_sheet(sheet: dict, sprites_dir: Path, out_dir: Path, root: Path) -> None:
+    output   = out_dir / sheet["output"]
     cell_w   = sheet["cell_w"]
     cell_h   = sheet["cell_h"]
     grid     = sheet["grid"]
@@ -81,7 +86,15 @@ def build_sheet(sheet: dict, sprites_dir: Path, root: Path) -> None:
 
 def main() -> None:
     script_dir = Path(__file__).resolve().parent
-    root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else script_dir.parent
+    default_root = script_dir.parent
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("root", nargs="?", default=str(default_root))
+    parser.add_argument("--out-dir", default="build")
+    args = parser.parse_args()
+
+    root = Path(args.root).resolve()
+    out_dir = (root / args.out_dir).resolve()
 
     sprites_dir  = root / "assets" / "sprites"
     manifest_path = sprites_dir / "manifest.json"
@@ -93,9 +106,10 @@ def main() -> None:
     with open(manifest_path) as f:
         manifest = json.load(f)
 
-    print(f"Building sprite sheets from {sprites_dir.relative_to(root)}/")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Building sprite sheets from {sprites_dir.relative_to(root)}/ → {out_dir.relative_to(root)}/")
     for sheet in manifest["sheets"]:
-        build_sheet(sheet, sprites_dir, root)
+        build_sheet(sheet, sprites_dir, out_dir, root)
     print("Done.")
 
 

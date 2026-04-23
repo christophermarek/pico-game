@@ -1,7 +1,7 @@
 {
   "sheets": [
     {
-      "output": "assets/assets_iso_tiles.png",
+      "output": "assets_iso_tiles.png",
       "cell_w": 64,
       "cell_h": 48,
       "grid": [
@@ -12,7 +12,7 @@
       ]
     },
     {
-      "output": "assets/assets_chars.png",
+      "output": "assets_chars.png",
       "cell_w": 32,
       "cell_h": 32,
       "grid": [

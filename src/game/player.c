@@ -5,23 +5,61 @@
 #include <math.h>
 
 /*
- * Unified obstacle collision: every non-walkable tile is a circle centred on
- * its tile centre, radius OBSTACLE_R. Collides when player-centre to tile-centre
- * distance < PL_HALF_W + OBSTACLE_R.
+ * Unified obstacle collision.
+ *
+ * Shape per tile:
+ *   T_TREE                 → circle radius OBSTACLE_R at tile centre
+ *   T_ROCK/T_ORE/T_WATER   → AABB half-extent OBSTACLE_HALF at tile centre
+ * The player is always a circle (PL_RADIUS) anchored at the FOOT
+ * (td.y + TD_FEET_OFF, not td.y — otherwise we'd block ~7 world px before
+ * the sprite touches the obstacle).
+ *
+ * Player-circle vs obstacle-square uses the classic closest-point trick:
+ * clamp the player centre to the square, then check distance-squared
+ * against PL_RADIUS². The broad-phase reach is MAX(OBSTACLE_R, OBSTACLE_HALF)
+ * so we pick up candidates of either shape in one pass.
  */
+#define OBSTACLE_REACH_MAX ((OBSTACLE_R > OBSTACLE_HALF) ? OBSTACLE_R : OBSTACLE_HALF)
+
+static inline bool tile_is_circle_obstacle(uint8_t tile_id) {
+    return tile_id == T_TREE;
+}
+
+static bool hit_obstacle(uint8_t tile_id, float px, float py,
+                         float ocx, float ocy) {
+    float ddx = px - ocx, ddy = py - ocy;
+    if (tile_is_circle_obstacle(tile_id)) {
+        float r = (float)(PL_RADIUS + OBSTACLE_R);
+        return ddx * ddx + ddy * ddy < r * r;
+    }
+    /* Circle-vs-AABB: clamp the player centre to the square, test distance. */
+    float cx = ddx;
+    float cy = ddy;
+    float h  = (float)OBSTACLE_HALF;
+    if (cx >  h) cx =  h;
+    if (cx < -h) cx = -h;
+    if (cy >  h) cy =  h;
+    if (cy < -h) cy = -h;
+    float dx = ddx - cx, dy = ddy - cy;
+    float pr = (float)PL_RADIUS;
+    return dx * dx + dy * dy < pr * pr;
+}
+
 static bool td_collides(const World *w, float x, float y) {
-    int x0 = (int)(x - PL_HALF_W) / TILE;
-    int x1 = (int)(x + PL_HALF_W - 1) / TILE;
-    int y0 = (int)(y - PL_HALF_H) / TILE;
-    int y1 = (int)(y + PL_HALF_H - 1) / TILE;
-    float r = (float)(PL_HALF_W + OBSTACLE_R);
-    for (int ty = y0; ty <= y1; ty++) {
-        for (int tx = x0; tx <= x1; tx++) {
+    y += (float)TD_FEET_OFF;
+    float r = (float)(PL_RADIUS + OBSTACLE_REACH_MAX);
+    int tx0 = (int)floorf((x - r) / (float)TILE);
+    int tx1 = (int)floorf((x + r) / (float)TILE);
+    int ty0 = (int)floorf((y - r) / (float)TILE);
+    int ty1 = (int)floorf((y + r) / (float)TILE);
+    for (int ty = ty0; ty <= ty1; ty++) {
+        for (int tx = tx0; tx <= tx1; tx++) {
             if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) continue;
             if (world_walkable(w, tx, ty)) continue;
-            float tcx = (float)(tx * TILE + TILE / 2);
-            float tcy = (float)(ty * TILE + TILE / 2);
-            if (hypotf(x - tcx, y - tcy) < r) return true;
+            uint8_t tile = world_tile(w, tx, ty);
+            float ocx = (float)(tx * TILE + TILE / 2);
+            float ocy = (float)(ty * TILE + TILE / 2);
+            if (hit_obstacle(tile, x, y, ocx, ocy)) return true;
         }
     }
     return false;
@@ -61,6 +99,12 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     TdCamBasis cam = td_cam_basis(s->td_cam_bearing);
     float      dwx, dwy;
     td_basis_screen_to_world_vel(&cam, vx, vy, &dwx, &dwy);
+
+    /* Constant SCREEN speed: scale the world-space velocity so the projected
+     * screen motion is TD_SPEED pixels/frame in every direction. On a 2:1 iso
+     * this makes left/right feel the same speed as up/down and diagonals
+     * (world-space speed silently varies — acceptable, since perceived motion
+     * is what the player judges). */
     float len = hypotf(dwx, dwy);
     if (len > 1e-5f) { dwx /= len; dwy /= len; }
     else             { dwx = 0.0f; dwy = 0.0f; }
@@ -118,13 +162,73 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     float nx = s->td.x + dx;
     float ny = s->td.y + dy;
 
-    if (!td_collides(w, nx, s->td.y)) s->td.x = nx;
-    if (!td_collides(w, s->td.x, ny)) s->td.y = ny;
+    s->dbg_dx = dx;
+    s->dbg_dy = dy;
+    s->dbg_blocked_x = false;
+    s->dbg_blocked_y = false;
 
-    if (s->td.x < PL_HALF_W)                  s->td.x = (float)PL_HALF_W;
-    if (s->td.x > w->w * TILE - PL_HALF_W)    s->td.x = (float)(w->w * TILE - PL_HALF_W);
-    if (s->td.y < PL_HALF_H)                  s->td.y = (float)PL_HALF_H;
-    if (s->td.y > w->h * TILE - PL_HALF_H)    s->td.y = (float)(w->h * TILE - PL_HALF_H);
+    if (dx != 0.0f) {
+        if (!td_collides(w, nx, s->td.y)) s->td.x = nx;
+        else                              s->dbg_blocked_x = true;
+    }
+    if (dy != 0.0f) {
+        if (!td_collides(w, s->td.x, ny)) s->td.y = ny;
+        else                              s->dbg_blocked_y = true;
+    }
+
+    /*
+     * Tangent-slide fallback: with circle obstacles, a player sitting tangent
+     * to a tree and pushing *into* it has both axis-only moves land further
+     * inside the circle — neither axis is "free" to slide on. Axis-separated
+     * collision gets stuck. Resolve it by projecting the desired velocity
+     * onto the tangent of the blocking circle and moving along that instead,
+     * so the player glides around the trunk.
+     */
+    if (s->dbg_blocked_x && s->dbg_blocked_y && (dx != 0.0f || dy != 0.0f)) {
+        int  wtx = 0, wty = 0;
+        char wk  = '-';
+        bool found = player_collide_who(w, nx, ny, &wtx, &wty, &wk)
+                  || player_collide_who(w, nx, s->td.y, &wtx, &wty, &wk)
+                  || player_collide_who(w, s->td.x, ny, &wtx, &wty, &wk);
+        if (found) {
+            float ocx = (float)(wtx * TILE + TILE / 2);
+            float ocy = (float)(wty * TILE + TILE / 2);
+            float ex  = s->td.x - ocx;
+            float ey  = (s->td.y + TD_FEET_OFF) - ocy;
+            float el  = hypotf(ex, ey);
+            if (el > 1e-4f) {
+                ex /= el; ey /= el;
+                /* Two tangents; pick the one pointing with the input vel. */
+                float t1x = -ey, t1y = ex;
+                float dot = t1x * dx + t1y * dy;
+                float tx  = (dot >= 0.0f) ? t1x : -t1x;
+                float ty  = (dot >= 0.0f) ? t1y : -t1y;
+                float spd = hypotf(dx, dy);
+                float sdx = tx * spd;
+                float sdy = ty * spd;
+                float snx = s->td.x + sdx;
+                float sny = s->td.y + sdy;
+                if (!td_collides(w, snx, s->td.y)) {
+                    s->td.x = snx;
+                    s->dbg_blocked_x = false;
+                }
+                if (!td_collides(w, s->td.x, sny)) {
+                    s->td.y = sny;
+                    s->dbg_blocked_y = false;
+                }
+            }
+        }
+    }
+
+    /* Clamp the FOOT (td.y + TD_FEET_OFF) inside the world AABB. */
+    if (s->td.x < PL_HALF_W)
+        s->td.x = (float)PL_HALF_W;
+    if (s->td.x > w->w * TILE - PL_HALF_W)
+        s->td.x = (float)(w->w * TILE - PL_HALF_W);
+    if (s->td.y + TD_FEET_OFF < PL_HALF_H)
+        s->td.y = (float)PL_HALF_H - TD_FEET_OFF;
+    if (s->td.y + TD_FEET_OFF > w->h * TILE - PL_HALF_H)
+        s->td.y = (float)(w->h * TILE - PL_HALF_H) - TD_FEET_OFF;
 
     if (dx != 0.0f || dy != 0.0f) {
         s->td.walk_frame += TD_WALK_ANIM_STEP;
@@ -134,8 +238,9 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
         s->td.walk_frame = 0.0f;
     }
 
+    /* tile_x / tile_y reflect the FOOT cell (used by facing_tile, skill_complete_action). */
     s->td.tile_x = (int16_t)(s->td.x / TILE);
-    s->td.tile_y = (int16_t)(s->td.y / TILE);
+    s->td.tile_y = (int16_t)((s->td.y + TD_FEET_OFF) / TILE);
 
     if (inp->a_press)
         player_do_action(s, w);
@@ -197,21 +302,23 @@ bool player_test_collide(const World *w, float x, float y) {
 
 bool player_collide_who(const World *w, float x, float y,
                         int *out_tx, int *out_ty, char *out_kind) {
-    int x0 = (int)(x - PL_HALF_W) / TILE;
-    int x1 = (int)(x + PL_HALF_W - 1) / TILE;
-    int y0 = (int)(y - PL_HALF_H) / TILE;
-    int y1 = (int)(y + PL_HALF_H - 1) / TILE;
-    float r = (float)(PL_HALF_W + OBSTACLE_R);
-    for (int ty = y0; ty <= y1; ty++) {
-        for (int tx = x0; tx <= x1; tx++) {
+    y += (float)TD_FEET_OFF;
+    float r = (float)(PL_RADIUS + OBSTACLE_REACH_MAX);
+    int tx0 = (int)floorf((x - r) / (float)TILE);
+    int tx1 = (int)floorf((x + r) / (float)TILE);
+    int ty0 = (int)floorf((y - r) / (float)TILE);
+    int ty1 = (int)floorf((y + r) / (float)TILE);
+    for (int ty = ty0; ty <= ty1; ty++) {
+        for (int tx = tx0; tx <= tx1; tx++) {
             if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) continue;
             if (world_walkable(w, tx, ty)) continue;
-            float tcx = (float)(tx * TILE + TILE / 2);
-            float tcy = (float)(ty * TILE + TILE / 2);
-            if (hypotf(x - tcx, y - tcy) < r) {
+            uint8_t tile = world_tile(w, tx, ty);
+            float ocx = (float)(tx * TILE + TILE / 2);
+            float ocy = (float)(ty * TILE + TILE / 2);
+            if (hit_obstacle(tile, x, y, ocx, ocy)) {
                 if (out_tx)   *out_tx   = tx;
                 if (out_ty)   *out_ty   = ty;
-                if (out_kind) *out_kind = (char)world_tile(w, tx, ty) + '0';
+                if (out_kind) *out_kind = (char)tile + '0';
                 return true;
             }
         }

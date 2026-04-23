@@ -22,9 +22,8 @@ static bool td_cell_on_screen(const GameState *s, const TdCamBasis *cam, int tx,
 static void draw_line(int x0, int y0, int x1, int y1, uint16_t color);
 
 /* Draw a world-space circle: polygon-approximate it and project every vertex
- * through the iso camera, so the result is the correct diagonal ellipse on
- * screen for the current bearing. Use this for debug visualisations where
- * the shape must match the actual world-space collision zone. */
+ * through the iso camera, so the result is the correct ellipse on screen for
+ * the current bearing. The shape on screen IS the collision footprint. */
 static void draw_world_circle(const GameState *s, const TdCamBasis *cam,
                               float wcx, float wcy, float r, uint16_t color)
 {
@@ -38,6 +37,23 @@ static void draw_world_circle(const GameState *s, const TdCamBasis *cam,
         td_world_to_screen(s, cam, wx, wy, &sx, &sy);
         if (i > 0) draw_line(px, py, sx, sy, color);
         px = sx; py = sy;
+    }
+}
+
+/* World-space axis-aligned square outline: project the four corners through
+ * the iso camera (giving a parallelogram on screen) and connect them. */
+static void draw_world_rect(const GameState *s, const TdCamBasis *cam,
+                            float wx0, float wy0, float wx1, float wy1,
+                            uint16_t color)
+{
+    int sx[4], sy[4];
+    td_world_to_screen(s, cam, wx0, wy0, &sx[0], &sy[0]);
+    td_world_to_screen(s, cam, wx1, wy0, &sx[1], &sy[1]);
+    td_world_to_screen(s, cam, wx1, wy1, &sx[2], &sy[2]);
+    td_world_to_screen(s, cam, wx0, wy1, &sx[3], &sy[3]);
+    for (int i = 0; i < 4; i++) {
+        int j = (i + 1) & 3;
+        draw_line(sx[i], sy[i], sx[j], sy[j], color);
     }
 }
 
@@ -77,17 +93,21 @@ static void draw_line(int x0, int y0, int x1, int y1, uint16_t color)
     }
 }
 
-/* Player hitbox debug: screen-space circle at the foot anchor. */
+/* Player hitbox debug: world-space circle around the player's FOOT (anchored
+ * at td.y + TD_FEET_OFF, which is where collision is also tested). What you
+ * see is exactly what blocks. */
 static void draw_debug_hitbox(const GameState *s, const TdCamBasis *cam)
 {
+    uint16_t red = HEX(0xef4444);
+    float    cy  = s->td.y + TD_FEET_OFF;
+    draw_world_circle(s, cam, s->td.x, cy, (float)PL_RADIUS, red);
     int psx, psy;
-    td_world_to_screen(s, cam, s->td.x, s->td.y + TD_FEET_OFF, &psx, &psy);
-    draw_circle(psx, psy, 6, HEX(0xef4444)); /* red */
+    td_world_to_screen(s, cam, s->td.x, cy, &psx, &psy);
+    hal_pixel(psx, psy, red); /* centre dot */
 }
 
-/* Orange outline showing the actual collision footprint for each blocked tile.
- * Trees use the trunk sub-rectangle (south-centre of the tile) matching
- * the tighter check in td_collides; other obstacles use the full tile. */
+/* Orange circle per non-walkable tile — matches the tile-centred obstacle
+ * disc used by td_collides exactly. Tile-centre dot marks the origin. */
 static void draw_debug_tile_hitboxes(const GameState *s, const World *w,
                                      const TdCamBasis *cam)
 {
@@ -97,15 +117,11 @@ static void draw_debug_tile_hitboxes(const GameState *s, const World *w,
             if (world_walkable(w, tx, ty)) continue;
             if (!td_cell_on_screen(s, cam, tx, ty)) continue;
 
-            /* Unified debug: draw the world-space collision circle for every
-             * non-walkable tile, centred on the tile centre. Inner dot marks
-             * the tile centre so you can see the collision origin clearly. */
             float tcx = (float)(tx * TILE + TILE / 2);
             float tcy = (float)(ty * TILE + TILE / 2);
             int   tsx, tsy;
             td_world_to_screen(s, cam, tcx, tcy, &tsx, &tsy);
-            draw_world_circle(s, cam, tcx, tcy,
-                              (float)(PL_HALF_W + OBSTACLE_R), col);
+            draw_world_circle(s, cam, tcx, tcy, (float)OBSTACLE_R, col);
             draw_circle(tsx, tsy, 1, col);
         }
     }
@@ -195,11 +211,6 @@ static void draw_debug_collision(const GameState *s, const World *w, const TdCam
         td_world_to_screen(s, cam, best_sx, best_sy, &ssx, &ssy);
         uint16_t mag = HEX(0xd946ef); /* magenta */
         draw_line(psx, psy, ssx, ssy, mag);
-        /* Stop-distance ring at the player's world position, drawn as a
-         * proper world-space circle → matches the true iso ellipse shape.
-         * Any obstacle centre dot touching this ring means collision. */
-        draw_world_circle(s, cam, s->td.x, s->td.y,
-                          (float)(PL_HALF_W + OBSTACLE_R), mag);
     }
 
     /* Text readout: "P=xxx,yyy  BLK:UDLR  DST=nn" top-left. */
@@ -252,15 +263,39 @@ static void draw_debug_collision(const GameState *s, const World *w, const TdCam
         if (m > 0) font_draw_str(l3, 2, 40, C_TEXT_WHITE, 1);
     }
 
-    /* Red world-circle on top of each blocking obstacle to make it visually
-     * obvious which tile is the actual blocker in each direction. */
+    /* Red circle on top of each blocking obstacle to make it visually obvious
+     * which tile is the actual blocker in each direction. */
     uint16_t hi = HEX(0xef4444);
     for (int i = 0; i < 5; i++) {
         if (who_kind[i] == '-') continue;
         float scx = (float)(who_tx[i] * TILE + TILE / 2);
         float scy = (float)(who_ty[i] * TILE + TILE / 2);
-        draw_world_circle(s, cam, scx, scy,
-                          (float)(PL_HALF_W + OBSTACLE_R), hi);
+        draw_world_circle(s, cam, scx, scy, (float)OBSTACLE_R, hi);
+    }
+
+    /* Velocity arrow + axis-block indicator: draw the attempted dx/dy vector
+     * from the player centre; green = applied, red = blocked by obstacle.
+     * Makes it immediately obvious which axis of movement got rejected. */
+    {
+        int psx, psy;
+        td_world_to_screen(s, cam, s->td.x, s->td.y, &psx, &psy);
+        float scale = 12.0f; /* amplify tiny per-frame vectors for visibility */
+        /* X-axis component */
+        if (s->dbg_dx != 0.0f) {
+            int ex, ey;
+            td_world_to_screen(s, cam, s->td.x + s->dbg_dx * scale, s->td.y,
+                               &ex, &ey);
+            draw_line(psx, psy, ex, ey,
+                      s->dbg_blocked_x ? red : green);
+        }
+        /* Y-axis component */
+        if (s->dbg_dy != 0.0f) {
+            int ex, ey;
+            td_world_to_screen(s, cam, s->td.x, s->td.y + s->dbg_dy * scale,
+                               &ex, &ey);
+            draw_line(psx, psy, ex, ey,
+                      s->dbg_blocked_y ? red : green);
+        }
     }
 }
 

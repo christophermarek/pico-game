@@ -96,6 +96,11 @@ typedef struct GameState {
 
     bool     debug_mode;       /* shows hitboxes + orientation overlay */
     uint8_t  settings_cursor;  /* cursor within the settings tab */
+
+    /* Debug telemetry (populated by player_update_td every frame). */
+    float    dbg_dx, dbg_dy;         /* attempted world-space velocity */
+    bool     dbg_blocked_x;          /* X-axis move rejected by collision */
+    bool     dbg_blocked_y;          /* Y-axis move rejected (after X applied) */
 } GameState;
 
 /* ------------------------------------------------------------------ */

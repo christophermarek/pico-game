@@ -74,9 +74,9 @@ add_custom_command(
             ${CMAKE_CURRENT_SOURCE_DIR}/..
     DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_pico_atlases.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/../assets/assets_iso_tiles.png
-        ${CMAKE_CURRENT_SOURCE_DIR}/../assets/assets_iso_actors.png
-        ${CMAKE_CURRENT_SOURCE_DIR}/../assets/assets_chars.png
+        ${CMAKE_CURRENT_SOURCE_DIR}/../build/assets_iso_tiles.png
+        ${CMAKE_CURRENT_SOURCE_DIR}/../build/assets_iso_actors.png
+        ${CMAKE_CURRENT_SOURCE_DIR}/../build/assets_chars.png
     COMMENT "Generating Pico atlas C arrays from PNG files..."
 )
 

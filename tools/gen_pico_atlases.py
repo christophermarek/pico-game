@@ -25,8 +25,8 @@ from PIL import Image
 
 
 ATLASES = [
-    ("atlas_iso_tiles",   "assets/assets_iso_tiles.png"),
-    ("atlas_chars",       "assets/assets_chars.png"),
+    ("atlas_iso_tiles",   "build/assets_iso_tiles.png"),
+    ("atlas_chars",       "build/assets_chars.png"),
     # Removed: mansion, base, and iso actors are future features
     # ("atlas_iso_mansion", "assets/assets_iso_mansion.png"),
     # ("atlas_iso_actors",  "assets/assets_iso_actors.png"),

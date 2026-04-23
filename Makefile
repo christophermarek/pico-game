@@ -15,7 +15,7 @@ NPROC     := $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 
 
 # Sprite sources — any change here triggers sheet regeneration
 SPRITE_SOURCES := $(wildcard assets/sprites/**/*.png) assets/sprites/manifest.json
-SPRITE_SHEETS  := assets/assets_iso_tiles.png assets/assets_chars.png
+SPRITE_SHEETS  := $(BUILD_DIR)/assets_iso_tiles.png $(BUILD_DIR)/assets_chars.png
 
 .DEFAULT_GOAL := build
 
@@ -23,7 +23,8 @@ SPRITE_SHEETS  := assets/assets_iso_tiles.png assets/assets_chars.png
 
 # ---- Sprite sheet assembly ------------------------------------------------
 $(SPRITE_SHEETS): $(SPRITE_SOURCES)
-	$(PYTHON) tools/gen_spritesheets.py .
+	@mkdir -p $(BUILD_DIR)
+	$(PYTHON) tools/gen_spritesheets.py . --out-dir $(BUILD_DIR)
 
 sprites: $(SPRITE_SHEETS)
 

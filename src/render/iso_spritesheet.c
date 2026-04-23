@@ -166,7 +166,7 @@ static uint8_t tile_floor_id(uint8_t tile_id)
 bool iso_draw_tile_full(uint8_t tile_id, int cx, int cy, uint32_t tick)
 {
     if (!iso_tile_id_on_sheet(tile_id)) return false;
-    try_load_atlas(&g_tiles, "assets/assets_iso_tiles.png", "../assets/assets_iso_tiles.png");
+    try_load_atlas(&g_tiles, "assets_iso_tiles.png", "build/assets_iso_tiles.png");
     if (!g_tiles.loaded) return false;
     uint8_t floor_id = tile_is_overlay(tile_id) ? tile_floor_id(tile_id) : tile_id;
     PngFrame f;
@@ -175,13 +175,37 @@ bool iso_draw_tile_full(uint8_t tile_id, int cx, int cy, uint32_t tick)
     return true;
 }
 
+/* Overlay sprites come in two authoring styles:
+ *
+ *   Tall object (tree) — content extends all the way to the sprite bottom.
+ *   Base-anchored: sprite foot sits on the tile anchor, object rises up.
+ *
+ *   Everything else (rock, ore, flower, tgrass) — content drawn centred
+ *   within the sprite cell. Content-centred so the sprite's geometric middle
+ *   sits on the tile anchor. Using the floor-tile oy=-16 would push them
+ *   into the diamond's lower half because the content is centred around
+ *   sprite row 24, not 16.
+ */
+static int overlay_oy(uint8_t tile_id)
+{
+    switch (tile_id) {
+    case T_TREE:   return -47;              /* tall — base at sprite bottom   */
+    case T_ROCK:
+    case T_ORE:
+    case T_FLOWER:
+    case T_TGRASS:
+    default:       return -ISO_TILE_H / 2;  /* centred on the tile anchor     */
+    }
+}
+
 bool iso_draw_tile_onlay(uint8_t tile_id, int cx, int cy)
 {
     if (!tile_is_overlay(tile_id)) return false;
-    try_load_atlas(&g_tiles, "assets/assets_iso_tiles.png", "../assets/assets_iso_tiles.png");
+    try_load_atlas(&g_tiles, "assets_iso_tiles.png", "build/assets_iso_tiles.png");
     if (!g_tiles.loaded) return false;
     PngFrame f;
     iso_tile_frame(tile_id, 0, &f);
+    f.oy = overlay_oy(tile_id);
     draw_png_frame(&g_tiles, &f, cx, cy);
     return true;
 }
@@ -197,7 +221,7 @@ bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame)
 bool iso_draw_td_player_char_scaled(int sx, int sy, uint8_t dir, uint8_t walk_frame,
                                     int sn, int sd)
 {
-    try_load_atlas(&g_chars, "assets/assets_chars.png", "../assets/assets_chars.png");
+    try_load_atlas(&g_chars, "assets_chars.png", "build/assets_chars.png");
     if (!g_chars.loaded) return false;
     uint8_t d = (dir > DIR_RIGHT) ? DIR_DOWN : dir;
     draw_png_frame_scaled(&g_chars, &PNG_TD_PLAYER[d * 2u + (walk_frame & 1u)],
@@ -207,7 +231,7 @@ bool iso_draw_td_player_char_scaled(int sx, int sy, uint8_t dir, uint8_t walk_fr
 
 bool iso_draw_depleted_mark(int cx, int cy)
 {
-    try_load_atlas(&g_tiles, "assets/assets_iso_tiles.png", "../assets/assets_iso_tiles.png");
+    try_load_atlas(&g_tiles, "assets_iso_tiles.png", "build/assets_iso_tiles.png");
     if (!g_tiles.loaded) return false;
     draw_png_frame(&g_tiles, &PNG_DEPLETED, cx, cy);
     return true;
