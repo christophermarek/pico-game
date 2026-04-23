@@ -30,15 +30,19 @@ static PngAtlas g_tiles, g_chars;
  *    Row 0 (y=0, h=32): TD player ×8  (32px cells, cols 0-7)
  */
 
+/* ox/oy are in SOURCE pixels; they are halved by the CHARS_SN/SD scale.
+ * ox=-16 centres the 32-wide sprite → screen offset -8.
+ * oy=-14 places the character's visual body centre at the anchor → screen offset -7.
+ * Result: the sprite draws centred on the world anchor point (player foot pos). */
 static const PngFrame PNG_TD_PLAYER[8] = {
-    {   0, 0, 32, 32, 0, 0 }, /* DIR_DOWN  walk0 */
-    {  32, 0, 32, 32, 0, 0 }, /* DIR_DOWN  walk1 */
-    {  64, 0, 32, 32, 0, 0 }, /* DIR_UP    walk0 */
-    {  96, 0, 32, 32, 0, 0 }, /* DIR_UP    walk1 */
-    { 128, 0, 32, 32, 0, 0 }, /* DIR_LEFT  walk0 */
-    { 160, 0, 32, 32, 0, 0 }, /* DIR_LEFT  walk1 */
-    { 192, 0, 32, 32, 0, 0 }, /* DIR_RIGHT walk0 */
-    { 224, 0, 32, 32, 0, 0 }, /* DIR_RIGHT walk1 */
+    {   0, 0, 32, 32, -16, -14 }, /* DIR_DOWN  walk0 */
+    {  32, 0, 32, 32, -16, -14 }, /* DIR_DOWN  walk1 */
+    {  64, 0, 32, 32, -16, -14 }, /* DIR_UP    walk0 */
+    {  96, 0, 32, 32, -16, -14 }, /* DIR_UP    walk1 */
+    { 128, 0, 32, 32, -16, -14 }, /* DIR_LEFT  walk0 */
+    { 160, 0, 32, 32, -16, -14 }, /* DIR_LEFT  walk1 */
+    { 192, 0, 32, 32, -16, -14 }, /* DIR_RIGHT walk0 */
+    { 224, 0, 32, 32, -16, -14 }, /* DIR_RIGHT walk1 */
 };
 
 static const PngFrame PNG_DEPLETED = { 0, 144, 64, 48, -32, -24 };  /* Row 3, col 0 */
@@ -147,8 +151,16 @@ static void iso_tile_frame(uint8_t tile_id, uint32_t tick, PngFrame *f)
 
 static bool tile_is_overlay(uint8_t tile_id)
 {
-    return tile_id == T_TREE || tile_id == T_ROCK ||
-           tile_id == T_ORE  || tile_id == T_FLOWER;
+    return tile_id == T_TREE   || tile_id == T_ROCK ||
+           tile_id == T_ORE    || tile_id == T_FLOWER ||
+           tile_id == T_TGRASS;
+}
+
+/* Which floor tile to draw beneath an overlay tile */
+static uint8_t tile_floor_id(uint8_t tile_id)
+{
+    if (tile_id == T_ORE)  return T_PATH;  /* ore sits on dirt/path */
+    return T_GRASS;
 }
 
 bool iso_draw_tile_full(uint8_t tile_id, int cx, int cy, uint32_t tick)
@@ -156,7 +168,7 @@ bool iso_draw_tile_full(uint8_t tile_id, int cx, int cy, uint32_t tick)
     if (!iso_tile_id_on_sheet(tile_id)) return false;
     try_load_atlas(&g_tiles, "assets/assets_iso_tiles.png", "../assets/assets_iso_tiles.png");
     if (!g_tiles.loaded) return false;
-    uint8_t floor_id = tile_is_overlay(tile_id) ? T_GRASS : tile_id;
+    uint8_t floor_id = tile_is_overlay(tile_id) ? tile_floor_id(tile_id) : tile_id;
     PngFrame f;
     iso_tile_frame(floor_id, tick, &f);
     draw_png_frame(&g_tiles, &f, cx, cy);

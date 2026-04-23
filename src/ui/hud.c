@@ -29,7 +29,7 @@
 #define ICON_H       16              /* strip is 18 px; 1 px margin top+bottom */
 #define ICON_Y       (STRIP_Y + 1)
 #define ICON_GAP     1
-#define ICON_COUNT   2
+#define ICON_COUNT   3
 /* Total icon block width: ICON_COUNT * ICON_W + (ICON_COUNT-1) * ICON_GAP */
 #define ICON_BLOCK_W (ICON_COUNT * ICON_W + (ICON_COUNT - 1) * ICON_GAP)
 #define ICON_X0      (DISPLAY_W - ICON_BLOCK_W - 2)
@@ -46,8 +46,9 @@ static const struct {
     const char *label;
     uint16_t    color;
 } ICONS[ICON_COUNT] = {
-    { MTAB_ITEMS,  "BG", C_GOLD        },
-    { MTAB_SKILLS, "SK", C_ENERGY_BLUE },
+    { MTAB_ITEMS,    "BG", C_GOLD        },
+    { MTAB_SKILLS,   "SK", C_ENERGY_BLUE },
+    { MTAB_SETTINGS, "ST", C_WARN_RED    },
 };
 
 /* ------------------------------------------------------------------ */
@@ -145,11 +146,20 @@ void hud_draw(GameState *s) {
         font_draw_str(buf, MSG_X, MSG_Y, C_TEXT_DIM, 1);
     }
 
-    /* Player tile coordinates — right-aligned before tab icons */
+    /* Tile coords (always) + orientation detail (debug mode only) */
     {
-        char coords[16];
-        snprintf(coords, sizeof(coords), "%d,%d",
-                 (int)s->td.tile_x, (int)s->td.tile_y);
+        static const char DIR_CH[4] = { 'D', 'U', 'L', 'R' };
+        char coords[28];
+        if (s->debug_mode) {
+            snprintf(coords, sizeof(coords), "%d,%d s%c w%c c%d",
+                     (int)s->td.tile_x, (int)s->td.tile_y,
+                     DIR_CH[s->td.screen_dir & 3],
+                     DIR_CH[s->td.dir       & 3],
+                     (int)s->td_cam_bearing);
+        } else {
+            snprintf(coords, sizeof(coords), "%d,%d",
+                     (int)s->td.tile_x, (int)s->td.tile_y);
+        }
         int cw = font_str_width(coords, 1);
         font_draw_str(coords, ICON_X0 - cw - 3, MSG_Y, C_TEXT_DIM, 1);
     }

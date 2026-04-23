@@ -53,8 +53,9 @@ typedef struct {
 /* Menu                                                                 */
 /* ------------------------------------------------------------------ */
 typedef enum {
-    MTAB_SKILLS = 0,
-    MTAB_ITEMS  = 1,
+    MTAB_SKILLS   = 0,
+    MTAB_ITEMS    = 1,
+    MTAB_SETTINGS = 2,
 } MenuTab;
 
 /* ------------------------------------------------------------------ */
@@ -92,6 +93,9 @@ typedef struct GameState {
     uint32_t log_ms;
 
     uint32_t total_steps;
+
+    bool     debug_mode;       /* shows hitboxes + orientation overlay */
+    uint8_t  settings_cursor;  /* cursor within the settings tab */
 } GameState;
 
 /* ------------------------------------------------------------------ */

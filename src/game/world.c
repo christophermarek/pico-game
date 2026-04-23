@@ -109,7 +109,7 @@ uint8_t world_tile(const World *w, int x, int y)
 bool world_walkable(const World *w, int x, int y)
 {
     uint8_t t = world_tile(w, x, y);
-    return !(t == T_TREE || t == T_ROCK || t == T_WATER);
+    return !(t == T_TREE || t == T_ROCK || t == T_ORE || t == T_WATER);
 }
 
 bool world_is_resource(uint8_t tile_id)

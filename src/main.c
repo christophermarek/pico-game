@@ -43,7 +43,7 @@ int main(void) {
 
         switch (state.mode) {
             case MODE_TOPDOWN: player_update_td(&state, &inp, &world); break;
-            case MODE_MENU:    menu_update(&state, &inp); break;
+            case MODE_MENU:    menu_update(&state, &world, &inp); break;
         }
 
         if (inp.start_press && state.mode == MODE_TOPDOWN) {

@@ -213,7 +213,7 @@ static void test_render_and_ui(void)
     render_frame(&s, &w);
     Input z;
     memset(&z, 0, sizeof(z));
-    menu_update(&s, &z);
+    menu_update(&s, &w, &z);
     menu_close(&s);
 
     T(font_str_width("ABC", 1) > 0);
