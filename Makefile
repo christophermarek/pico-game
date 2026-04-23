@@ -19,7 +19,7 @@ SPRITE_SHEETS  := assets/assets_iso_tiles.png assets/assets_chars.png
 
 .DEFAULT_GOAL := build
 
-.PHONY: build test dev sprites clean
+.PHONY: build test dev sprites editor clean
 
 # ---- Sprite sheet assembly ------------------------------------------------
 $(SPRITE_SHEETS): $(SPRITE_SOURCES)
@@ -43,6 +43,11 @@ test: sprites $(BUILD_DIR)/CMakeCache.txt
 dev: sprites $(BUILD_DIR)/CMakeCache.txt
 	$(CMAKE) --build $(BUILD_DIR) --target grumblequest_sim -j$(NPROC)
 	cd $(BUILD_DIR) && ./grumblequest_sim
+
+editor:
+	@echo "Serving at http://localhost:8765/tools/map_editor.html  (Ctrl+C to stop)"
+	@( sleep 1 && open http://localhost:8765/tools/map_editor.html ) &
+	@$(PYTHON) -m http.server 8765
 
 clean:
 	rm -rf $(BUILD_DIR)
