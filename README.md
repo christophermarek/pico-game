@@ -31,8 +31,9 @@ Keyboard `A` is the face button A — use `Q` for left strafe.
 
 Explore a 30×20 handcrafted overworld rendered isometrically, gather
 resources at nodes (trees, rocks, ore, water), and level four skills
-(Mining, Fishing, Woodcutting, Cooking). Nodes respawn after 60 ticks
-(~10 min). Inventory holds 20 stacked slots across 12 item types.
+(Mining, Fishing, Woodcutting). Nodes respawn after 60 ticks
+(~10 min). Gathering awards XP only — the item/inventory system will be
+added back once item sprites exist.
 Save writes every ~1 min of real time.
 
 ## Project layout
@@ -75,7 +76,7 @@ make -j$(nproc)
 
 ## Documentation
 
-- [`GAME_DESIGN.md`](GAME_DESIGN.md) — full design doc, skills, items, future plans
+- [`GAME_DESIGN.md`](GAME_DESIGN.md) — full design doc, skills, future plans
 - [`SPRITES.md`](SPRITES.md) — sprite authoring and regeneration workflow
 - `src/hal.h` — HAL abstraction surface
 

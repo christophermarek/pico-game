@@ -30,7 +30,7 @@ static void st7789_data(const uint8_t *data, size_t len) {
 static inline void st7789_u8(uint8_t v) { st7789_data(&v, 1); }
 
 static uint16_t fb[DISPLAY_W * DISPLAY_H];
-static bool     prev_a, prev_b, prev_start, prev_sel;
+static bool     prev_a, prev_b, prev_start;
 
 void hal_display_init(void) {
     spi_init(spi0, CONFIG_SPI_BAUD);
@@ -148,14 +148,14 @@ void hal_image_free(HalImageRGBA *img) {
 void hal_input_init(void) {
     const int btns[] = {
         CONFIG_PIN_UP, CONFIG_PIN_DOWN, CONFIG_PIN_LEFT, CONFIG_PIN_RIGHT,
-        CONFIG_PIN_A,  CONFIG_PIN_B,    CONFIG_PIN_START, CONFIG_PIN_SEL
+        CONFIG_PIN_A,  CONFIG_PIN_B,    CONFIG_PIN_START
     };
-    for (int i = 0; i < 8; i++) {
+    for (size_t i = 0; i < sizeof(btns) / sizeof(btns[0]); i++) {
         gpio_init(btns[i]);
         gpio_set_dir(btns[i], GPIO_IN);
         gpio_pull_up(btns[i]);
     }
-    prev_a = prev_b = prev_start = prev_sel = false;
+    prev_a = prev_b = prev_start = false;
 }
 
 void hal_input_poll(Input *inp) {
@@ -166,21 +166,18 @@ void hal_input_poll(Input *inp) {
     inp->a     = !gpio_get(CONFIG_PIN_A);
     inp->b     = !gpio_get(CONFIG_PIN_B);
     inp->start = !gpio_get(CONFIG_PIN_START);
-    inp->sel   = !gpio_get(CONFIG_PIN_SEL);
     inp->cam_l = false;
     inp->cam_r = false;
 
     inp->a_press     = inp->a     && !prev_a;
     inp->b_press     = inp->b     && !prev_b;
     inp->start_press = inp->start && !prev_start;
-    inp->sel_press   = inp->sel   && !prev_sel;
     inp->cam_l_press = false;
     inp->cam_r_press = false;
 
     prev_a     = inp->a;
     prev_b     = inp->b;
     prev_start = inp->start;
-    prev_sel   = inp->sel;
 }
 
 uint32_t hal_ticks_ms(void) {
@@ -190,11 +187,24 @@ uint32_t hal_ticks_ms(void) {
 #define FLASH_SAVE_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 #define FLASH_SAVE_ADDR   (XIP_BASE + FLASH_SAVE_OFFSET)
 
+/*
+ * Flash layout: page 0 holds a uint32_t length header (rest 0xFF-padded);
+ * data starts at page 1. Length mismatch on load is treated as missing
+ * save, which cleanly handles both erased sectors (len reads as 0xFFFFFFFF)
+ * and stale saves from a different GameState layout.
+ */
 bool hal_save(const void *data, size_t len) {
-    if (len > FLASH_SECTOR_SIZE) return false;
+    if (FLASH_PAGE_SIZE + len > FLASH_SECTOR_SIZE) return false;
+
     uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(FLASH_SAVE_OFFSET, FLASH_SECTOR_SIZE);
+
     uint8_t page[FLASH_PAGE_SIZE];
+    uint32_t len32 = (uint32_t)len;
+    memset(page, 0xFF, FLASH_PAGE_SIZE);
+    memcpy(page, &len32, sizeof(len32));
+    flash_range_program(FLASH_SAVE_OFFSET, page, FLASH_PAGE_SIZE);
+
     size_t offset = 0;
     while (offset < len) {
         size_t chunk = len - offset;
@@ -202,17 +212,21 @@ bool hal_save(const void *data, size_t len) {
         memcpy(page, (const uint8_t *)data + offset, chunk);
         if (chunk < FLASH_PAGE_SIZE)
             memset(page + chunk, 0xFF, FLASH_PAGE_SIZE - chunk);
-        flash_range_program(FLASH_SAVE_OFFSET + offset, page, FLASH_PAGE_SIZE);
+        flash_range_program(FLASH_SAVE_OFFSET + FLASH_PAGE_SIZE + offset,
+                            page, FLASH_PAGE_SIZE);
         offset += FLASH_PAGE_SIZE;
     }
+
     restore_interrupts(ints);
     return true;
 }
 
 bool hal_load(void *data, size_t len) {
     const uint8_t *src = (const uint8_t *)FLASH_SAVE_ADDR;
-    if (src[0] == 0xFF) return false;
-    memcpy(data, src, len);
+    uint32_t saved_len;
+    memcpy(&saved_len, src, sizeof(saved_len));
+    if (saved_len != (uint32_t)len) return false;
+    memcpy(data, src + FLASH_PAGE_SIZE, len);
     return true;
 }
 

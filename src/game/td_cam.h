@@ -18,13 +18,11 @@
 #define TD_CAM_STEPS 4
 
 /*
- * 64×32 flat diamond on a 64×48 sprite:
- *   1 tile in world X → screen (+32, +16)  =>  A = 2.0, B = 1.0.
+ * 64×32 flat diamond on a 64×48 sprite: 1 tile in world X → screen (+32, +16).
+ * So TD_ISO_A = 32 / TILE = 2.0 and TD_ISO_B = 16 / TILE = 1.0.
  */
-#define TD_ISO_HW ((float)TILE * 2.0f)
-#define TD_ISO_HH ((float)TILE * 1.0f)
-#define TD_ISO_A  (TD_ISO_HW / (float)TILE)
-#define TD_ISO_B  (TD_ISO_HH / (float)TILE)
+#define TD_ISO_A  2.0f
+#define TD_ISO_B  1.0f
 
 typedef struct {
     uint8_t bearing;  /* 0..3, 90° clockwise steps */

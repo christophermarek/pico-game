@@ -16,7 +16,7 @@ static SDL_Renderer *rend;
 static SDL_Texture  *tex;
 static uint16_t      fb[DISPLAY_W * DISPLAY_H];
 
-static bool prev_a, prev_b, prev_start, prev_sel, prev_cam_l, prev_cam_r;
+static bool prev_a, prev_b, prev_start, prev_cam_l, prev_cam_r;
 static uint32_t frame_start_ms;
 
 static inline void fb_clip_rect(int *x, int *y, int *w, int *h)
@@ -38,8 +38,13 @@ void hal_display_init(void)
         win_w, win_h, SDL_WINDOW_SHOWN);
     if (!win) { fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError()); exit(1); }
 
-    rend = SDL_CreateRenderer(win, -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    /*
+     * No PRESENTVSYNC — we pace manually below. Doubling up makes frame
+     * times vary by one refresh cycle (33ms vs 50ms on 60 Hz), which the
+     * player sees as jitter, most obvious on diagonal motion where the
+     * per-axis step is already sub-pixel.
+     */
+    rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
     if (!rend) { fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError()); exit(1); }
 
     tex = SDL_CreateTexture(rend,
@@ -121,7 +126,7 @@ void hal_image_free(HalImageRGBA *img)
 
 void hal_input_init(void)
 {
-    prev_a = prev_b = prev_start = prev_sel = false;
+    prev_a = prev_b = prev_start = false;
     prev_cam_l = prev_cam_r = false;
 }
 
@@ -150,43 +155,50 @@ void hal_input_poll(Input *inp)
                  k[SDL_SCANCODE_A];
     inp->b     = k[SDL_SCANCODE_X]     || k[SDL_SCANCODE_B];
     inp->start = k[SDL_SCANCODE_M]     || k[SDL_SCANCODE_TAB];
-    inp->sel   = k[SDL_SCANCODE_V];
     inp->cam_l = k[SDL_SCANCODE_LEFTBRACKET];
     inp->cam_r = k[SDL_SCANCODE_RIGHTBRACKET];
 
     inp->a_press     = inp->a     && !prev_a;
     inp->b_press     = inp->b     && !prev_b;
     inp->start_press = inp->start && !prev_start;
-    inp->sel_press   = inp->sel   && !prev_sel;
     inp->cam_l_press = inp->cam_l && !prev_cam_l;
     inp->cam_r_press = inp->cam_r && !prev_cam_r;
 
     prev_a     = inp->a;
     prev_b     = inp->b;
     prev_start = inp->start;
-    prev_sel   = inp->sel;
     prev_cam_l = inp->cam_l;
     prev_cam_r = inp->cam_r;
 }
 
 uint32_t hal_ticks_ms(void) { return SDL_GetTicks(); }
 
+/*
+ * On-disk format: [uint32_t len][data…]. hal_load fails fast if the length
+ * header doesn't match the caller's expected size, catching stale saves
+ * from before a GameState layout change on top of the magic/version check.
+ */
 bool hal_save(const void *data, size_t len)
 {
     FILE *f = fopen(SAVE_PATH, "wb");
     if (!f) return false;
-    size_t written = fwrite(data, 1, len, f);
+    uint32_t len32 = (uint32_t)len;
+    bool ok = fwrite(&len32, sizeof(len32), 1, f) == 1
+           && fwrite(data, 1, len, f) == len;
     fclose(f);
-    return written == len;
+    return ok;
 }
 
 bool hal_load(void *data, size_t len)
 {
     FILE *f = fopen(SAVE_PATH, "rb");
     if (!f) return false;
-    size_t got = fread(data, 1, len, f);
+    uint32_t saved_len;
+    bool ok = fread(&saved_len, sizeof(saved_len), 1, f) == 1
+           && saved_len == (uint32_t)len
+           && fread(data, 1, len, f) == len;
     fclose(f);
-    return got == len;
+    return ok;
 }
 
 void hal_init(void)

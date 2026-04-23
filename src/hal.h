@@ -25,13 +25,13 @@ void hal_show(void);
 bool hal_image_load_rgba(const char *path, HalImageRGBA *out);
 void hal_image_free(HalImageRGBA *img);
 
-/* Input — 8 buttons + edge-triggered press flags. */
+/* Input — buttons + edge-triggered press flags. */
 typedef struct {
     bool up, down, left, right;
-    bool a, b, start, sel;
+    bool a, b, start;
     bool cam_l, cam_r;
 
-    bool a_press, b_press, start_press, sel_press;
+    bool a_press, b_press, start_press;
     bool cam_l_press, cam_r_press;
 } Input;
 

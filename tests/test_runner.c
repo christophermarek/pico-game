@@ -35,8 +35,7 @@ static void test_config(void) {
     T(DISPLAY_W == 240 && DISPLAY_H == 240);
     T(MAP_W > 0 && MAP_H > 0);
     T(MAP_CELLS == MAP_W * MAP_H);
-    T(SKILL_COUNT == 4);
-    T(INV_SLOTS > 0);
+    T(SKILL_COUNT == 3);
     T(TICK_MS > 0 && ACTION_TICKS > 0);
     T(FRAME_MS > 0);
     T(MODE_TOPDOWN < MODE_MENU);
@@ -56,28 +55,17 @@ static void test_state(void) {
     T(s.mode == MODE_TOPDOWN);
     T(s.hp > 0 && s.max_hp >= s.hp);
     T(s.skills[0].level >= 1);
-    T(inv_count(&s, ITEM_BREAD) >= 1);
 
     T(xp_for_level(1) < xp_for_level(10));
-    T(total_level(&s) >= (uint16_t)SKILL_COUNT);
 
     state_log(&s, "test log");
-    T(s.log_count >= 1);
-    T(strncmp(s.log[0], "test log", 8) == 0);
-
-    int before = inv_count(&s, ITEM_COIN);
-    T(inv_add(&s, ITEM_COIN, 5));
-    T(inv_count(&s, ITEM_COIN) == before + 5);
-    T(inv_remove(&s, ITEM_COIN, 5));
-    T(inv_count(&s, ITEM_COIN) == before);
+    T(strncmp(s.log_msg, "test log", 8) == 0);
 }
 
 static void test_world(void) {
     World w;
     world_init(&w);
     T(world_walkable(&w, 14, 9));
-    T(world_is_resource(T_TREE));
-    T(!world_is_resource(T_GRASS));
 
     int idx = 4 + 13 * MAP_W;
     world_deplete_node(&w, 4, 13);
@@ -101,10 +89,9 @@ static void test_skills(void) {
     s.active_skill  = SK_WOODCUT;
     s.action_node_x = 1;
     s.action_node_y = 1;
-    int logs_before = s.log_count;
     skill_complete_action(&s, &w);
-    T(s.action_ticks_left == ACTION_TICKS);
-    T(s.log_count >= logs_before);
+    T(!s.skilling);                     /* action stops on completion */
+    T(s.action_ticks_left == 0);
 }
 
 static void test_game_tick(void) {

@@ -6,7 +6,8 @@
 #endif
 
 #ifndef PICO_BUILD
-bool world_load_map(World *w, const char *path)
+/* .map file format: magic "PMAP" + version 1 + width + height + width*height tile bytes. */
+static bool load_map(World *w, const char *path)
 {
     FILE *f = fopen(path, "rb");
     if (!f) return false;
@@ -26,13 +27,13 @@ bool world_load_map(World *w, const char *path)
     return n == cells;
 }
 #else
-bool world_load_map(World *w, const char *path) { (void)w; (void)path; return false; }
+static bool load_map(World *w, const char *path) { (void)w; (void)path; return false; }
 #endif
 
 void world_init(World *w)
 {
-    if (world_load_map(w, "assets/maps/map.bin")) return;
-    if (world_load_map(w, "../assets/maps/map.bin")) return;
+    if (load_map(w, "assets/maps/map.bin")) return;
+    if (load_map(w, "../assets/maps/map.bin")) return;
     memset(w, 0, sizeof(*w));
     w->w = MAP_W;
     w->h = MAP_H;
@@ -49,12 +50,6 @@ bool world_walkable(const World *w, int x, int y)
 {
     uint8_t t = world_tile(w, x, y);
     return !(t == T_TREE || t == T_ROCK || t == T_ORE || t == T_WATER);
-}
-
-bool world_is_resource(uint8_t tile_id)
-{
-    return (tile_id == T_TREE || tile_id == T_ORE ||
-            tile_id == T_WATER || tile_id == T_ROCK);
 }
 
 void world_deplete_node(World *w, int x, int y)

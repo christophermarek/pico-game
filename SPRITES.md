@@ -1,9 +1,9 @@
 # Sprite Workflow
 
-GrumbleQuest edits **individual** sprite PNGs under `assets/sprites/`. `make build`
-(or `make dev`) runs `tools/gen_spritesheets.py` to assemble them into the two
-sheets the runtime consumes — `assets/assets_iso_tiles.png` and
-`assets/assets_chars.png`.
+GrumbleQuest edits **individual** sprite PNGs under `assets/sprites/`.
+`make build` (or `make dev`) runs `tools/gen_spritesheets.py` to assemble
+them into two sheets under `build/` — `build/assets_iso_tiles.png` and
+`build/assets_chars.png` — which the runtime loads.
 
 ```bash
 # Edit a tile
@@ -15,7 +15,7 @@ make dev
 
 ## Layout
 
-### `assets/sprites/tiles/` → `assets/assets_iso_tiles.png` (256×192, 64×48 cells)
+### `assets/sprites/tiles/` → `build/assets_iso_tiles.png` (256×192, 64×48 cells)
 
 ```
 Row 0: water_0  water_1  water_2  water_3
@@ -24,11 +24,11 @@ Row 2: rock     ore      flower   tgrass
 Row 3: depleted
 ```
 
-Water is a 4-frame animation cycling every 15 frames (~0.5s at 30 FPS).
+Water is a 4-frame animation cycling every 15 frames (~0.5 s at 30 FPS).
 Overlays (`tree`, `rock`, `ore`, `flower`, `tgrass`) render on top of a grass
 (or path, for ore) floor tile.
 
-### `assets/sprites/chars/` → `assets/assets_chars.png` (256×32, 32×32 cells)
+### `assets/sprites/chars/` → `build/assets_chars.png` (256×32, 32×32 cells)
 
 ```
 Row 0: player_down_0  player_down_1
@@ -37,8 +37,7 @@ Row 0: player_down_0  player_down_1
        player_right_0 player_right_1
 ```
 
-Stored at 2× game pixels (`SPRITE_SCALE = 2`), drawn at 1:1 via nearest-
-neighbour downsample.
+Stored at 2× game pixels, drawn at 1:1 via nearest-neighbour downsample.
 
 ### Manifest
 
@@ -57,10 +56,10 @@ cell dimensions here; `gen_spritesheets.py` reads this on every build.
 ## Pico build
 
 `tools/gen_pico_atlases.py` converts the assembled sheets into C arrays
-(`src/pico_assets/atlas_*.c`) linked into flash. The CMake Pico build
-runs this automatically when the PNGs change.
+(`src/pico_assets/atlas_*.c`) linked into flash. The CMake Pico build runs
+this automatically when the PNGs change.
 
-## Regenerating blank templates
+## Blank templates
 
 ```bash
 python3 tools/sprite_template.py

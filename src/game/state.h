@@ -3,31 +3,10 @@
 #include <stdbool.h>
 #include "config.h"
 
-typedef enum {
-    ITEM_NONE    = 0,
-    ITEM_ORE     = 1,
-    ITEM_STONE   = 2,
-    ITEM_FISH    = 3,
-    ITEM_SEAWEED = 4,
-    ITEM_LOG     = 5,
-    ITEM_BRANCH  = 6,
-    ITEM_GEM     = 7,
-    ITEM_MEAL    = 8,
-    ITEM_BREAD   = 9,
-    ITEM_EGG     = 10,
-    ITEM_COIN    = 11,
-    ITEM_COUNT   = 12,
-} ItemID;
-
 typedef struct {
     uint32_t xp;
     uint8_t  level;
 } Skill;
-
-typedef struct {
-    uint8_t item_id;
-    uint8_t count;
-} InvSlot;
 
 typedef struct {
     float   x, y;
@@ -39,8 +18,7 @@ typedef struct {
 
 typedef enum {
     MTAB_SKILLS   = 0,
-    MTAB_ITEMS    = 1,
-    MTAB_SETTINGS = 2,
+    MTAB_SETTINGS = 1,
 } MenuTab;
 
 typedef struct GameState {
@@ -55,7 +33,6 @@ typedef struct GameState {
     bool     running_locked;
 
     Skill    skills[SKILL_COUNT];
-    InvSlot  inv[INV_SLOTS];
 
     bool     skilling;
     uint8_t  active_skill;
@@ -68,11 +45,9 @@ typedef struct GameState {
 
     MenuTab  menu_tab;
     uint8_t  menu_cursor;
-    uint8_t  menu_scroll;
 
-    char     log[4][36];
-    uint8_t  log_count;
-    uint32_t log_ms;
+    char     log_msg[36];
+    uint32_t log_ms;   /* hal_ticks_ms when log_msg was posted; 0 = none */
 
     uint32_t total_steps;
 
@@ -85,9 +60,5 @@ typedef struct GameState {
 } GameState;
 
 void     state_init(GameState *s);
-uint16_t total_level(const GameState *s);
 uint32_t xp_for_level(uint8_t level);
 void     state_log(GameState *s, const char *msg);
-int      inv_count(const GameState *s, uint8_t item_id);
-bool     inv_add(GameState *s, uint8_t item_id, uint8_t qty);
-bool     inv_remove(GameState *s, uint8_t item_id, uint8_t qty);

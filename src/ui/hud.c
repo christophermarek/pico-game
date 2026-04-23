@@ -14,14 +14,14 @@
 #define BAR_Y        (STRIP_Y + 4)
 #define BAR_GAP      2
 
-#define MSG_X        (BAR_X0 + 3 * (BAR_W + BAR_GAP) + 4)
+#define MSG_X        (BAR_X0 + 2 * (BAR_W + BAR_GAP) + 4)
 #define MSG_Y        (STRIP_Y + 5)
 
 #define ICON_W       13
 #define ICON_H       16
 #define ICON_Y       (STRIP_Y + 1)
 #define ICON_GAP     1
-#define ICON_COUNT   3
+#define ICON_COUNT   2
 #define ICON_BLOCK_W (ICON_COUNT * ICON_W + (ICON_COUNT - 1) * ICON_GAP)
 #define ICON_X0      (DISPLAY_W - ICON_BLOCK_W - 2)
 
@@ -32,7 +32,6 @@ static const struct {
     const char *label;
     uint16_t    color;
 } ICONS[ICON_COUNT] = {
-    { MTAB_ITEMS,    "BG", C_GOLD        },
     { MTAB_SKILLS,   "SK", C_ENERGY_BLUE },
     { MTAB_SETTINGS, "ST", C_WARN_RED    },
 };
@@ -94,19 +93,11 @@ void hud_draw(GameState *s) {
              s->energy, STAT_MAX,       C_ENERGY_BLUE);
 
     uint32_t now = hal_ticks_ms();
-    if (s->log_count > 0 && s->log_ms > 0 &&
-        now - s->log_ms < HUD_LOG_TIMEOUT_MS) {
-        draw_str_clipped(s->log[0], MSG_X, MSG_Y, C_TEXT_DIM, MSG_MAX_X);
+    if (s->log_ms > 0 && now - s->log_ms < HUD_LOG_TIMEOUT_MS) {
+        draw_str_clipped(s->log_msg, MSG_X, MSG_Y, C_TEXT_DIM, MSG_MAX_X);
     } else {
         char buf[12];
-        int  n = 0;
-        const char *pre = "Day ";
-        while (*pre) buf[n++] = *pre++;
-        uint16_t d = s->day;
-        if (d >= 100) buf[n++] = (char)('0' + d / 100);
-        if (d >=  10) buf[n++] = (char)('0' + (d / 10) % 10);
-        buf[n++] = (char)('0' + d % 10);
-        buf[n]   = '\0';
+        snprintf(buf, sizeof(buf), "Day %u", (unsigned)s->day);
         font_draw_str(buf, MSG_X, MSG_Y, C_TEXT_DIM, 1);
     }
 

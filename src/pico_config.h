@@ -8,7 +8,7 @@
  *
  * Buttons (active-low, internal pull-up):
  *   UP→GP2  DOWN→GP3  LEFT→GP4  RIGHT→GP5
- *   A →GP6  B   →GP7  START→GP8 SEL  →GP9
+ *   A →GP6  B   →GP7  START→GP8
  */
 
 #define CONFIG_SPI_BAUD  40000000   /* 40 MHz */
@@ -26,4 +26,3 @@
 #define CONFIG_PIN_A      6
 #define CONFIG_PIN_B      7
 #define CONFIG_PIN_START  8
-#define CONFIG_PIN_SEL    9
