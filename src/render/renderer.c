@@ -43,13 +43,13 @@ static bool td_cell_on_screen(const GameState *s, const TdCamBasis *cam, int tx,
 void render_topdown(GameState *s, const World *w)
 {
     TdCamBasis cam = td_cam_basis(s->td_cam_bearing);
-    TdCellSort cells[MAP_W * MAP_H];
+    TdCellSort cells[MAP_MAX_CELLS];
     int        n = 0;
 
     hal_fill(C_SKY_BOT);
 
-    for (int ty = 0; ty < MAP_H; ty++) {
-        for (int tx = 0; tx < MAP_W; tx++) {
+    for (int ty = 0; ty < w->h; ty++) {
+        for (int tx = 0; tx < w->w; tx++) {
             if (!td_cell_on_screen(s, &cam, tx, ty)) continue;
             float wx = (float)((tx + 1) * TILE);
             float wy = (float)((ty + 1) * TILE);
@@ -82,7 +82,7 @@ void render_topdown(GameState *s, const World *w)
         td_world_to_screen(s, &cam, tcx, tcy, &sx, &sy);
         uint8_t tile = world_tile(w, tx, ty);
         spr_tile_iso_onlay(tile, sx, sy, s->frame_count);
-        if (w->node_respawn[ty * MAP_W + tx] > 0)
+        if (w->node_respawn[ty * w->w + tx] > 0)
             spr_iso_depleted_mark(sx, sy);
     }
 

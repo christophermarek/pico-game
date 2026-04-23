@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PicoGame Map Editor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1a1a2e; color: #eee; font-family: monospace; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  #toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #16213e; border-bottom: 1px solid #0f3460; flex-shrink: 0; flex-wrap: wrap; }
+  #toolbar h1 { font-size: 14px; color: #e94560; margin-right: 4px; }
+  button { background: #0f3460; color: #eee; border: 1px solid #e94560; padding: 5px 10px; cursor: pointer; font-family: monospace; font-size: 12px; border-radius: 3px; }
+  button:hover { background: #e94560; }
+  #file-input { display: none; }
+  label { font-size: 12px; color: #aaa; }
+  input[type=number] { background: #0f3460; color: #eee; border: 1px solid #555; padding: 4px 6px; width: 52px; font-family: monospace; font-size: 12px; border-radius: 3px; }
+  .sep { width: 1px; height: 20px; background: #0f3460; margin: 0 2px; }
+  #status { margin-left: auto; font-size: 12px; color: #aaa; min-width: 200px; text-align: right; }
+  #main { display: flex; flex: 1; overflow: hidden; }
+  #palette { width: 155px; flex-shrink: 0; background: #16213e; border-right: 1px solid #0f3460; overflow-y: auto; padding: 8px; }
+  #palette h2 { font-size: 11px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .tile-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 6px; cursor: pointer; border-radius: 3px; margin-bottom: 3px; border: 2px solid transparent; background: none; color: #eee; font-family: monospace; font-size: 12px; text-align: left; }
+  .tile-btn:hover { background: #0f3460; }
+  .tile-btn.selected { border-color: #e94560; background: #0f3460; }
+  .tile-swatch { width: 20px; height: 20px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15); }
+  .tile-id { color: #666; font-size: 10px; margin-left: auto; }
+  #canvas-wrap { flex: 1; overflow: auto; padding: 12px; background: #1a1a2e; }
+  canvas { display: block; cursor: crosshair; image-rendering: pixelated; }
+  #hint { font-size: 11px; color: #555; padding: 4px 12px; background: #16213e; border-top: 1px solid #0f3460; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <h1>Map Editor</h1>
+  <button onclick="loadFile()">Load .map</button>
+  <input type="file" id="file-input" accept=".bin,.map" onchange="onFileSelected(event)">
+  <button onclick="saveFile()">Save .map</button>
+  <button onclick="clearMap()">Clear</button>
+  <div class="sep"></div>
+  <label>W <input type="number" id="inp-w" min="1" max="30" value="30" onchange="resizeMap()"></label>
+  <label>H <input type="number" id="inp-h" min="1" max="20" value="20" onchange="resizeMap()"></label>
+  <div class="sep"></div>
+  <label>Zoom</label>
+  <button onclick="zoom(-4)">-</button>
+  <button onclick="zoom(+4)">+</button>
+  <button onclick="toggleGrid()">Grid (G)</button>
+  <span id="status">hover over grid</span>
+</div>
+<div id="main">
+  <div id="palette">
+    <h2>Tiles</h2>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+<div id="hint">Left-click/drag: paint &nbsp;|&nbsp; Right-click: erase &nbsp;|&nbsp; 0–9: select tile &nbsp;|&nbsp; G: grid</div>
+
+<script>
+const MAX_W = 30, MAX_H = 20;
+
+const TILES = [
+  { id: 0, name: 'Grass',     key: '0', color: '#4a7c59' },
+  { id: 1, name: 'Path',      key: '1', color: '#c8a96e' },
+  { id: 2, name: 'Water',     key: '2', color: '#2c7bb6' },
+  { id: 3, name: 'Sand',      key: '3', color: '#f0d89e' },
+  { id: 4, name: 'Tree',      key: '4', color: '#2d5a27' },
+  { id: 5, name: 'Rock',      key: '5', color: '#808080' },
+  { id: 6, name: 'Flower',    key: '6', color: '#e05090' },
+  { id: 7, name: 'TallGrass', key: '7', color: '#3a6b4a' },
+  { id: 9, name: 'Ore',       key: '9', color: '#c8960c' },
+];
+
+const TILE_BY_ID = {};
+TILES.forEach(t => TILE_BY_ID[t.id] = t);
+const tileColor = id => (TILE_BY_ID[id] || TILE_BY_ID[0]).color;
+const tileName  = id => (TILE_BY_ID[id] || { name: '?' }).name;
+
+let mapW = 30, mapH = 20;
+let map = new Uint8Array(mapW * mapH);
+let cellSize = 24;
+let showGrid = true;
+let selectedTile = 0;
+let isPainting = false;
+let erasing = false;
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Build palette
+const paletteEl = document.getElementById('palette');
+TILES.forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'tile-btn' + (t.id === selectedTile ? ' selected' : '');
+  btn.id = 'tile-btn-' + t.id;
+  btn.innerHTML = `<span class="tile-swatch" style="background:${t.color}"></span>${t.name}<span class="tile-id">[${t.key}]</span>`;
+  btn.onclick = () => selectTile(t.id);
+  paletteEl.appendChild(btn);
+});
+
+function selectTile(id) {
+  selectedTile = id;
+  document.querySelectorAll('.tile-btn').forEach(b => b.classList.remove('selected'));
+  const el = document.getElementById('tile-btn-' + id);
+  if (el) el.classList.add('selected');
+}
+
+function syncSizeInputs() {
+  document.getElementById('inp-w').value = mapW;
+  document.getElementById('inp-h').value = mapH;
+}
+
+function resizeCanvas() {
+  canvas.width  = mapW * cellSize;
+  canvas.height = mapH * cellSize;
+  draw();
+}
+
+function resizeMap() {
+  const newW = Math.max(1, Math.min(MAX_W, parseInt(document.getElementById('inp-w').value) || mapW));
+  const newH = Math.max(1, Math.min(MAX_H, parseInt(document.getElementById('inp-h').value) || mapH));
+  if (newW === mapW && newH === mapH) return;
+
+  const newMap = new Uint8Array(newW * newH); // zero = grass
+  const copyW = Math.min(mapW, newW);
+  const copyH = Math.min(mapH, newH);
+  for (let y = 0; y < copyH; y++)
+    for (let x = 0; x < copyW; x++)
+      newMap[y * newW + x] = map[y * mapW + x];
+
+  mapW = newW; mapH = newH;
+  map = newMap;
+  syncSizeInputs();
+  resizeCanvas();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < mapH; y++) {
+    for (let x = 0; x < mapW; x++) {
+      ctx.fillStyle = tileColor(map[y * mapW + x]);
+      ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+    }
+  }
+  if (showGrid) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= mapW; x++) {
+      ctx.beginPath(); ctx.moveTo(x * cellSize, 0); ctx.lineTo(x * cellSize, mapH * cellSize); ctx.stroke();
+    }
+    for (let y = 0; y <= mapH; y++) {
+      ctx.beginPath(); ctx.moveTo(0, y * cellSize); ctx.lineTo(mapW * cellSize, y * cellSize); ctx.stroke();
+    }
+  }
+}
+
+function cellAt(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / cellSize);
+  const y = Math.floor((e.clientY - rect.top)  / cellSize);
+  if (x < 0 || x >= mapW || y < 0 || y >= mapH) return null;
+  return { x, y };
+}
+
+function paint(e) {
+  const c = cellAt(e);
+  if (!c) return;
+  const tid = erasing ? 0 : selectedTile;
+  map[c.y * mapW + c.x] = tid;
+  ctx.fillStyle = tileColor(tid);
+  ctx.fillRect(c.x * cellSize, c.y * cellSize, cellSize, cellSize);
+  if (showGrid) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(c.x * cellSize + 0.5, c.y * cellSize + 0.5, cellSize - 1, cellSize - 1);
+  }
+}
+
+canvas.addEventListener('mousedown', e => {
+  e.preventDefault(); isPainting = true; erasing = e.button === 2; paint(e);
+});
+canvas.addEventListener('mousemove', e => {
+  const c = cellAt(e);
+  if (c) {
+    const t = map[c.y * mapW + c.x];
+    document.getElementById('status').textContent = `(${c.x}, ${c.y})  ${tileName(t)} [${t}]  ${mapW}×${mapH}`;
+  }
+  if (isPainting) paint(e);
+});
+canvas.addEventListener('mouseup',    () => { isPainting = false; });
+canvas.addEventListener('mouseleave', () => { isPainting = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'g' || e.key === 'G') { toggleGrid(); return; }
+  const match = TILES.find(t => t.key === e.key);
+  if (match) selectTile(match.id);
+});
+
+function zoom(delta) {
+  cellSize = Math.max(8, Math.min(64, cellSize + delta));
+  resizeCanvas();
+}
+
+function toggleGrid() { showGrid = !showGrid; draw(); }
+
+function clearMap() {
+  if (!confirm(`Clear ${mapW}×${mapH} map to all Grass?`)) return;
+  map.fill(0); draw();
+}
+
+function loadFile() { document.getElementById('file-input').click(); }
+
+function onFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  file.arrayBuffer().then(buf => {
+    const view = new Uint8Array(buf);
+    if (view.length < 7) { alert('File too small'); return; }
+    if (view[0]!==0x50||view[1]!==0x4D||view[2]!==0x41||view[3]!==0x50) { alert('Bad magic (expected PMAP)'); return; }
+    if (view[4] !== 1) { alert('Unsupported version: ' + view[4]); return; }
+    const fw = view[5], fh = view[6];
+    if (fw === 0 || fh === 0 || fw > MAX_W || fh > MAX_H) {
+      alert(`Map size ${fw}×${fh} out of range (max ${MAX_W}×${MAX_H})`); return;
+    }
+    if (view.length < 7 + fw * fh) { alert('File truncated'); return; }
+    mapW = fw; mapH = fh;
+    map = new Uint8Array(view.subarray(7, 7 + fw * fh));
+    syncSizeInputs();
+    resizeCanvas();
+  });
+  e.target.value = '';
+}
+
+function saveFile() {
+  const buf = new Uint8Array(7 + mapW * mapH);
+  buf[0]=0x50; buf[1]=0x4D; buf[2]=0x41; buf[3]=0x50;
+  buf[4]=1; buf[5]=mapW; buf[6]=mapH;
+  buf.set(map, 7);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+  a.download = 'map.bin';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+syncSizeInputs();
+resizeCanvas();
+</script>
+</body>
+</html>

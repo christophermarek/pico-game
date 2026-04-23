@@ -15,7 +15,11 @@ static World     world;
 int main(void) {
     hal_init();
 
-    world_init(&world);
+    if (!world_load_map(&world, "assets/map.bin") &&
+        !world_load_map(&world, "../assets/map.bin")) {
+        world.w = MAP_W;
+        world.h = MAP_H;
+    }
     state_init(&state);
 
     if (!save_read(&state)) {

@@ -87,10 +87,10 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     if (!td_collides(w, nx, s->td.y)) s->td.x = nx;
     if (!td_collides(w, s->td.x, ny)) s->td.y = ny;
 
-    if (s->td.x < PL_HALF_W)                s->td.x = (float)PL_HALF_W;
-    if (s->td.x > MAP_W * TILE - PL_HALF_W) s->td.x = (float)(MAP_W * TILE - PL_HALF_W);
-    if (s->td.y < PL_HALF_H)                s->td.y = (float)PL_HALF_H;
-    if (s->td.y > MAP_H * TILE - PL_HALF_H) s->td.y = (float)(MAP_H * TILE - PL_HALF_H);
+    if (s->td.x < PL_HALF_W)                  s->td.x = (float)PL_HALF_W;
+    if (s->td.x > w->w * TILE - PL_HALF_W)    s->td.x = (float)(w->w * TILE - PL_HALF_W);
+    if (s->td.y < PL_HALF_H)                  s->td.y = (float)PL_HALF_H;
+    if (s->td.y > w->h * TILE - PL_HALF_H)    s->td.y = (float)(w->h * TILE - PL_HALF_H);
 
     if (dx != 0.0f || dy != 0.0f) {
         s->td.walk_frame += TD_WALK_ANIM_STEP;
@@ -124,10 +124,10 @@ void player_do_action(GameState *s, World *w) {
     int tx, ty;
     facing_tile(s, &tx, &ty);
 
-    if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return;
+    if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) return;
 
     uint8_t tile = world_tile(w, tx, ty);
-    int     idx  = ty * MAP_W + tx;
+    int     idx  = ty * w->w + tx;
 
     if (w->node_respawn[idx] > 0) {
         state_log(s, "Node is depleted!");
