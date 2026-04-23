@@ -45,7 +45,9 @@ dev: sprites $(BUILD_DIR)/CMakeCache.txt
 	cd $(BUILD_DIR) && ./grumblequest_sim
 
 editor:
-	open tools/map_editor.html
+	@echo "Serving at http://localhost:8765/tools/map_editor.html  (Ctrl+C to stop)"
+	@( sleep 1 && open http://localhost:8765/tools/map_editor.html ) &
+	@$(PYTHON) -m http.server 8765
 
 clean:
 	rm -rf $(BUILD_DIR)

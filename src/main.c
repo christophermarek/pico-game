@@ -15,8 +15,8 @@ static World     world;
 int main(void) {
     hal_init();
 
-    if (!world_load_map(&world, "assets/map.bin") &&
-        !world_load_map(&world, "../assets/map.bin")) {
+    if (!world_load_map(&world, "assets/maps/map.bin") &&
+        !world_load_map(&world, "../assets/maps/map.bin")) {
         world.w = MAP_W;
         world.h = MAP_H;
     }

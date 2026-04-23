@@ -211,25 +211,36 @@ function clearMap() {
 
 function loadFile() { document.getElementById('file-input').click(); }
 
+function loadFromBuffer(buf, sourceLabel) {
+  const view = new Uint8Array(buf);
+  if (view.length < 7) { alert('File too small'); return false; }
+  if (view[0]!==0x50||view[1]!==0x4D||view[2]!==0x41||view[3]!==0x50) { alert('Bad magic (expected PMAP)'); return false; }
+  if (view[4] !== 1) { alert('Unsupported version: ' + view[4]); return false; }
+  const fw = view[5], fh = view[6];
+  if (fw === 0 || fh === 0 || fw > MAX_W || fh > MAX_H) {
+    alert(`Map size ${fw}×${fh} out of range (max ${MAX_W}×${MAX_H})`); return false;
+  }
+  if (view.length < 7 + fw * fh) { alert('File truncated'); return false; }
+  mapW = fw; mapH = fh;
+  map = new Uint8Array(view.subarray(7, 7 + fw * fh));
+  syncSizeInputs();
+  resizeCanvas();
+  if (sourceLabel) document.getElementById('status').textContent = `Loaded ${sourceLabel} (${mapW}×${mapH})`;
+  return true;
+}
+
 function onFileSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
-  file.arrayBuffer().then(buf => {
-    const view = new Uint8Array(buf);
-    if (view.length < 7) { alert('File too small'); return; }
-    if (view[0]!==0x50||view[1]!==0x4D||view[2]!==0x41||view[3]!==0x50) { alert('Bad magic (expected PMAP)'); return; }
-    if (view[4] !== 1) { alert('Unsupported version: ' + view[4]); return; }
-    const fw = view[5], fh = view[6];
-    if (fw === 0 || fh === 0 || fw > MAX_W || fh > MAX_H) {
-      alert(`Map size ${fw}×${fh} out of range (max ${MAX_W}×${MAX_H})`); return;
-    }
-    if (view.length < 7 + fw * fh) { alert('File truncated'); return; }
-    mapW = fw; mapH = fh;
-    map = new Uint8Array(view.subarray(7, 7 + fw * fh));
-    syncSizeInputs();
-    resizeCanvas();
-  });
+  file.arrayBuffer().then(buf => loadFromBuffer(buf, file.name));
   e.target.value = '';
+}
+
+function autoLoadDefault() {
+  fetch('../assets/maps/map.bin', { cache: 'no-store' })
+    .then(r => r.ok ? r.arrayBuffer() : null)
+    .then(buf => { if (buf) loadFromBuffer(buf, 'assets/maps/map.bin'); })
+    .catch(() => { /* file:// or missing — silently skip */ });
 }
 
 function saveFile() {
@@ -246,6 +257,7 @@ function saveFile() {
 
 syncSizeInputs();
 resizeCanvas();
+autoLoadDefault();
 </script>
 </body>
 </html>
