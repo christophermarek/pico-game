@@ -1,4 +1,5 @@
 #include "skills.h"
+#include "player.h"
 #include "hal.h"
 
 const SkillInfo SKILL_INFO[SKILL_COUNT] = {
@@ -74,5 +75,5 @@ void skill_complete_action(GameState *s, World *w) {
     skill_add_xp(s, s->active_skill, xp_val);
 
     world_deplete_node(w, tx, ty);
-    s->action_ticks_left = ACTION_TICKS;
+    player_stop_action(s);
 }

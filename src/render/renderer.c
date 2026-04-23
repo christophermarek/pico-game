@@ -331,8 +331,10 @@ static bool td_cell_on_screen(const GameState *s, const TdCamBasis *cam, int tx,
 
 static void render_topdown(GameState *s, const World *w)
 {
+    /* Static: ~7 KB — keeps it off the stack so the Pico's 4 KB main-thread
+     * stack doesn't overflow. Renderer is not reentrant. */
+    static TdCellSort cells[MAP_CELLS];
     TdCamBasis cam = td_cam_basis(s->td_cam_bearing);
-    TdCellSort cells[MAP_CELLS];
     int        n = 0;
 
     hal_fill(C_SKY_BOT);
@@ -344,7 +346,12 @@ static void render_topdown(GameState *s, const World *w)
             float wy = (float)((ty + 1) * TILE);
             int   sx, sy;
             td_world_to_screen(s, &cam, wx, wy, &sx, &sy);
-            cells[n].key = ((int64_t)sy << 24) | ((int64_t)tx << 12) | (int64_t)ty;
+            /* Bias sy above zero before shifting; left-shifting a negative
+             * signed int is undefined behaviour. Tiles in the cull zone can
+             * have sy < 0, so we add an offset that safely covers the
+             * possible range (DISPLAY_H + 2*TD_ISO_CULL). */
+            int64_t sy_biased = (int64_t)sy + (DISPLAY_H + 2 * TD_ISO_CULL);
+            cells[n].key = (sy_biased << 24) | ((int64_t)tx << 12) | (int64_t)ty;
             cells[n].tx  = (uint16_t)tx;
             cells[n].ty  = (uint16_t)ty;
             n++;

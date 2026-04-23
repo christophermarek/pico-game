@@ -70,7 +70,9 @@ static bool collide_at(const World *w, float x, float y,
             if (hit_obstacle(tile, x, y, ocx, ocy)) {
                 if (out_tx)   *out_tx   = tx;
                 if (out_ty)   *out_ty   = ty;
-                if (out_kind) *out_kind = (char)(tile + '0');
+                if (out_kind)
+                    *out_kind = (tile < 10) ? (char)('0' + tile)
+                                            : (char)('A' + tile - 10);
                 return true;
             }
         }
@@ -160,11 +162,7 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     if (inp->up)    vy -= 1.0f;
     if (inp->down)  vy += 1.0f;
 
-    if (vx != 0.0f && vy != 0.0f) {
-        vx *= 0.7071f;
-        vy *= 0.7071f;
-    }
-
+    /* Magnitude doesn't matter here — world velocity is normalised below. */
     if (vx != 0.0f || vy != 0.0f) {
         float ax = fabsf(vx), ay = fabsf(vy);
         if (ax >= ay) s->td.screen_dir = (vx < 0.0f) ? DIR_LEFT : DIR_RIGHT;

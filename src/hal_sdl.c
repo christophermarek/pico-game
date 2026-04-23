@@ -38,8 +38,13 @@ void hal_display_init(void)
         win_w, win_h, SDL_WINDOW_SHOWN);
     if (!win) { fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError()); exit(1); }
 
-    rend = SDL_CreateRenderer(win, -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    /*
+     * No PRESENTVSYNC — we pace manually below. Doubling up makes frame
+     * times vary by one refresh cycle (33ms vs 50ms on 60 Hz), which the
+     * player sees as jitter, most obvious on diagonal motion where the
+     * per-axis step is already sub-pixel.
+     */
+    rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
     if (!rend) { fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError()); exit(1); }
 
     tex = SDL_CreateTexture(rend,

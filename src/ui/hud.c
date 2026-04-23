@@ -99,14 +99,7 @@ void hud_draw(GameState *s) {
         draw_str_clipped(s->log[0], MSG_X, MSG_Y, C_TEXT_DIM, MSG_MAX_X);
     } else {
         char buf[12];
-        int  n = 0;
-        const char *pre = "Day ";
-        while (*pre) buf[n++] = *pre++;
-        uint16_t d = s->day;
-        if (d >= 100) buf[n++] = (char)('0' + d / 100);
-        if (d >=  10) buf[n++] = (char)('0' + (d / 10) % 10);
-        buf[n++] = (char)('0' + d % 10);
-        buf[n]   = '\0';
+        snprintf(buf, sizeof(buf), "Day %u", (unsigned)s->day);
         font_draw_str(buf, MSG_X, MSG_Y, C_TEXT_DIM, 1);
     }
 

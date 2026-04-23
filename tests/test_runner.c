@@ -103,7 +103,8 @@ static void test_skills(void) {
     s.action_node_y = 1;
     int logs_before = s.log_count;
     skill_complete_action(&s, &w);
-    T(s.action_ticks_left == ACTION_TICKS);
+    T(!s.skilling);                     /* action stops on completion */
+    T(s.action_ticks_left == 0);
     T(s.log_count >= logs_before);
 }
 
