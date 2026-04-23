@@ -4,14 +4,26 @@
 #include "config.h"
 #include <math.h>
 
+/*
+ * Unified obstacle collision: every non-walkable tile is a circle centred on
+ * its tile centre, radius OBSTACLE_R. Collides when player-centre to tile-centre
+ * distance < PL_HALF_W + OBSTACLE_R.
+ */
 static bool td_collides(const World *w, float x, float y) {
     int x0 = (int)(x - PL_HALF_W) / TILE;
     int x1 = (int)(x + PL_HALF_W - 1) / TILE;
     int y0 = (int)(y - PL_HALF_H) / TILE;
     int y1 = (int)(y + PL_HALF_H - 1) / TILE;
-    for (int ty = y0; ty <= y1; ty++)
-        for (int tx = x0; tx <= x1; tx++)
-            if (!world_walkable(w, tx, ty)) return true;
+    float r = (float)(PL_HALF_W + OBSTACLE_R);
+    for (int ty = y0; ty <= y1; ty++) {
+        for (int tx = x0; tx <= x1; tx++) {
+            if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) continue;
+            if (world_walkable(w, tx, ty)) continue;
+            float tcx = (float)(tx * TILE + TILE / 2);
+            float tcy = (float)(ty * TILE + TILE / 2);
+            if (hypotf(x - tcx, y - tcy) < r) return true;
+        }
+    }
     return false;
 }
 
@@ -73,12 +85,34 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     float dx = dwx * wmul;
     float dy = dwy * wmul;
 
-    {
-        float adx = fabsf(dwx), ady = fabsf(dwy);
-        if (adx > 0.01f || ady > 0.01f) {
-            if (adx >= ady) s->td.dir = (dwx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
-            else            s->td.dir = (dwy < 0.0f) ? DIR_UP   : DIR_DOWN;
-        }
+    /*
+     * Derive world-space facing from screen_dir + camera bearing.
+     *
+     * In iso projection, any screen-cardinal movement produces exactly equal
+     * |dwx| == |dwy| in world space, so the naive adx/ady comparison always
+     * ties and the tiebreaker picks LEFT or RIGHT exclusively.  Instead, map
+     * the screen-relative direction through the camera rotation to get the
+     * true world-axis the player is heading along.
+     *
+     * Bearing rotation table (clockwise 90° steps):
+     *   bearing 0: screen UDLR → world UDLR
+     *   bearing 1: screen UDLR → world RDUL   (world rotated 90° CW)
+     *   bearing 2: screen UDLR → world DURL
+     *   bearing 3: screen UDLR → world LRUD
+     */
+    if (vx != 0.0f || vy != 0.0f) {
+        /* Map (screen_dir, bearing) → world dir via a 4×4 table.
+         * Rows = DIR_DOWN/UP/LEFT/RIGHT (0-3), cols = bearing (0-3). */
+        static const uint8_t DIR_MAP[4][4] = {
+            /* screen\bearing    0           1           2           3    */
+            /* DIR_DOWN  */  { DIR_DOWN,  DIR_LEFT,  DIR_UP,    DIR_RIGHT },
+            /* DIR_UP    */  { DIR_UP,    DIR_RIGHT, DIR_DOWN,  DIR_LEFT  },
+            /* DIR_LEFT  */  { DIR_LEFT,  DIR_DOWN,  DIR_RIGHT, DIR_UP    },
+            /* DIR_RIGHT */  { DIR_RIGHT, DIR_UP,    DIR_LEFT,  DIR_DOWN  },
+        };
+        uint8_t sd = s->td.screen_dir & 3u;
+        uint8_t b  = s->td_cam_bearing & 3u;
+        s->td.dir  = DIR_MAP[sd][b];
     }
 
     float nx = s->td.x + dx;
@@ -155,4 +189,32 @@ void player_do_action(GameState *s, World *w) {
 void player_stop_action(GameState *s) {
     s->skilling          = false;
     s->action_ticks_left = 0;
+}
+
+bool player_test_collide(const World *w, float x, float y) {
+    return td_collides(w, x, y);
+}
+
+bool player_collide_who(const World *w, float x, float y,
+                        int *out_tx, int *out_ty, char *out_kind) {
+    int x0 = (int)(x - PL_HALF_W) / TILE;
+    int x1 = (int)(x + PL_HALF_W - 1) / TILE;
+    int y0 = (int)(y - PL_HALF_H) / TILE;
+    int y1 = (int)(y + PL_HALF_H - 1) / TILE;
+    float r = (float)(PL_HALF_W + OBSTACLE_R);
+    for (int ty = y0; ty <= y1; ty++) {
+        for (int tx = x0; tx <= x1; tx++) {
+            if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) continue;
+            if (world_walkable(w, tx, ty)) continue;
+            float tcx = (float)(tx * TILE + TILE / 2);
+            float tcy = (float)(ty * TILE + TILE / 2);
+            if (hypotf(x - tcx, y - tcy) < r) {
+                if (out_tx)   *out_tx   = tx;
+                if (out_ty)   *out_ty   = ty;
+                if (out_kind) *out_kind = (char)world_tile(w, tx, ty) + '0';
+                return true;
+            }
+        }
+    }
+    return false;
 }
