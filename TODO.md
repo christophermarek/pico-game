@@ -26,26 +26,26 @@ of idle time; depleted nodes respawn in 60 s. Revisit during real playtesting.
 
 ## Medium priority
 
-### Swing-and-collide action model (design note)
-Current model: press A → `find_action_target` picks one tile, a 30-frame
-timer runs, `skill_complete_action` fires once at the end. Simple, works
-for single-target gathering.
+### Swing-and-collide action model (partially in place)
+Current targeting uses a **3-stage pipeline** (see player.c
+find_action_target): collision probe → raycast → own-tile fallback. The
+raycast is the single-ray degenerate of a swing arc and already handles
+reach (`TARGET_REACH_PX`) and camera-direction resolution via the
+inverse iso transform.
 
-Swing-and-collide would replace the timer with a physical arc:
-- `action_ticks_left` still drives animation phase, but the tool's
-  on-screen bounding box is the hit-region each frame.
-- Each frame during the swing: test the bbox against every adjacent
-  tile center; any tile overlapped during the arc that hasn't already
-  been hit this swing gets a hit callback.
-- A per-swing `hit_this_swing[MAP_CELLS/8]` bitset avoids double-hits.
-- `NodeAction` gets an optional `on_hit` callback separate from
-  `on_complete` so the grant-item / XP path runs at impact rather than
-  at timer end.
+For full combat/AOE swing the raycast step becomes a swept hit region:
+- Replace the single ray with an arc of rays (or a swept bounding box)
+  sampled across ~8 angles during the swing animation.
+- Each frame of the swing emits `on_hit(target)` for any entity/tile
+  entering the hit region that hasn't been hit this swing.
+- Per-swing `hit_this_swing[]` bitset (one bit per entity) prevents
+  double-hits while the arc continues through a target.
+- `NodeAction` gains an optional `on_hit` callback; the current
+  `skill_complete_action` path becomes `on_complete`.
 
-Trade-offs: enables AOE gathering and combat naturally, feels more
-responsive, but adds per-frame collision work (cheap — max 9 tiles to
-check) and requires tool bbox data per swing frame. Revisit when combat
-lands — gathering alone doesn't need it.
+Entities (enemies, interactable NPCs, dropped items) plug into the
+same scan by implementing the "does world-point `(x, y)` overlap me?"
+primitive. Until then, tiles are the only hit targets.
 
 ### Crafting system
 Tools are pre-loaded at game start. Gate them behind a crafting table node.

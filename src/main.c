@@ -40,12 +40,12 @@ int main(void) {
         state.frame_count++;
 
         if (state.mode == MODE_TOPDOWN) {
-            if (inp.cam_l_press || inp.cam_r_press) {
-                uint8_t delta = inp.cam_l_press ? (TD_CAM_STEPS - 1u) : 1u;
+            if (inp.cam_l_press)
                 state.td_cam_bearing =
-                    (uint8_t)((state.td_cam_bearing + delta) % TD_CAM_STEPS);
-                player_camera_rotated(&state);
-            }
+                    (uint8_t)((state.td_cam_bearing + TD_CAM_STEPS - 1u) % TD_CAM_STEPS);
+            if (inp.cam_r_press)
+                state.td_cam_bearing =
+                    (uint8_t)((state.td_cam_bearing + 1u) % TD_CAM_STEPS);
         }
 
         switch (state.mode) {

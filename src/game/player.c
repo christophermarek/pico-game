@@ -6,22 +6,6 @@
 #include "config.h"
 #include <math.h>
 
-/*
- * Bi-directional screen↔world-cardinal map for the camera's 4 bearings.
- * Forward: DIR_MAP[screen_dir][bearing] = world_dir (screen input to world).
- * Inverse: same table — at each bearing the mapping is its own inverse
- *          (a 90° rotation of a 4-cycle), so it doubles as
- *          DIR_MAP[world_dir][bearing] = screen_dir when re-deriving
- *          screen facing from world facing after a camera rotation.
- */
-static const uint8_t DIR_MAP[4][4] = {
-    /* screen\bearing  0           1           2           3    */
-    /* DIR_DOWN  */ { DIR_DOWN,  DIR_RIGHT, DIR_UP,    DIR_LEFT  },
-    /* DIR_UP    */ { DIR_UP,    DIR_LEFT,  DIR_DOWN,  DIR_RIGHT },
-    /* DIR_LEFT  */ { DIR_LEFT,  DIR_UP,    DIR_RIGHT, DIR_DOWN  },
-    /* DIR_RIGHT */ { DIR_RIGHT, DIR_DOWN,  DIR_LEFT,  DIR_UP    },
-};
-
 #define OBSTACLE_REACH_MAX ((OBSTACLE_R > OBSTACLE_HALF) ? OBSTACLE_R : OBSTACLE_HALF)
 
 static inline bool tile_is_circle(uint8_t tile_id) {
@@ -158,16 +142,19 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     float      dwx, dwy;
     td_basis_screen_to_world_vel(&cam, vx, vy, &dwx, &dwy);
 
-    /* screen_dir comes straight from the input. td.dir is the world
-     * cardinal that screen_dir represents under the current camera
-     * bearing — resolved via DIR_MAP. Keeping td.dir in world space means
-     * a camera rotation leaves world-facing unchanged; we re-derive
-     * screen_dir at rotation time (player_camera_rotated). */
+    /* screen_dir = the cardinal closest to the screen input (what the
+     * sprite visually shows). td.dir = the cardinal closest to the
+     * resulting world motion (informational; targeting does NOT use it —
+     * it casts a ray from the foot in the screen-input direction, which
+     * is naturally camera-correct). */
     if (vx != 0.0f || vy != 0.0f) {
         float ax = fabsf(vx), ay = fabsf(vy);
         if (ax > ay) s->td.screen_dir = (vx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
         else         s->td.screen_dir = (vy < 0.0f) ? DIR_UP   : DIR_DOWN;
-        s->td.dir = DIR_MAP[s->td.screen_dir & 3u][s->td_cam_bearing & 3u];
+
+        float adx = fabsf(dwx), ady = fabsf(dwy);
+        if (adx > ady) s->td.dir = (dwx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
+        else           s->td.dir = (dwy < 0.0f) ? DIR_UP   : DIR_DOWN;
     }
 
     /*
@@ -245,15 +232,35 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
 }
 
 /*
- * Strict facing-cardinal targeting, evaluated in WORLD space.
+ * ─── Action targeting ─────────────────────────────────────────────────
  *
- * td.dir is the world cardinal the player is facing (persists across
- * camera rotations — rotating the camera doesn't swivel the character).
- * The target is ONLY the tile in that world direction, or — if the foot
- * straddled into a pressed-against obstacle's AABB — the player's own
- * tile. No scan for "nearest", no damaged-tile preference, no side
- * neighbours. You face what you want to hit.
+ * The engine picks a target via three stages, highest-priority first:
+ *
+ *   1. Collision probe. Nudge the player's collision circle by 1 pixel
+ *      along each of the four world cardinals. If the nudge overlaps an
+ *      actionable tile's collision shape, that tile is "pressed against"
+ *      the player and gets priority — the tree you're physically up
+ *      against gets chopped, regardless of where the sprite is facing.
+ *
+ *   2. Raycast. Convert the sprite's screen-facing direction into a
+ *      world-space unit vector (via the inverse iso transform — this is
+ *      naturally camera-correct, no lookup tables). Step along the ray
+ *      from the foot and return the first actionable tile found, up to
+ *      TARGET_REACH_PX. This is what you hit when you're near something
+ *      but not touching it, and the same primitive generalises to
+ *      combat (weapon reach) and interact-at-a-distance.
+ *
+ *   3. Own tile. If the player is standing on a walkable-but-actionable
+ *      tile (tall grass), shear that tile on A-press.
+ *
+ * For the swing-and-collide combat model described in TODO.md, this
+ * function grows into "pick target set for the current swing frame" and
+ * returns a list of hits from the tool's bounding region — the raycast
+ * here is the degenerate single-ray case.
  */
+#define TARGET_REACH_PX  (TILE * 3 / 2)   /* ≤ 1.5 tiles forward reach  */
+#define TARGET_RAY_STEP  2                /* ray sample stride (pixels) */
+
 typedef enum {
     TARGET_NONE,
     TARGET_LIVE,
@@ -267,25 +274,79 @@ static TargetKind tile_kind(const World *w, int tx, int ty) {
                                                  : TARGET_LIVE;
 }
 
+/* True if moving the player's foot by (ox, oy) pixels collides with an
+ * obstacle; writes the blocker tile out if it does. */
+static bool probe_blocker(const World *w, const GameState *s,
+                          float ox, float oy, int *btx, int *bty)
+{
+    return player_collide_who(w, s->td.x + ox, s->td.y + oy, btx, bty, NULL);
+}
+
 static TargetKind find_action_target(const GameState *s, const World *w,
                                      int *out_tx, int *out_ty)
 {
-    int fdx = 0, fdy = 0;
-    switch (s->td.dir) {
-        case DIR_UP:    fdy = -1; break;
-        case DIR_DOWN:  fdy =  1; break;
-        case DIR_LEFT:  fdx = -1; break;
-        case DIR_RIGHT: fdx =  1; break;
+    /* (1) Collision probe — pressed-against tile wins. Prefer a live
+     * target over a depleted one when multiple cardinals hit. */
+    static const int PROBE_DIRS[4][2] = {{0,-1},{0,1},{-1,0},{1,0}};
+    TargetKind blk_kind = TARGET_NONE;
+    int blk_tx = -1, blk_ty = -1;
+    for (int i = 0; i < 4; i++) {
+        int btx, bty;
+        float probe = (float)(PL_RADIUS + 1);
+        if (!probe_blocker(w, s,
+                           (float)PROBE_DIRS[i][0] * probe,
+                           (float)PROBE_DIRS[i][1] * probe,
+                           &btx, &bty)) continue;
+        TargetKind k = tile_kind(w, btx, bty);
+        if (k == TARGET_NONE) continue;
+        if (blk_kind == TARGET_NONE ||
+            (k == TARGET_LIVE && blk_kind == TARGET_DEPLETED)) {
+            blk_kind = k; blk_tx = btx; blk_ty = bty;
+        }
+    }
+    if (blk_kind != TARGET_NONE) {
+        *out_tx = blk_tx; *out_ty = blk_ty;
+        return blk_kind;
     }
 
-    int fx = s->td.tile_x + fdx, fy = s->td.tile_y + fdy;
-    TargetKind k = tile_kind(w, fx, fy);
-    if (k != TARGET_NONE) { *out_tx = fx; *out_ty = fy; return k; }
+    /* (2) Raycast from foot along the screen-facing direction, reinterpreted
+     * as a world-space unit vector via the inverse iso transform. */
+    float svx = 0.0f, svy = 0.0f;
+    switch (s->td.screen_dir) {
+        case DIR_DOWN:  svy =  1.0f; break;
+        case DIR_UP:    svy = -1.0f; break;
+        case DIR_LEFT:  svx = -1.0f; break;
+        case DIR_RIGHT: svx =  1.0f; break;
+    }
+    TdCamBasis cam = td_cam_basis(s->td_cam_bearing);
+    float dwx, dwy;
+    td_basis_screen_to_world_vel(&cam, svx, svy, &dwx, &dwy);
+    float len = hypotf(dwx, dwy);
+    if (len >= 1e-4f) {
+        dwx /= len; dwy /= len;
+        float fx = s->td.x;
+        float fy = s->td.y + (float)TD_FEET_OFF;
+        int   prev_tx = -1, prev_ty = -1;
+        for (int d = 0; d <= TARGET_REACH_PX; d += TARGET_RAY_STEP) {
+            int tx = (int)((fx + dwx * (float)d) / (float)TILE);
+            int ty = (int)((fy + dwy * (float)d) / (float)TILE);
+            if (tx == prev_tx && ty == prev_ty) continue;
+            prev_tx = tx; prev_ty = ty;
+            if (tx == s->td.tile_x && ty == s->td.tile_y) continue;
+            TargetKind k = tile_kind(w, tx, ty);
+            if (k != TARGET_NONE) {
+                *out_tx = tx; *out_ty = ty;
+                return k;
+            }
+        }
+    }
 
-    /* Own-tile fallback for obstacles the foot has slid into. */
-    int ox = s->td.tile_x, oy = s->td.tile_y;
-    k = tile_kind(w, ox, oy);
-    if (k != TARGET_NONE) { *out_tx = ox; *out_ty = oy; return k; }
+    /* (3) Own tile — walkable-actionable (tall grass underfoot). */
+    TargetKind self = tile_kind(w, s->td.tile_x, s->td.tile_y);
+    if (self != TARGET_NONE) {
+        *out_tx = s->td.tile_x; *out_ty = s->td.tile_y;
+        return self;
+    }
 
     return TARGET_NONE;
 }
@@ -329,10 +390,6 @@ bool player_peek_action_target(const GameState *s, const World *w,
                                int *out_tx, int *out_ty)
 {
     return find_action_target(s, w, out_tx, out_ty) == TARGET_LIVE;
-}
-
-void player_camera_rotated(GameState *s) {
-    s->td.screen_dir = DIR_MAP[s->td.dir & 3u][s->td_cam_bearing & 3u];
 }
 
 void player_stop_action(GameState *s) {

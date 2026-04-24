@@ -7,11 +7,6 @@ void player_update_td(GameState *s, const Input *inp, World *w);
 void player_do_action(GameState *s, World *w);
 void player_stop_action(GameState *s);
 
-/* Called after td_cam_bearing changes. Preserves td.dir (world facing)
- * and re-derives td.screen_dir so the sprite visually tracks the new
- * camera angle — character continues to face the same world tile. */
-void player_camera_rotated(GameState *s);
-
 bool player_collide_who(const World *w, float x, float y,
                         int *out_tx, int *out_ty, char *out_kind);
 
