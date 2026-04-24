@@ -77,41 +77,9 @@ static void draw_log(const GameState *s) {
     font_draw_str(str, x, HUD_STAT_Y, C_TEXT_WHITE, 1);
 }
 
-/* ── Coordinates + tab icons (top-right) ─────────────────────────────────── */
-
-static const struct {
-    MenuTab     tab;
-    const char *label;
-    uint16_t    color;
-} TAB_ICONS[] = {
-    { MTAB_SKILLS,   "SK", C_ENERGY_BLUE },
-    { MTAB_SETTINGS, "ST", C_WARN_RED    },
-};
-#define TAB_ICON_COUNT 2
+/* ── Coordinates (top-right) ─────────────────────────────────────────────── */
 
 static void draw_top_right(const GameState *s) {
-    /* Tab icons — rightmost */
-    int icon_block_w = TAB_ICON_COUNT * HUD_TAB_ICON_W +
-                       (TAB_ICON_COUNT - 1) * HUD_TAB_ICON_GAP;
-    int icon_x0 = DISPLAY_W - icon_block_w - 2;
-
-    for (int i = 0; i < TAB_ICON_COUNT; i++) {
-        int      ix     = icon_x0 + i * (HUD_TAB_ICON_W + HUD_TAB_ICON_GAP);
-        bool     active = (s->menu_tab == TAB_ICONS[i].tab);
-        uint16_t acc    = TAB_ICONS[i].color;
-
-        hal_fill_rect(ix, HUD_STAT_Y, HUD_TAB_ICON_W, HUD_TAB_ICON_H,
-                      active ? acc : C_BG_DARK);
-        hal_fill_rect(ix,                    HUD_STAT_Y,                      HUD_TAB_ICON_W, 1, acc);
-        hal_fill_rect(ix,                    HUD_STAT_Y + HUD_TAB_ICON_H - 1, HUD_TAB_ICON_W, 1, acc);
-        hal_fill_rect(ix,                    HUD_STAT_Y,                      1, HUD_TAB_ICON_H, acc);
-        hal_fill_rect(ix + HUD_TAB_ICON_W - 1, HUD_STAT_Y,                   1, HUD_TAB_ICON_H, acc);
-
-        uint16_t fg = active ? C_TEXT_WHITE : acc;
-        font_draw_str(TAB_ICONS[i].label, ix + 1, HUD_STAT_Y + 3, fg, 1);
-    }
-
-    /* Coords — left of tab icons */
     char coords[28];
     if (s->debug_mode) {
         static const char DIR_CH[4] = { 'D', 'U', 'L', 'R' };
@@ -124,7 +92,7 @@ static void draw_top_right(const GameState *s) {
         snprintf(coords, sizeof(coords), "%d,%d",
                  (int)s->td.tile_x, (int)s->td.tile_y);
     }
-    draw_str_right(coords, icon_x0 - 3, HUD_STAT_Y, C_TEXT_DIM);
+    draw_str_right(coords, DISPLAY_W - 4, HUD_STAT_Y, C_TEXT_DIM);
 }
 
 /* ── Hotbar (bottom overlay) ──────────────────────────────────────────────── */

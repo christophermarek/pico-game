@@ -90,11 +90,6 @@
 #define HUD_HOTBAR_SLOT_GAP  2
 #define HUD_HOTBAR_Y         (DISPLAY_H - HUD_HOTBAR_SLOT_W - 2)
 
-/* Tab icons (top-right overlay) */
-#define HUD_TAB_ICON_W       14
-#define HUD_TAB_ICON_H       12
-#define HUD_TAB_ICON_GAP     2
-
 /* Renderer */
 #define TD_FEET_OFF  7.0f    /* iso depth-sort Y offset for player feet */
 #define TD_ISO_CULL  100     /* extra pixels beyond screen edge for tile culling */
