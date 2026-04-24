@@ -26,6 +26,27 @@ of idle time; depleted nodes respawn in 60 s. Revisit during real playtesting.
 
 ## Medium priority
 
+### Swing-and-collide action model (design note)
+Current model: press A → `find_action_target` picks one tile, a 30-frame
+timer runs, `skill_complete_action` fires once at the end. Simple, works
+for single-target gathering.
+
+Swing-and-collide would replace the timer with a physical arc:
+- `action_ticks_left` still drives animation phase, but the tool's
+  on-screen bounding box is the hit-region each frame.
+- Each frame during the swing: test the bbox against every adjacent
+  tile center; any tile overlapped during the arc that hasn't already
+  been hit this swing gets a hit callback.
+- A per-swing `hit_this_swing[MAP_CELLS/8]` bitset avoids double-hits.
+- `NodeAction` gets an optional `on_hit` callback separate from
+  `on_complete` so the grant-item / XP path runs at impact rather than
+  at timer end.
+
+Trade-offs: enables AOE gathering and combat naturally, feels more
+responsive, but adds per-frame collision work (cheap — max 9 tiles to
+check) and requires tool bbox data per swing frame. Revisit when combat
+lands — gathering alone doesn't need it.
+
 ### Crafting system
 Tools are pre-loaded at game start. Gate them behind a crafting table node.
 Design: workbench tile → interact opens crafting menu → recipe list → consume materials → produce tool.

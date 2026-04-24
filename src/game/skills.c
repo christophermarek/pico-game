@@ -1,5 +1,6 @@
 #include "skills.h"
 #include "items.h"
+#include "actions.h"
 #include "player.h"
 #include "hal.h"
 
@@ -51,40 +52,24 @@ void skill_add_xp(GameState *s, uint8_t skill_id, uint32_t xp) {
 }
 
 static void grant_item(GameState *s, World *w, int tx, int ty) {
-    uint8_t   tile = world_tile(w, tx, ty);
-    item_id_t item = ITEM_NONE;
-    bool      coin_chance = false;
+    const NodeAction *a = action_for_tile(world_tile(w, tx, ty));
+    if (!a) return;
 
-    switch (tile) {
-        case T_TREE:   item = ITEM_OAK_LOG;  break;
-        case T_ROCK:   item = ITEM_STONE;    break;
-        case T_ORE:    item = ITEM_IRON_ORE; break;
-        case T_WATER:  item = ITEM_RAW_FISH; break;
-        case T_TGRASS: coin_chance = true;   break;
+    item_id_t   item = a->drop;
+    const char *msg  = a->msg_got;
+    if (a->drop_chance > 0 && (rng_next() % a->drop_chance) == 0) {
+        item = a->chance_drop;
+        msg  = a->msg_chance;
     }
-
-    if (coin_chance) {
-        if ((rng_next() % 10) == 0) item = ITEM_COIN;
-    }
-
     if (item == ITEM_NONE) return;
 
     int slot = inventory_add(&s->inv, item, 1);
-    float wx = (float)(tx * TILE + TILE / 2);
-    float wy = (float)(ty * TILE + TILE / 2);
-    state_spawn_item_fly(s, wx, wy, item, slot);
+    state_spawn_item_fly(s,
+                         (float)(tx * TILE + TILE / 2),
+                         (float)(ty * TILE + TILE / 2),
+                         item, slot);
 
-    if (item == ITEM_COIN) {
-        state_log(s, "Found a coin!");
-    } else {
-        char msg[36];
-        const char *n = ITEM_DEFS[item].name;
-        int i = 0;
-        msg[i++] = 'G'; msg[i++] = 'o'; msg[i++] = 't'; msg[i++] = ' ';
-        while (*n && i < 33) msg[i++] = *n++;
-        msg[i++] = '!'; msg[i] = '\0';
-        state_log(s, msg);
-    }
+    if (msg) state_log(s, msg);
 }
 
 void skill_complete_action(GameState *s, World *w) {

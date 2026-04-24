@@ -1,23 +1,11 @@
 #include "player.h"
 #include "skills.h"
 #include "items.h"
+#include "actions.h"
 #include "td_cam.h"
 #include "config.h"
 #include <math.h>
-
-/*
- * Map (screen_dir, bearing) → world dir. Iso projection makes any screen-
- * cardinal movement produce |dwx| == |dwy|, so a naive adx/ady comparison
- * always ties. Route screen direction through the camera rotation to get
- * the true world axis instead.
- */
-static const uint8_t DIR_MAP[4][4] = {
-    /* screen\bearing  0           1           2           3    */
-    /* DIR_DOWN  */ { DIR_DOWN,  DIR_LEFT,  DIR_UP,    DIR_RIGHT },
-    /* DIR_UP    */ { DIR_UP,    DIR_RIGHT, DIR_DOWN,  DIR_LEFT  },
-    /* DIR_LEFT  */ { DIR_LEFT,  DIR_DOWN,  DIR_RIGHT, DIR_UP    },
-    /* DIR_RIGHT */ { DIR_RIGHT, DIR_UP,    DIR_LEFT,  DIR_DOWN  },
-};
+#include <stdlib.h>
 
 #define OBSTACLE_REACH_MAX ((OBSTACLE_R > OBSTACLE_HALF) ? OBSTACLE_R : OBSTACLE_HALF)
 
@@ -85,18 +73,6 @@ static inline bool td_collides(const World *w, float x, float y) {
     return collide_at(w, x, y, NULL, NULL, NULL);
 }
 
-static void facing_tile(const GameState *s, int *out_tx, int *out_ty) {
-    int tx = s->td.tile_x;
-    int ty = s->td.tile_y;
-    switch (s->td.dir) {
-        case DIR_UP:    ty--; break;
-        case DIR_DOWN:  ty++; break;
-        case DIR_LEFT:  tx--; break;
-        case DIR_RIGHT: tx++; break;
-    }
-    *out_tx = tx;
-    *out_ty = ty;
-}
 
 /*
  * Tangent-slide: against a circle obstacle, a player sitting tangent and
@@ -163,17 +139,25 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     if (inp->up)    vy -= 1.0f;
     if (inp->down)  vy += 1.0f;
 
-    /* Magnitude doesn't matter here — world velocity is normalised below. */
-    if (vx != 0.0f || vy != 0.0f) {
-        float ax = fabsf(vx), ay = fabsf(vy);
-        if (ax >= ay) s->td.screen_dir = (vx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
-        else          s->td.screen_dir = (vy < 0.0f) ? DIR_UP   : DIR_DOWN;
-        s->td.dir = DIR_MAP[s->td.screen_dir & 3u][s->td_cam_bearing & 3u];
-    }
-
     TdCamBasis cam = td_cam_basis(s->td_cam_bearing);
     float      dwx, dwy;
     td_basis_screen_to_world_vel(&cam, vx, vy, &dwx, &dwy);
+
+    /* Derive the two facing cardinals straight from the raw velocities. No
+     * (screen_dir × bearing) lookup table — screen_dir is the closest
+     * cardinal to the SCREEN input, td.dir is the closest cardinal to the
+     * resulting WORLD movement. Iso cardinals make |dwx|==|dwy|, so at
+     * ties we bias toward the vertical axis (matches the bearing=0
+     * convention: DOWN-press → world south). */
+    if (vx != 0.0f || vy != 0.0f) {
+        float ax = fabsf(vx), ay = fabsf(vy);
+        if (ax > ay) s->td.screen_dir = (vx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
+        else         s->td.screen_dir = (vy < 0.0f) ? DIR_UP   : DIR_DOWN;
+
+        float adx = fabsf(dwx), ady = fabsf(dwy);
+        if (adx > ady) s->td.dir = (dwx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
+        else           s->td.dir = (dwy < 0.0f) ? DIR_UP   : DIR_DOWN;
+    }
 
     /*
      * Constant SCREEN speed: scale the world-space velocity so the projected
@@ -249,85 +233,114 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
         player_do_action(s, w);
 }
 
-static bool is_actionable_tile(uint8_t t) {
-    return t == T_TREE || t == T_ROCK || t == T_ORE ||
-           t == T_WATER || t == T_TGRASS;
-}
-
 /*
- * Pick the nearest live actionable node in the 8 tiles surrounding the
- * player's feet. This matches visual intuition — the tree you're pressed
- * against gets chopped, regardless of what direction you last moved in.
- */
-static bool tile_is_live_node(const World *w, int tx, int ty) {
-    if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) return false;
-    if (!is_actionable_tile(world_tile(w, tx, ty)))   return false;
-    if (w->node_respawn[ty * w->w + tx] > 0)          return false;
-    return true;
-}
-
-/*
- * Strict front-of-player targeting. Two candidates, in order:
- *   1) the tile in the player's facing cardinal direction;
- *   2) the player's own tile_x/tile_y — collision slides the foot into a
- *      pressed-against obstacle's AABB while keeping it outside the
- *      obstacle's collision shape, so the obstacle ends up on the same
- *      tile as the foot.
+ * Camera-aware targeting: score every candidate tile by how "in front" it
+ * is in SCREEN space.  This works identically at all four bearings because
+ * tile screen positions come from the cam-aware projection — no lookup
+ * table with per-bearing world-direction magic.
  *
- * If neither is a live actionable node, we return false and do nothing.
- * This intentionally never reaches for tiles "behind" or "beside" the
- * player — the player has to face what they want to interact with.
+ * Candidate set: the 3×3 block around the foot tile (including the foot's
+ * own tile — collision can leave the foot straddled into a non-walkable
+ * tile's AABB while staying outside its collision shape).
+ *
+ * Score = dot(tile_offset_on_screen, screen-facing unit vector). Positive
+ * means "in front of" the player's on-screen facing. Tiles behind are
+ * rejected outright; tied scores break on smallest perpendicular (most
+ * centred on the facing axis).
+ *
+ * If no live node scores positive but a depleted one does, we log "Node
+ * is depleted!" so the player knows they're pointing at something.
  */
-static bool find_action_target(const GameState *s, const World *w,
-                               int *out_tx, int *out_ty)
+typedef enum {
+    TARGET_NONE,
+    TARGET_LIVE,
+    TARGET_DEPLETED,
+} TargetKind;
+
+static TargetKind find_action_target(const GameState *s, const World *w,
+                                     int *out_tx, int *out_ty)
 {
-    uint8_t world_dir = DIR_MAP[s->td.screen_dir & 3u][s->td_cam_bearing & 3u];
+    TdCamBasis cam = td_cam_basis(s->td_cam_bearing);
+
+    int psx, psy;
+    td_basis_world_pixel_to_screen(&cam, s->td.x, s->td.y,
+                                   s->td.x, s->td.y + (float)TD_FEET_OFF,
+                                   &psx, &psy);
+
     int fdx = 0, fdy = 0;
-    switch (world_dir) {
-        case DIR_UP:    fdy = -1; break;
+    switch (s->td.screen_dir) {
         case DIR_DOWN:  fdy =  1; break;
+        case DIR_UP:    fdy = -1; break;
         case DIR_LEFT:  fdx = -1; break;
         case DIR_RIGHT: fdx =  1; break;
     }
 
-    int fx = s->td.tile_x + fdx;
-    int fy = s->td.tile_y + fdy;
-    if (tile_is_live_node(w, fx, fy)) { *out_tx = fx; *out_ty = fy; return true; }
+    int best_score = 0, best_perp = 0;
+    int best_tx = -1, best_ty = -1;
+    TargetKind best_kind = TARGET_NONE;
 
-    int ox = s->td.tile_x;
-    int oy = s->td.tile_y;
-    if (tile_is_live_node(w, ox, oy)) { *out_tx = ox; *out_ty = oy; return true; }
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            int tx = s->td.tile_x + dx;
+            int ty = s->td.tile_y + dy;
+            if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) continue;
+            if (action_for_tile(world_tile(w, tx, ty)) == NULL) continue;
 
-    return false;
+            int tsx, tsy;
+            td_basis_world_pixel_to_screen(&cam, s->td.x, s->td.y,
+                                           (float)(tx * TILE + TILE / 2),
+                                           (float)(ty * TILE + TILE / 2),
+                                           &tsx, &tsy);
+            int dsx = tsx - psx, dsy = tsy - psy;
+            int score = dsx * fdx + dsy * fdy;
+            if (score <= 0) continue;           /* behind the player */
+            int perp = abs(dsx * fdy - dsy * fdx);
+
+            TargetKind kind = (w->node_respawn[ty * w->w + tx] > 0)
+                              ? TARGET_DEPLETED : TARGET_LIVE;
+
+            /* Live always wins over depleted. Within same kind, higher
+             * score wins; ties break on lower perp. */
+            bool better = false;
+            if (best_kind == TARGET_NONE)                 better = true;
+            else if (best_kind == TARGET_DEPLETED && kind == TARGET_LIVE)
+                better = true;
+            else if (best_kind == kind) {
+                if (score > best_score) better = true;
+                else if (score == best_score && perp < best_perp) better = true;
+            }
+
+            if (better) {
+                best_score = score; best_perp = perp;
+                best_tx = tx; best_ty = ty;
+                best_kind = kind;
+            }
+        }
+    }
+
+    if (best_kind == TARGET_NONE) return TARGET_NONE;
+    *out_tx = best_tx;
+    *out_ty = best_ty;
+    return best_kind;
+}
+
+/* Slot index where a given tool icon lives (AXE→4, PICKAXE→5, etc.). */
+static uint8_t tool_slot(item_id_t tool) {
+    return (uint8_t)(TOOL_SLOT_START + (tool - ITEM_AXE));
 }
 
 void player_do_action(GameState *s, World *w) {
     int tx, ty;
-    if (!find_action_target(s, w, &tx, &ty)) {
-        /* No live node adjacent — tell the player if they're next to a
-         * depleted one via the old facing-tile check. */
-        int ftx, fty;
-        facing_tile(s, &ftx, &fty);
-        if (ftx >= 0 && ftx < w->w && fty >= 0 && fty < w->h &&
-            w->node_respawn[fty * w->w + ftx] > 0)
-            state_log(s, "Node is depleted!");
-        return;
-    }
+    TargetKind kind = find_action_target(s, w, &tx, &ty);
+    if (kind == TARGET_NONE) return;
+    if (kind == TARGET_DEPLETED) { state_log(s, "Node is depleted!"); return; }
 
-    uint8_t    skill_id;
-    item_id_t  required_tool;
-    switch (world_tile(w, tx, ty)) {
-        case T_TREE:   skill_id = SK_WOODCUT; required_tool = ITEM_AXE;         break;
-        case T_ROCK:   skill_id = SK_MINING;  required_tool = ITEM_PICKAXE;     break;
-        case T_ORE:    skill_id = SK_MINING;  required_tool = ITEM_PICKAXE;     break;
-        case T_WATER:  skill_id = SK_FISHING; required_tool = ITEM_FISHING_ROD; break;
-        case T_TGRASS: skill_id = SK_WOODCUT; required_tool = ITEM_SHEARS;      break;
-        default: return;
-    }
+    const NodeAction *a = action_for_tile(world_tile(w, tx, ty));
+    if (!a) return; /* shouldn't happen — find_action_target filters */
 
-    if (!inventory_has_tool(&s->inv, required_tool)) {
+    if (!inventory_has_tool(&s->inv, a->tool)) {
         char msg[36];
-        const char *n = ITEM_DEFS[required_tool].name;
+        const char *n = ITEM_DEFS[a->tool].name;
         int i = 0;
         msg[i++] = 'N'; msg[i++] = 'e'; msg[i++] = 'e'; msg[i++] = 'd'; msg[i++] = ' ';
         while (*n && i < 33) msg[i++] = *n++;
@@ -336,20 +349,11 @@ void player_do_action(GameState *s, World *w) {
         return;
     }
 
-    /* Log what node the action targets so the player knows before the wait. */
-    switch (world_tile(w, tx, ty)) {
-        case T_TREE:   state_log(s, "Chopping tree..."); break;
-        case T_ROCK:   state_log(s, "Mining rock...");   break;
-        case T_ORE:    state_log(s, "Mining ore...");    break;
-        case T_WATER:  state_log(s, "Fishing...");       break;
-        case T_TGRASS: state_log(s, "Shearing grass..."); break;
-    }
+    state_log(s, a->msg_start);
 
-    /* Tools live in slots TOOL_SLOT_START..+3 in AXE, PICKAXE, ROD, SHEARS
-     * order — the same enum order items.h uses. */
-    s->active_slot       = (uint8_t)(TOOL_SLOT_START + (required_tool - ITEM_AXE));
+    s->active_slot       = tool_slot(a->tool);
     s->skilling          = true;
-    s->active_skill      = skill_id;
+    s->active_skill      = a->skill;
     s->action_node_x     = (int16_t)tx;
     s->action_node_y     = (int16_t)ty;
     s->action_ticks_left = ACTION_TICKS;

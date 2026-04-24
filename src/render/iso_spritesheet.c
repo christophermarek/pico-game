@@ -91,7 +91,7 @@ static void draw_png_frame(const PngAtlas *a, const PngFrame *f, int ax, int ay)
 }
 
 static void draw_png_frame_scaled(const PngAtlas *a, const PngFrame *f, int ax, int ay,
-                                  int sn, int sd)
+                                  int sn, int sd, bool flip_x)
 {
     if (!a->loaded || !a->img.rgba || sn <= 0 || sd <= 0) return;
     if (f->x < 0 || f->y < 0 || f->x + f->w > a->img.w || f->y + f->h > a->img.h) return;
@@ -110,7 +110,8 @@ static void draw_png_frame_scaled(const PngAtlas *a, const PngFrame *f, int ax, 
         for (int dx = 0; dx < out_w; dx++) {
             int screen_x = ox0 + dx;
             if (screen_x < 0 || screen_x >= DISPLAY_W) continue;
-            int src_x = f->x + (dx * f->w) / out_w;
+            int read_dx = flip_x ? (out_w - 1 - dx) : dx;
+            int src_x = f->x + (read_dx * f->w) / out_w;
             int src = (src_y * a->img.w + src_x) * 4;
             if (a->img.rgba[src + 3] < 16) continue;
             hal_pixel(screen_x, screen_y,
@@ -217,7 +218,7 @@ bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame)
     if (!load_chars()) return false;
     uint8_t d = (dir > DIR_RIGHT) ? DIR_DOWN : dir;
     draw_png_frame_scaled(&g_chars, &PNG_TD_PLAYER[d * 2u + (walk_frame & 1u)],
-                          sx, sy, CHAR_SCALE_NUM, CHAR_SCALE_DEN);
+                          sx, sy, CHAR_SCALE_NUM, CHAR_SCALE_DEN, false);
     return true;
 }
 
@@ -236,21 +237,18 @@ static void item_frame(item_id_t id, PngFrame *f)
 
 bool iso_draw_item_icon(item_id_t id, int sx, int sy)
 {
-    if (id == ITEM_NONE || id >= ITEM_COUNT) return false;
-    if (!load_items()) return false;
-    PngFrame f;
-    item_frame(id, &f);
-    draw_png_frame(&g_items, &f, sx, sy);
-    return true;
+    return iso_draw_item_icon_scaled(id, sx, sy, 1, 1, false);
 }
 
-/* Scale num/den (e.g. 2/3 ⇒ 16→~11 px). Used for the tool-in-hand render. */
-bool iso_draw_item_icon_scaled(item_id_t id, int sx, int sy, int sn, int sd)
+/* Scale num/den (e.g. 2/3 ⇒ 16→~11 px). flip_x mirrors horizontally — used
+ * for the tool-in-hand render so the tool points the way the player faces. */
+bool iso_draw_item_icon_scaled(item_id_t id, int sx, int sy,
+                               int sn, int sd, bool flip_x)
 {
     if (id == ITEM_NONE || id >= ITEM_COUNT) return false;
     if (!load_items()) return false;
     PngFrame f;
     item_frame(id, &f);
-    draw_png_frame_scaled(&g_items, &f, sx, sy, sn, sd);
+    draw_png_frame_scaled(&g_items, &f, sx, sy, sn, sd, flip_x);
     return true;
 }

@@ -7,6 +7,7 @@
 #include "config.h"
 #include "../ui/hud.h"
 #include "../ui/menu.h"
+#include "../game/actions.h"
 #include "../game/world.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -105,18 +106,20 @@ static void draw_crack_overlay(int sx, int sy, uint8_t hp, uint8_t max_hp)
 }
 
 /*
- * Tool held while skilling. Anchored at the player's HAND (hip level)
- * and pushed toward the target by a small fixed offset, rendered at 2/3
- * scale so it reads as held-in-hand, not stuck-on-the-block.
+ * Tool held while skilling. Camera-aware because every position it uses
+ * comes from td_basis_world_pixel_to_screen — the target's screen pos
+ * rotates naturally with the camera so the offset vector always points
+ * from the player to the tile being hit.
  *
- * Player sprite spans y = sy-7..sy+9 (feet project at sy). Hip/hand is
- * the natural rest height for a 4-directional character — sy+1.
+ * Player sprite spans y = sy-7..sy+9 (feet project at sy). Hip/hand sits
+ * at sy+TOOL_HAND_Y_OFF. Horizontal flip applies when the character's
+ * sprite is facing left so the axe-head points forward not into the body.
  */
 #define TOOL_ICON_NUM   2
 #define TOOL_ICON_DEN   3
-#define TOOL_ICON_DRAWN ((16 * TOOL_ICON_NUM) / TOOL_ICON_DEN) /* ≈ 10 px */
-#define TOOL_REACH_PX   5   /* hand-to-tool distance, in screen pixels    */
-#define TOOL_HAND_Y_OFF 1   /* sy + this ⇒ hand height (just above feet) */
+#define TOOL_ICON_DRAWN ((16 * TOOL_ICON_NUM) / TOOL_ICON_DEN)   /* ≈ 10 px */
+#define TOOL_REACH_PX   5
+#define TOOL_HAND_Y_OFF 1
 
 static void render_action_tool(const GameState *s, const World *w,
                                const TdCamBasis *cam,
@@ -124,22 +127,15 @@ static void render_action_tool(const GameState *s, const World *w,
 {
     if (!s->skilling) return;
 
-    uint8_t tile = world_tile(w, s->action_node_x, s->action_node_y);
-    item_id_t tool;
-    switch (tile) {
-        case T_TREE:   tool = ITEM_AXE;         break;
-        case T_ROCK:
-        case T_ORE:    tool = ITEM_PICKAXE;     break;
-        case T_WATER:  tool = ITEM_FISHING_ROD; break;
-        case T_TGRASS: tool = ITEM_SHEARS;      break;
-        default: return;
-    }
+    const NodeAction *a = action_for_tile(
+        world_tile(w, s->action_node_x, s->action_node_y));
+    if (!a) return;
 
-    float node_wx = (float)(s->action_node_x * TILE + TILE / 2);
-    float node_wy = (float)(s->action_node_y * TILE + TILE / 2);
-    int   node_sx, node_sy;
+    int node_sx, node_sy;
     td_basis_world_pixel_to_screen(cam, s->td.x, s->td.y,
-                                   node_wx, node_wy, &node_sx, &node_sy);
+                                   (float)(s->action_node_x * TILE + TILE / 2),
+                                   (float)(s->action_node_y * TILE + TILE / 2),
+                                   &node_sx, &node_sy);
 
     int hand_x = player_sx;
     int hand_y = player_sy + TOOL_HAND_Y_OFF;
@@ -152,14 +148,20 @@ static void render_action_tool(const GameState *s, const World *w,
     int cx = hand_x + (int)(dx / len * (float)TOOL_REACH_PX);
     int cy = hand_y + (int)(dy / len * (float)TOOL_REACH_PX);
 
-    /* Chop lift: small bob so the tool visibly swings. */
+    /* Chop lift — small bob for visible swing. */
     int phase = (s->frame_count / 2) & 3;
     int lift  = (phase == 0) ? -2 : (phase == 1) ? -1 : (phase == 2) ? 0 : -1;
     cy += lift;
 
-    iso_draw_item_icon_scaled(tool, cx - TOOL_ICON_DRAWN / 2,
+    /* Flip the tool sprite when the player faces screen-left so the
+     * blade/head points AWAY from the body (our items are drawn facing
+     * right in the atlas). */
+    bool flip = (s->td.screen_dir == DIR_LEFT);
+
+    iso_draw_item_icon_scaled(a->tool,
+                              cx - TOOL_ICON_DRAWN / 2,
                               cy - TOOL_ICON_DRAWN / 2,
-                              TOOL_ICON_NUM, TOOL_ICON_DEN);
+                              TOOL_ICON_NUM, TOOL_ICON_DEN, flip);
 }
 
 /* Parabola-arc item sprites flying from a node to the hotbar. */
