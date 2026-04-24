@@ -249,14 +249,54 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
         player_do_action(s, w);
 }
 
+static bool is_actionable_tile(uint8_t t) {
+    return t == T_TREE || t == T_ROCK || t == T_ORE ||
+           t == T_WATER || t == T_TGRASS;
+}
+
+/*
+ * Pick the nearest live actionable node in the 8 tiles surrounding the
+ * player's feet. This matches visual intuition — the tree you're pressed
+ * against gets chopped, regardless of what direction you last moved in.
+ */
+static bool find_action_target(const GameState *s, const World *w,
+                               int *out_tx, int *out_ty)
+{
+    float foot_x = s->td.x;
+    float foot_y = s->td.y + (float)TD_FEET_OFF;
+    float best_d = 1e9f;
+    int best_tx = -1, best_ty = -1;
+
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            if (dx == 0 && dy == 0) continue;
+            int tx = s->td.tile_x + dx;
+            int ty = s->td.tile_y + dy;
+            if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) continue;
+            if (!is_actionable_tile(world_tile(w, tx, ty))) continue;
+            if (w->node_respawn[ty * w->w + tx] > 0) continue;
+            float tcx = (float)(tx * TILE + TILE / 2);
+            float tcy = (float)(ty * TILE + TILE / 2);
+            float d   = hypotf(foot_x - tcx, foot_y - tcy);
+            if (d < best_d) { best_d = d; best_tx = tx; best_ty = ty; }
+        }
+    }
+    if (best_tx < 0) return false;
+    *out_tx = best_tx;
+    *out_ty = best_ty;
+    return true;
+}
+
 void player_do_action(GameState *s, World *w) {
     int tx, ty;
-    facing_tile(s, &tx, &ty);
-    if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) return;
-
-    int idx = ty * w->w + tx;
-    if (w->node_respawn[idx] > 0) {
-        state_log(s, "Node is depleted!");
+    if (!find_action_target(s, w, &tx, &ty)) {
+        /* No live node adjacent — tell the player if they're next to a
+         * depleted one via the old facing-tile check. */
+        int ftx, fty;
+        facing_tile(s, &ftx, &fty);
+        if (ftx >= 0 && ftx < w->w && fty >= 0 && fty < w->h &&
+            w->node_respawn[fty * w->w + ftx] > 0)
+            state_log(s, "Node is depleted!");
         return;
     }
 

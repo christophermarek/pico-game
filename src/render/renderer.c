@@ -141,20 +141,20 @@ static void render_action_tool(const GameState *s, const World *w,
         default: return;
     }
 
-    /* Tool icon top-left (16x16), offset from player feet by facing. */
+    /* Tool icon top-left (16x16), offset so it sits in the player's "hand". */
     int tx, ty;
     switch (s->td.screen_dir) {
-        case DIR_LEFT:  tx = player_sx - 16; ty = player_sy - 12; break;
-        case DIR_RIGHT: tx = player_sx;      ty = player_sy - 12; break;
-        case DIR_UP:    tx = player_sx - 2;  ty = player_sy - 18; break;
+        case DIR_LEFT:  tx = player_sx - 18; ty = player_sy - 14; break;
+        case DIR_RIGHT: tx = player_sx + 2;  ty = player_sy - 14; break;
+        case DIR_UP:    tx = player_sx + 2;  ty = player_sy - 18; break;
         case DIR_DOWN:
-        default:        tx = player_sx - 6;  ty = player_sy - 4;  break;
+        default:        tx = player_sx - 10; ty = player_sy - 6;  break;
     }
 
-    /* Swing: ±2px orthogonal to the facing axis. */
-    int swing = ((s->frame_count / 3) & 1) ? -2 : 2;
-    if (s->td.screen_dir == DIR_LEFT || s->td.screen_dir == DIR_RIGHT) ty += swing;
-    else                                                                tx += swing;
+    /* Chop animation: rise/fall a few pixels cycling over ~8 frames. */
+    int phase = (s->frame_count / 2) & 3;   /* 0..3 */
+    int lift  = (phase == 0) ? -4 : (phase == 1) ? -2 : (phase == 2) ? 0 : -2;
+    ty += lift;
 
     iso_draw_item_icon(tool, tx, ty);
 }
@@ -250,6 +250,15 @@ static void render_topdown(GameState *s, const World *w)
         uint8_t tile = world_tile(w, cells[i].tx, cells[i].ty);
         iso_draw_tile_full(tile, cells[i].sx, cells[i].sy, s->frame_count);
     }
+    int player_sx, player_sy;
+    world_to_screen(s, &cam, s->td.x, s->td.y + TD_FEET_OFF,
+                    &player_sx, &player_sy);
+
+    /* Depth-sort the player into the onlay pass: the player draws in
+     * between tiles whose screen y straddles theirs, so obstacles visually
+     * in front of them (larger sy) overlap the player sprite. */
+    bool player_drawn = false;
+
     for (int i = 0; i < n; i++) {
         int     tx   = cells[i].tx;
         int     ty   = cells[i].ty;
@@ -257,6 +266,13 @@ static void render_topdown(GameState *s, const World *w)
         int     idx  = ty * w->w + tx;
         int     sx   = cells[i].sx;
         int     sy   = cells[i].sy;
+
+        if (!player_drawn && player_sy <= sy) {
+            iso_draw_td_player_char(player_sx, player_sy, s->td.screen_dir,
+                                    (uint8_t)s->td.walk_frame);
+            render_action_tool(s, w, player_sx, player_sy);
+            player_drawn = true;
+        }
 
         /* Shake: oscillate ±1px while the player is actioning this node. */
         int shake_ox = 0;
@@ -280,14 +296,11 @@ static void render_topdown(GameState *s, const World *w)
             }
         }
     }
-
-    int player_sx, player_sy;
-    world_to_screen(s, &cam, s->td.x, s->td.y + TD_FEET_OFF,
-                    &player_sx, &player_sy);
-    iso_draw_td_player_char(player_sx, player_sy, s->td.screen_dir,
-                            (uint8_t)s->td.walk_frame);
-
-    render_action_tool(s, w, player_sx, player_sy);
+    if (!player_drawn) {
+        iso_draw_td_player_char(player_sx, player_sy, s->td.screen_dir,
+                                (uint8_t)s->td.walk_frame);
+        render_action_tool(s, w, player_sx, player_sy);
+    }
 
     if (s->skilling) {
         float progress = 1.0f - (float)s->action_ticks_left / (float)ACTION_TICKS;
