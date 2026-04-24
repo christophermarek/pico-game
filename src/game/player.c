@@ -267,9 +267,13 @@ static bool find_action_target(const GameState *s, const World *w,
     float best_d = 1e9f;
     int best_tx = -1, best_ty = -1;
 
+    /* Include the player's own tile: collision lets the foot straddle into
+     * a non-walkable tile's bounds while staying outside its circular
+     * collision shape, so the tree you're pressed against may share your
+     * tile_x/tile_y. Walkable actionable tiles (tall grass) we're standing
+     * on are also shear-targetable this way. */
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
-            if (dx == 0 && dy == 0) continue;
             int tx = s->td.tile_x + dx;
             int ty = s->td.tile_y + dy;
             if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) continue;
