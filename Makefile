@@ -15,7 +15,7 @@ NPROC     := $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 
 
 # Sprite sources — any change here triggers sheet regeneration
 SPRITE_SOURCES := $(wildcard assets/sprites/**/*.png) assets/sprites/manifest.json
-SPRITE_SHEETS  := $(BUILD_DIR)/assets_iso_tiles.png $(BUILD_DIR)/assets_chars.png
+SPRITE_SHEETS  := $(BUILD_DIR)/assets_iso_tiles.png $(BUILD_DIR)/assets_chars.png $(BUILD_DIR)/assets_items.png
 
 .DEFAULT_GOAL := build
 

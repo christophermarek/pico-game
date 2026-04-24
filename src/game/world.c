@@ -30,13 +30,30 @@ static bool load_map(World *w, const char *path)
 static bool load_map(World *w, const char *path) { (void)w; (void)path; return false; }
 #endif
 
-void world_init(World *w)
+uint8_t world_node_max_hp(uint8_t tile_id)
 {
-    if (load_map(w, "assets/maps/map.bin")) return;
-    if (load_map(w, "../assets/maps/map.bin")) return;
-    memset(w, 0, sizeof(*w));
-    w->w = MAP_W;
-    w->h = MAP_H;
+    switch (tile_id) {
+        case T_TREE:   return 3;
+        case T_ROCK:   return 4;
+        case T_ORE:    return 5;
+        case T_WATER:  return 1;
+        case T_TGRASS: return 2;
+        default:       return 0;
+    }
+}
+
+static void init_node_hp(World *w)
+{
+    int cells = w->w * w->h;
+    for (int i = 0; i < cells; i++)
+        w->node_hp[i] = world_node_max_hp(w->td_map[i]);
+}
+
+bool world_init(World *w)
+{
+    if (load_map(w, "assets/maps/map.bin"))    { init_node_hp(w); return true; }
+    if (load_map(w, "../assets/maps/map.bin")) { init_node_hp(w); return true; }
+    return false;
 }
 
 uint8_t world_tile(const World *w, int x, int y)
@@ -52,17 +69,41 @@ bool world_walkable(const World *w, int x, int y)
     return !(t == T_TREE || t == T_ROCK || t == T_ORE || t == T_WATER);
 }
 
-void world_deplete_node(World *w, int x, int y)
+bool world_hit_node(World *w, int x, int y)
 {
-    if (x < 0 || x >= w->w || y < 0 || y >= w->h) return;
-    w->node_respawn[y * w->w + x] = NODE_RESPAWN_TICKS;
+    if (x < 0 || x >= w->w || y < 0 || y >= w->h) return false;
+    int idx = y * w->w + x;
+    if (w->node_hp[idx] == 0) return false;
+    w->node_hp[idx]--;
+    if (w->node_hp[idx] == 0) {
+        w->node_respawn[idx] = NODE_RESPAWN_TICKS;
+        return true;
+    }
+    return false;
+}
+
+void world_anim_on_hit(World *w, int tx, int ty)
+{
+    if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) return;
+    w->tile_hit_timer[ty * w->w + tx] = TILE_HIT_FRAMES;
+}
+
+void world_anim_tick(World *w)
+{
+    int cells = w->w * w->h;
+    for (int i = 0; i < cells; i++) {
+        if (w->tile_hit_timer[i] > 0) w->tile_hit_timer[i]--;
+    }
 }
 
 void world_tick(World *w)
 {
     int cells = w->w * w->h;
     for (int i = 0; i < cells; i++) {
-        if (w->node_respawn[i] > 0)
+        if (w->node_respawn[i] > 0) {
             w->node_respawn[i]--;
+            if (w->node_respawn[i] == 0)
+                w->node_hp[i] = world_node_max_hp(w->td_map[i]);
+        }
     }
 }

@@ -64,9 +64,25 @@
 #define ENERGY_REGEN_PER_TICK    1
 #define TICKS_PER_DAY           20
 
-/* HUD */
-#define HUD_LOG_TIMEOUT_MS  3000u
-#define HUD_STRIP_H         18
+/* HUD — overlay mode (no reserved strip; world renders full 240x240) */
+#define HUD_LOG_TIMEOUT_MS   3000u
+
+/* Stat block (top-left overlay) */
+#define HUD_STAT_X           4
+#define HUD_STAT_Y           4
+#define HUD_BAR_W            60
+#define HUD_BAR_H            6
+#define HUD_BAR_ROW_GAP      10   /* y distance between HP and energy rows */
+
+/* Hotbar (bottom overlay) */
+#define HUD_HOTBAR_SLOT_W    22
+#define HUD_HOTBAR_SLOT_GAP  2
+#define HUD_HOTBAR_Y         (DISPLAY_H - HUD_HOTBAR_SLOT_W - 2)
+
+/* Tab icons (top-right overlay) */
+#define HUD_TAB_ICON_W       14
+#define HUD_TAB_ICON_H       12
+#define HUD_TAB_ICON_GAP     2
 
 /* Renderer */
 #define TD_FEET_OFF  7.0f    /* iso depth-sort Y offset for player feet */
@@ -74,6 +90,11 @@
 
 /* Node respawn */
 #define NODE_RESPAWN_TICKS 60
+
+/* Item fly animation */
+#define MAX_ITEM_FLIES    4
+#define ITEM_FLY_FRAMES   20
+#define SLOT_FLASH_FRAMES 8
 
 /* Tile IDs */
 #define T_GRASS      0

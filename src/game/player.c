@@ -1,5 +1,6 @@
 #include "player.h"
 #include "skills.h"
+#include "items.h"
 #include "td_cam.h"
 #include "config.h"
 #include <math.h>
@@ -259,13 +260,35 @@ void player_do_action(GameState *s, World *w) {
         return;
     }
 
-    uint8_t skill_id;
+    uint8_t    skill_id;
+    item_id_t  required_tool;
     switch (world_tile(w, tx, ty)) {
-        case T_TREE:  skill_id = SK_WOODCUT; break;
-        case T_ROCK:  skill_id = SK_MINING;  break;
-        case T_ORE:   skill_id = SK_MINING;  break;
-        case T_WATER: skill_id = SK_FISHING; break;
+        case T_TREE:   skill_id = SK_WOODCUT; required_tool = ITEM_AXE;         break;
+        case T_ROCK:   skill_id = SK_MINING;  required_tool = ITEM_PICKAXE;     break;
+        case T_ORE:    skill_id = SK_MINING;  required_tool = ITEM_PICKAXE;     break;
+        case T_WATER:  skill_id = SK_FISHING; required_tool = ITEM_FISHING_ROD; break;
+        case T_TGRASS: skill_id = SK_WOODCUT; required_tool = ITEM_SHEARS;      break;
         default: return;
+    }
+
+    if (!inventory_has_tool(&s->inv, required_tool)) {
+        char msg[36];
+        const char *n = ITEM_DEFS[required_tool].name;
+        int i = 0;
+        msg[i++] = 'N'; msg[i++] = 'e'; msg[i++] = 'e'; msg[i++] = 'd'; msg[i++] = ' ';
+        while (*n && i < 33) msg[i++] = *n++;
+        msg[i++] = '!'; msg[i] = '\0';
+        state_log(s, msg);
+        return;
+    }
+
+    /* Log what node the action targets so the player knows before the wait. */
+    switch (world_tile(w, tx, ty)) {
+        case T_TREE:   state_log(s, "Chopping tree..."); break;
+        case T_ROCK:   state_log(s, "Mining rock...");   break;
+        case T_ORE:    state_log(s, "Mining ore...");    break;
+        case T_WATER:  state_log(s, "Fishing...");       break;
+        case T_TGRASS: state_log(s, "Shearing grass..."); break;
     }
 
     s->skilling          = true;

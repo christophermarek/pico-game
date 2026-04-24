@@ -5,14 +5,15 @@
 #include "../render/font.h"
 #include "../game/skills.h"
 #include "../game/state.h"
+#include "../game/items.h"
 #include "../game/world.h"
 
-#define TAB_COUNT 2
+#define TAB_COUNT 3
 #define SETTINGS_ITEM_COUNT 2
 #define SETTINGS_DEBUG 0
 #define SETTINGS_RESET 1
 
-static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "SETTINGS" };
+static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "SETTINGS", "BAG" };
 
 void menu_open(GameState *s) {
     s->prev_mode   = s->mode;
@@ -49,41 +50,63 @@ static void draw_xp_bar(int x, int y, int w, int cur, int max, uint16_t color) {
 }
 
 void menu_update(GameState *s, World *w, const Input *inp) {
-    static bool lr_prev = false, ll_prev = false;
-    if (inp->right && !lr_prev && (int)s->menu_tab < TAB_COUNT - 1) {
-        s->menu_tab    = (MenuTab)(s->menu_tab + 1);
+    /* Save edge-trigger prev-state BEFORE updating so per-tab nav can use them. */
+    static bool pl = false, pr = false, pu = false, pd = false;
+    bool prev_l = pl, prev_r = pr, prev_u = pu, prev_d = pd;
+    pl = inp->left; pr = inp->right; pu = inp->up; pd = inp->down;
+
+    /* Tab switching: left/right at menu level (consumes the press). */
+    bool tab_changed = false;
+    if (inp->right && !prev_r && (int)s->menu_tab < TAB_COUNT - 1) {
+        s->menu_tab = (MenuTab)(s->menu_tab + 1);
         s->menu_cursor = 0;
+        tab_changed = true;
     }
-    if (inp->left && !ll_prev && s->menu_tab > 0) {
-        s->menu_tab    = (MenuTab)(s->menu_tab - 1);
+    if (inp->left && !prev_l && s->menu_tab > 0) {
+        s->menu_tab = (MenuTab)(s->menu_tab - 1);
         s->menu_cursor = 0;
+        tab_changed = true;
     }
     if (inp->start_press) {
-        s->menu_tab    = (MenuTab)(((int)s->menu_tab + 1) % TAB_COUNT);
+        s->menu_tab = (MenuTab)(((int)s->menu_tab + 1) % TAB_COUNT);
         s->menu_cursor = 0;
     }
-    lr_prev = inp->right;
-    ll_prev = inp->left;
 
-    static bool u_prev = false, d_prev = false;
-
+    /* Per-tab navigation. */
     switch (s->menu_tab) {
     case MTAB_SKILLS: {
         int max_c = SKILL_COUNT - 1;
-        if (inp->up   && !u_prev && s->menu_cursor > 0)              s->menu_cursor--;
-        if (inp->down && !d_prev && s->menu_cursor < (uint8_t)max_c) s->menu_cursor++;
+        if (inp->up   && !prev_u && s->menu_cursor > 0)              s->menu_cursor--;
+        if (inp->down && !prev_d && s->menu_cursor < (uint8_t)max_c) s->menu_cursor++;
+        break;
+    }
+    case MTAB_INVENTORY: {
+        int max_slot = INV_SLOTS - 1;
+        if (inp->up    && !prev_u && s->menu_cursor >= 4)
+            s->menu_cursor = (uint8_t)(s->menu_cursor - 4);
+        if (inp->down  && !prev_d && (int)s->menu_cursor + 4 <= max_slot)
+            s->menu_cursor = (uint8_t)(s->menu_cursor + 4);
+        /* Left/right within a row (only if tab didn't just switch). */
+        if (!tab_changed) {
+            if (inp->right && !prev_r && s->menu_cursor < max_slot &&
+                    (s->menu_cursor % 4) < 3)
+                s->menu_cursor++;
+            if (inp->left && !prev_l && s->menu_cursor > 0 &&
+                    (s->menu_cursor % 4) > 0)
+                s->menu_cursor--;
+        }
         break;
     }
     case MTAB_SETTINGS:
-        if (inp->up   && !u_prev && s->settings_cursor > 0)
+        if (inp->up   && !prev_u && s->settings_cursor > 0)
             s->settings_cursor--;
-        if (inp->down && !d_prev && s->settings_cursor < SETTINGS_ITEM_COUNT - 1)
+        if (inp->down && !prev_d && s->settings_cursor < SETTINGS_ITEM_COUNT - 1)
             s->settings_cursor++;
         if (inp->a_press) {
             if (s->settings_cursor == SETTINGS_DEBUG) {
                 s->debug_mode = !s->debug_mode;
             } else if (s->settings_cursor == SETTINGS_RESET) {
-                bool dbg = s->debug_mode;  /* preserve across reset */
+                bool dbg = s->debug_mode;
                 world_init(w);
                 state_init(s);
                 s->debug_mode = dbg;
@@ -93,20 +116,19 @@ void menu_update(GameState *s, World *w, const Input *inp) {
         break;
     }
 
-    u_prev = inp->up;
-    d_prev = inp->down;
-
     if (inp->b_press) menu_close(s);
 }
 
 void menu_render(GameState *s) {
     hal_fill_rect(0, 0, DISPLAY_W, DISPLAY_H, C_BG_DARK);
 
+    /* 3 tabs: each ~78px wide with 2px gap */
     for (int i = 0; i < TAB_COUNT; i++) {
-        int      tx  = 5 + i * 118;
+        int      tw  = (DISPLAY_W - 8) / TAB_COUNT;
+        int      tx  = 4 + i * (tw + 2);
         uint16_t bg  = (i == (int)s->menu_tab) ? C_BORDER : C_PANEL;
         uint16_t col = (i == (int)s->menu_tab) ? C_TEXT_WHITE : C_TEXT_DIM;
-        hal_fill_rect(tx, 2, 112, 12, bg);
+        hal_fill_rect(tx, 2, tw, 12, bg);
         font_draw_str(TAB_NAMES[i], tx + 2, 4, col, 1);
     }
     hal_fill_rect(0, 14, DISPLAY_W, 1, C_BORDER);
@@ -156,6 +178,91 @@ void menu_render(GameState *s) {
                       rsel ? C_TEXT_WHITE : C_TEXT_DIM, 1);
 
         font_draw_str("A:Select  B:Close", 5, DISPLAY_H - 12, C_TEXT_DIM, 1);
+        break;
+    }
+
+    case MTAB_INVENTORY: {
+        /* 4-column grid: hotbar (8 slots) then bag (20 slots). */
+        int col_w = 54, row_h = 22;
+        int gx = 5, gy = content_y;
+        int info_y = DISPLAY_H - 14;  /* item name line at bottom */
+
+        font_draw_str("Hotbar", gx, gy - 1, C_TEXT_DIM, 1);
+        gy += 8;
+        for (int i = 0; i < HOTBAR_SLOTS; i++) {
+            int col = i % 4, row = i / 4;
+            int sx = gx + col * col_w, sy = gy + row * row_h;
+            const inv_slot_t *sl = &s->inv.slots[i];
+            bool filled   = (sl->id != ITEM_NONE && sl->count > 0);
+            bool selected = ((int)s->menu_cursor == i);
+            uint16_t bg  = (i >= TOOL_SLOT_START && filled) ? HEX(0x1a1040) : C_BG;
+            uint16_t bdr = selected ? C_WHITE : filled ? C_BORDER : HEX(0x1e1e3a);
+            hal_fill_rect(sx, sy, col_w - 2, row_h - 2, bg);
+            hal_fill_rect(sx,             sy,            col_w - 2, 1, bdr);
+            hal_fill_rect(sx,             sy + row_h - 3, col_w - 2, 1, bdr);
+            hal_fill_rect(sx,             sy,            1, row_h - 2, bdr);
+            hal_fill_rect(sx + col_w - 3, sy,            1, row_h - 2, bdr);
+            if (filled) {
+                font_draw_str(ITEM_DEFS[sl->id].name, sx + 2, sy + 3,
+                              ITEM_DEFS[sl->id].is_tool ? C_GOLD : C_TEXT_MAIN, 1);
+                if (!ITEM_DEFS[sl->id].is_tool && sl->count > 1) {
+                    char cnt[5]; int n = 0, v = sl->count;
+                    if (v >= 100) cnt[n++] = (char)('0' + v / 100);
+                    if (v >= 10)  cnt[n++] = (char)('0' + (v / 10) % 10);
+                    cnt[n++] = (char)('0' + v % 10); cnt[n] = '\0';
+                    font_draw_str(cnt, sx + 2, sy + 12, C_TEXT_DIM, 1);
+                }
+            }
+        }
+
+        gy += 2 * row_h + 4;
+        font_draw_str("Bag", gx, gy - 1, C_TEXT_DIM, 1);
+        gy += 8;
+        for (int i = 0; i < BAG_SLOTS; i++) {
+            int col = i % 4, row = i / 4;
+            int sx = gx + col * col_w, sy = gy + row * row_h;
+            if (sy + row_h > info_y - 2) continue; /* don't draw over info bar */
+            const inv_slot_t *sl = &s->inv.slots[HOTBAR_SLOTS + i];
+            bool filled   = (sl->id != ITEM_NONE && sl->count > 0);
+            bool selected = ((int)s->menu_cursor == HOTBAR_SLOTS + i);
+            uint16_t bdr = selected ? C_WHITE : filled ? C_BORDER : HEX(0x1e1e3a);
+            hal_fill_rect(sx, sy, col_w - 2, row_h - 2, C_BG);
+            hal_fill_rect(sx,             sy,            col_w - 2, 1, bdr);
+            hal_fill_rect(sx,             sy + row_h - 3, col_w - 2, 1, bdr);
+            hal_fill_rect(sx,             sy,            1, row_h - 2, bdr);
+            hal_fill_rect(sx + col_w - 3, sy,            1, row_h - 2, bdr);
+            if (filled) {
+                font_draw_str(ITEM_DEFS[sl->id].name, sx + 2, sy + 3,
+                              C_TEXT_MAIN, 1);
+                if (sl->count > 1) {
+                    char cnt[5]; int n = 0, v = sl->count;
+                    if (v >= 100) cnt[n++] = (char)('0' + v / 100);
+                    if (v >= 10)  cnt[n++] = (char)('0' + (v / 10) % 10);
+                    cnt[n++] = (char)('0' + v % 10); cnt[n] = '\0';
+                    font_draw_str(cnt, sx + 2, sy + 12, C_TEXT_DIM, 1);
+                }
+            }
+        }
+
+        /* Selected slot info bar at bottom. */
+        hal_fill_rect(0, info_y - 2, DISPLAY_W, 16, C_BG);
+        {
+            const inv_slot_t *sel = &s->inv.slots[s->menu_cursor];
+            if (sel->id != ITEM_NONE && sel->count > 0) {
+                font_draw_str(ITEM_DEFS[sel->id].name, 5, info_y, C_TEXT_WHITE, 1);
+                if (!ITEM_DEFS[sel->id].is_tool) {
+                    char cnt[12]; int n = 0, v = sel->count;
+                    cnt[n++] = 'x';
+                    if (v >= 100) cnt[n++] = (char)('0' + v / 100);
+                    if (v >= 10)  cnt[n++] = (char)('0' + (v / 10) % 10);
+                    cnt[n++] = (char)('0' + v % 10); cnt[n] = '\0';
+                    int cw = font_str_width(cnt, 1);
+                    font_draw_str(cnt, DISPLAY_W - cw - 5, info_y, C_TEXT_DIM, 1);
+                }
+            } else {
+                font_draw_str("Empty", 5, info_y, C_TEXT_DIM, 1);
+            }
+        }
         break;
     }
     }

@@ -7,8 +7,10 @@
 #include "../ui/hud.h"
 #include "../ui/menu.h"
 #include "../game/td_cam.h"
+#include "../game/world.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 static void world_to_screen(const GameState *s, const TdCamBasis *cam,
                             float wx, float wy, int *sx, int *sy)
@@ -24,6 +26,29 @@ static bool cell_on_screen(const GameState *s, const TdCamBasis *cam, int tx, in
     world_to_screen(s, cam, tcx, tcy, &sx, &sy);
     return sx >= -TD_ISO_CULL && sx < DISPLAY_W + TD_ISO_CULL &&
            sy >= -TD_ISO_CULL && sy < DISPLAY_H + TD_ISO_CULL;
+}
+
+/* Small + cross flash at node visual centre — signals a hit landed. */
+static void draw_hit_flash(int sx, int sy, uint8_t tile_id)
+{
+    int cy = (tile_id == T_TREE) ? sy - 38 : sy - 22;
+    hal_fill_rect(sx - 4, cy,     8, 1, C_WHITE);
+    hal_fill_rect(sx,     cy - 3, 1, 6, C_WHITE);
+}
+
+/* Row of pips above the ground line showing remaining node HP. */
+static void draw_hp_pips(int sx, int sy, uint8_t hp, uint8_t max_hp)
+{
+    if (max_hp == 0) return;
+    const int pip_w = 4, pip_h = 3, gap = 1;
+    int total_w = max_hp * pip_w + (max_hp - 1) * gap;
+    int px = sx - total_w / 2;
+    int py = sy - 2;
+    hal_fill_rect(px - 1, py - 1, total_w + 2, pip_h + 2, C_BG_DARK);
+    for (int i = 0; i < max_hp; i++) {
+        uint16_t c = (i < hp) ? C_HP_GREEN : HEX(0x3a1010);
+        hal_fill_rect(px + i * (pip_w + gap), py, pip_w, pip_h, c);
+    }
 }
 
 static void draw_skill_indicator(int sx, int sy, float progress)
@@ -48,6 +73,107 @@ static int cmp_td_cell(const void *a, const void *b)
     if (ka < kb) return -1;
     if (ka > kb) return  1;
     return 0;
+}
+
+/*
+ * Procedural crack lines drawn over a damaged tile's surface.
+ * sx,sy = tile screen center. cx,cy = diamond face center (~8px up from sy).
+ * Three stages of damage; each stage adds more dark pixel dashes.
+ */
+static void draw_crack_overlay(int sx, int sy, uint8_t hp, uint8_t max_hp)
+{
+    uint8_t stage;
+    if      (hp * 2 >= max_hp) stage = 1;   /* > 50% remaining */
+    else if (hp > 1)           stage = 2;   /* 1 < hp < 50%    */
+    else                       stage = 3;   /* last hit left    */
+
+    int cx = sx, cy = sy - 8;
+    uint16_t c = HEX(0x000000);
+
+    /* Stage 1 — hairline crack across the face centre */
+    hal_fill_rect(cx - 3, cy + 1, 1, 1, c);
+    hal_fill_rect(cx - 2, cy,     1, 1, c);
+    hal_fill_rect(cx - 1, cy - 1, 1, 1, c);
+    hal_fill_rect(cx,     cy - 2, 1, 1, c);
+    hal_fill_rect(cx + 1, cy - 1, 1, 1, c);
+    hal_fill_rect(cx + 2, cy,     1, 1, c);
+
+    if (stage < 2) return;
+
+    /* Stage 2 — secondary branch extending left/down */
+    hal_fill_rect(cx - 4, cy + 2, 1, 1, c);
+    hal_fill_rect(cx - 3, cy + 3, 1, 1, c);
+    hal_fill_rect(cx - 2, cy + 3, 1, 1, c);
+    hal_fill_rect(cx + 3, cy - 2, 1, 1, c);
+    hal_fill_rect(cx + 4, cy - 3, 1, 1, c);
+
+    if (stage < 3) return;
+
+    /* Stage 3 — heavy: extra branches toward all four diamond points */
+    hal_fill_rect(cx + 2, cy + 1, 1, 1, c);
+    hal_fill_rect(cx + 3, cy + 2, 1, 1, c);
+    hal_fill_rect(cx + 5, cy + 3, 1, 1, c);
+    hal_fill_rect(cx - 5, cy + 1, 1, 1, c);
+    hal_fill_rect(cx - 6, cy,     1, 1, c);
+    hal_fill_rect(cx,     cy - 3, 1, 1, c);
+    hal_fill_rect(cx,     cy - 4, 1, 1, c);
+    hal_fill_rect(cx,     cy - 5, 1, 1, c);
+}
+
+/* Parabola-arc item sprites flying from a node to the hotbar. */
+static void render_item_flies(const GameState *s, const TdCamBasis *cam)
+{
+    int total_w = HOTBAR_SLOTS * HUD_HOTBAR_SLOT_W + (HOTBAR_SLOTS - 1) * HUD_HOTBAR_SLOT_GAP;
+    int hb_x0   = (DISPLAY_W - total_w) / 2;
+    int hb_cy   = HUD_HOTBAR_Y + HUD_HOTBAR_SLOT_W / 2;
+
+    for (int i = 0; i < MAX_ITEM_FLIES; i++) {
+        const ItemFly *fly = &s->item_flies[i];
+        if (!fly->active) continue;
+
+        int src_sx, src_sy;
+        td_basis_world_pixel_to_screen(cam, s->td.x, s->td.y,
+                                       fly->wx, fly->wy, &src_sx, &src_sy);
+
+        int dst_sx, dst_sy;
+        int sl = (int)fly->slot;
+        if (sl >= 0 && sl < HOTBAR_SLOTS) {
+            dst_sx = hb_x0 + sl * (HUD_HOTBAR_SLOT_W + HUD_HOTBAR_SLOT_GAP)
+                     + HUD_HOTBAR_SLOT_W / 2;
+            dst_sy = hb_cy;
+        } else {
+            dst_sx = DISPLAY_W / 2;
+            dst_sy = DISPLAY_H + 20;
+        }
+
+        float t    = 1.0f - (float)fly->timer / (float)ITEM_FLY_FRAMES;
+        int   px   = (int)(src_sx + t * (float)(dst_sx - src_sx));
+        float lift = sinf(t * 3.14159f) * 30.0f;
+        int   py   = (int)(src_sy + t * (float)(dst_sy - src_sy) - lift);
+
+        /* Poof burst at spawn: 4 frames starting the frame after spawn.
+         * state_anim_tick decrements before render, so the fly is first
+         * rendered at timer=ITEM_FLY_FRAMES-1 — pf must start at 0 there. */
+        int pf = ITEM_FLY_FRAMES - 1 - (int)fly->timer; /* 0,1,2,3 */
+        if (pf >= 0 && pf < 4) {
+            int r  = pf * 4 + 3;
+            uint16_t pc = (pf == 0) ? C_WHITE : (pf == 1) ? C_GOLD : HEX(0x886622);
+            int rd = r * 7 / 10;
+            hal_fill_rect(src_sx - r - 1, src_sy - 1, 2, 2, pc);
+            hal_fill_rect(src_sx + r - 1, src_sy - 1, 2, 2, pc);
+            hal_fill_rect(src_sx - 1, src_sy - r - 1, 2, 2, pc);
+            hal_fill_rect(src_sx - 1, src_sy + r - 1, 2, 2, pc);
+            hal_fill_rect(src_sx - rd - 1, src_sy - rd - 1, 2, 2, pc);
+            hal_fill_rect(src_sx + rd - 1, src_sy - rd - 1, 2, 2, pc);
+            hal_fill_rect(src_sx - rd - 1, src_sy + rd - 1, 2, 2, pc);
+            hal_fill_rect(src_sx + rd - 1, src_sy + rd - 1, 2, 2, pc);
+        }
+
+        if (px >= -8 && px < DISPLAY_W + 8 && py >= -8 && py < DISPLAY_H + 8) {
+            if (!iso_draw_item_icon(fly->item, px - 8, py - 8))
+                hal_fill_rect(px - 3, py - 3, 6, 6, C_WHITE);
+        }
+    }
 }
 
 static void render_topdown(GameState *s, const World *w)
@@ -89,9 +215,31 @@ static void render_topdown(GameState *s, const World *w)
         int     tx   = cells[i].tx;
         int     ty   = cells[i].ty;
         uint8_t tile = world_tile(w, tx, ty);
-        iso_draw_tile_onlay(tile, cells[i].sx, cells[i].sy);
-        if (w->node_respawn[ty * w->w + tx] > 0)
-            iso_draw_depleted_mark(cells[i].sx, cells[i].sy);
+        int     idx  = ty * w->w + tx;
+        int     sx   = cells[i].sx;
+        int     sy   = cells[i].sy;
+
+        /* Shake: oscillate ±1px while the player is actioning this node. */
+        int shake_ox = 0;
+        if (s->skilling && s->action_node_x == tx && s->action_node_y == ty)
+            shake_ox = ((s->frame_count / 3) & 1) ? 1 : -1;
+
+        iso_draw_tile_onlay(tile, sx + shake_ox, sy);
+
+        if (w->node_respawn[idx] > 0) {
+            iso_draw_depleted_mark(sx, sy);
+        } else {
+            /* Hit flash: brief + cross at the node's visual centre. */
+            if (w->tile_hit_timer[idx] > 0)
+                draw_hit_flash(sx, sy, tile);
+
+            /* HP pips + crack overlay: visible when node has taken at least one hit. */
+            uint8_t max_hp = world_node_max_hp(tile);
+            if (max_hp > 1 && w->node_hp[idx] < max_hp) {
+                draw_crack_overlay(sx, sy, w->node_hp[idx], max_hp);
+                draw_hp_pips(sx, sy, w->node_hp[idx], max_hp);
+            }
+        }
     }
 
     int player_sx, player_sy;
@@ -104,6 +252,8 @@ static void render_topdown(GameState *s, const World *w)
         float progress = 1.0f - (float)s->action_ticks_left / (float)ACTION_TICKS;
         draw_skill_indicator(player_sx, player_sy - 30, progress);
     }
+
+    render_item_flies(s, &cam);
 
     if (s->debug_mode)
         render_debug_overworld(s, w, &cam);

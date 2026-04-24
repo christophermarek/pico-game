@@ -20,6 +20,7 @@ pico_sdk_init()
 
 set(GAME_CORE_SOURCES
     ../src/game/state.c
+    ../src/game/items.c
     ../src/game/world.c
     ../src/game/player.c
     ../src/game/skills.c
