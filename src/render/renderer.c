@@ -105,10 +105,16 @@ static void draw_crack_overlay(int sx, int sy, uint8_t hp, uint8_t max_hp)
 }
 
 /*
- * Tool held while skilling. Icon is placed a fraction of the way from the
- * player toward the action node (so it points at what's being hit, even
- * when the target is behind/below where the player last moved).
+ * Tool held while skilling. Icon is anchored at the player's hand with a
+ * small push in the direction of the target node, then swung on a 4-phase
+ * vertical lift. Rendered at 2/3 scale so it reads as "in the hand" not
+ * "stuck on the block".
  */
+#define TOOL_ICON_NUM   2
+#define TOOL_ICON_DEN   3
+#define TOOL_ICON_DRAWN ((16 * TOOL_ICON_NUM) / TOOL_ICON_DEN) /* ≈ 10 px */
+#define TOOL_REACH_PX   6   /* hand-to-tool distance, in screen pixels     */
+
 static void render_action_tool(const GameState *s, const World *w,
                                const TdCamBasis *cam,
                                int player_sx, int player_sy)
@@ -126,25 +132,32 @@ static void render_action_tool(const GameState *s, const World *w,
         default: return;
     }
 
-    /* Project the target node centre to screen and aim ~55% of the way
-     * toward it from the player's torso (player_sy - 10). */
+    /* Unit direction from the player's hand toward the target on screen. */
     float node_wx = (float)(s->action_node_x * TILE + TILE / 2);
     float node_wy = (float)(s->action_node_y * TILE + TILE / 2);
     int   node_sx, node_sy;
     td_basis_world_pixel_to_screen(cam, s->td.x, s->td.y,
                                    node_wx, node_wy, &node_sx, &node_sy);
 
-    int torso_y = player_sy - 10;
-    int cx = player_sx + (node_sx - player_sx) * 55 / 100;
-    int cy = torso_y   + (node_sy - torso_y)   * 55 / 100;
+    int hand_x = player_sx;
+    int hand_y = player_sy - 10;   /* torso height */
+
+    float dx  = (float)(node_sx - hand_x);
+    float dy  = (float)(node_sy - hand_y);
+    float len = hypotf(dx, dy);
+    if (len < 1.0f) len = 1.0f;
+
+    int cx = hand_x + (int)(dx / len * (float)TOOL_REACH_PX);
+    int cy = hand_y + (int)(dy / len * (float)TOOL_REACH_PX);
 
     /* Chop lift: 4-phase vertical oscillation. */
     int phase = (s->frame_count / 2) & 3;
-    int lift  = (phase == 0) ? -4 : (phase == 1) ? -2 : (phase == 2) ? 0 : -2;
+    int lift  = (phase == 0) ? -3 : (phase == 1) ? -1 : (phase == 2) ? 0 : -1;
     cy += lift;
 
-    /* iso_draw_item_icon takes top-left; the icon is 16×16, so offset to centre. */
-    iso_draw_item_icon(tool, cx - 8, cy - 8);
+    iso_draw_item_icon_scaled(tool, cx - TOOL_ICON_DRAWN / 2,
+                              cy - TOOL_ICON_DRAWN / 2,
+                              TOOL_ICON_NUM, TOOL_ICON_DEN);
 }
 
 /* Parabola-arc item sprites flying from a node to the hotbar. */

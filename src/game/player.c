@@ -267,11 +267,21 @@ static bool find_action_target(const GameState *s, const World *w,
     float best_d = 1e9f;
     int best_tx = -1, best_ty = -1;
 
-    /* Include the player's own tile: collision lets the foot straddle into
-     * a non-walkable tile's bounds while staying outside its circular
-     * collision shape, so the tree you're pressed against may share your
-     * tile_x/tile_y. Walkable actionable tiles (tall grass) we're standing
-     * on are also shear-targetable this way. */
+    /* Facing bias: when several adjacent tiles are equally close, prefer
+     * the one in the direction the player is pushing. screen_dir reflects
+     * the latest input; DIR_MAP resolves it to the world cardinal. */
+    uint8_t world_dir = DIR_MAP[s->td.screen_dir & 3u][s->td_cam_bearing & 3u];
+    int face_dx = 0, face_dy = 0;
+    switch (world_dir) {
+        case DIR_UP:    face_dy = -1; break;
+        case DIR_DOWN:  face_dy =  1; break;
+        case DIR_LEFT:  face_dx = -1; break;
+        case DIR_RIGHT: face_dx =  1; break;
+    }
+
+    /* Include the player's own tile (dx=0, dy=0): collision can straddle
+     * the foot into a non-walkable tile's AABB while keeping it outside
+     * the collision shape. Tall grass (walkable) counts too. */
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
             int tx = s->td.tile_x + dx;
@@ -282,6 +292,11 @@ static bool find_action_target(const GameState *s, const World *w,
             float tcx = (float)(tx * TILE + TILE / 2);
             float tcy = (float)(ty * TILE + TILE / 2);
             float d   = hypotf(foot_x - tcx, foot_y - tcy);
+            /* Subtract a chunk for the tile directly in the facing cardinal,
+             * so it wins over a slightly-closer sideways neighbour. The
+             * value (half a tile) is big enough to beat collision wobble
+             * but small enough that a much closer tile still wins. */
+            if (dx == face_dx && dy == face_dy) d -= (float)(TILE / 2);
             if (d < best_d) { best_d = d; best_tx = tx; best_ty = ty; }
         }
     }

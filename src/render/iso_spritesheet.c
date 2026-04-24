@@ -224,19 +224,33 @@ bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame)
 #define ITEM_ICON_W 16
 #define ITEM_ICON_H 16
 
+static void item_frame(item_id_t id, PngFrame *f)
+{
+    f->x  = (int)(id - 1) * ITEM_ICON_W;
+    f->y  = 0;
+    f->w  = ITEM_ICON_W;
+    f->h  = ITEM_ICON_H;
+    f->ox = 0;
+    f->oy = 0;
+}
+
 bool iso_draw_item_icon(item_id_t id, int sx, int sy)
 {
     if (id == ITEM_NONE || id >= ITEM_COUNT) return false;
     if (!load_items()) return false;
-    /* Sheet: one row, col = (id - 1). */
-    PngFrame f = {
-        .x  = (int)(id - 1) * ITEM_ICON_W,
-        .y  = 0,
-        .w  = ITEM_ICON_W,
-        .h  = ITEM_ICON_H,
-        .ox = 0,
-        .oy = 0,
-    };
+    PngFrame f;
+    item_frame(id, &f);
     draw_png_frame(&g_items, &f, sx, sy);
+    return true;
+}
+
+/* Scale num/den (e.g. 2/3 ⇒ 16→~11 px). Used for the tool-in-hand render. */
+bool iso_draw_item_icon_scaled(item_id_t id, int sx, int sy, int sn, int sd)
+{
+    if (id == ITEM_NONE || id >= ITEM_COUNT) return false;
+    if (!load_items()) return false;
+    PngFrame f;
+    item_frame(id, &f);
+    draw_png_frame_scaled(&g_items, &f, sx, sy, sn, sd);
     return true;
 }
