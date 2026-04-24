@@ -1,32 +1,16 @@
 #include "renderer.h"
 #include "iso_spritesheet.h"
 #include "render_debug.h"
+#include "render_internal.h"
 #include "hal.h"
 #include "colors.h"
 #include "config.h"
 #include "../ui/hud.h"
 #include "../ui/menu.h"
-#include "../game/td_cam.h"
 #include "../game/world.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
-
-static void world_to_screen(const GameState *s, const TdCamBasis *cam,
-                            float wx, float wy, int *sx, int *sy)
-{
-    td_basis_world_pixel_to_screen(cam, s->td.x, s->td.y, wx, wy, sx, sy);
-}
-
-static bool cell_on_screen(const GameState *s, const TdCamBasis *cam, int tx, int ty)
-{
-    float tcx = (float)(tx * TILE + TILE / 2);
-    float tcy = (float)(ty * TILE + TILE / 2);
-    int   sx, sy;
-    world_to_screen(s, cam, tcx, tcy, &sx, &sy);
-    return sx >= -TD_ISO_CULL && sx < DISPLAY_W + TD_ISO_CULL &&
-           sy >= -TD_ISO_CULL && sy < DISPLAY_H + TD_ISO_CULL;
-}
 
 /* Small + cross flash at node visual centre — signals a hit landed. */
 static void draw_hit_flash(int sx, int sy, uint8_t tile_id)
@@ -191,7 +175,7 @@ static void render_item_flies(const GameState *s, const TdCamBasis *cam)
 
         float t    = 1.0f - (float)fly->timer / (float)ITEM_FLY_FRAMES;
         int   px   = (int)(src_sx + t * (float)(dst_sx - src_sx));
-        float lift = sinf(t * 3.14159f) * 30.0f;
+        float lift = sinf(t * (float)M_PI) * 30.0f;
         int   py   = (int)(src_sy + t * (float)(dst_sy - src_sy) - lift);
 
         /* Poof burst at spawn: 4 frames starting the frame after spawn.

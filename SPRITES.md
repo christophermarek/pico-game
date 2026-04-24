@@ -2,8 +2,8 @@
 
 GrumbleQuest edits **individual** sprite PNGs under `assets/sprites/`.
 `make build` (or `make dev`) runs `tools/gen_spritesheets.py` to assemble
-them into two sheets under `build/` — `build/assets_iso_tiles.png` and
-`build/assets_chars.png` — which the runtime loads.
+them into three sheets under `build/` — `assets_iso_tiles.png`,
+`assets_chars.png`, and `assets_items.png` — which the runtime loads.
 
 ```bash
 # Edit a tile
@@ -38,6 +38,15 @@ Row 0: player_down_0  player_down_1
 ```
 
 Stored at 2× game pixels, drawn at 1:1 via nearest-neighbour downsample.
+
+### `assets/sprites/items/` → `build/assets_items.png` (144×16, 16×16 cells)
+
+```
+Row 0: oak_log  stone  iron_ore  raw_fish  coin
+       axe      pickaxe  fishing_rod  shears
+```
+
+Indexed by `item_id_t - 1` (item 0 is `ITEM_NONE`).
 
 ### Manifest
 
