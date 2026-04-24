@@ -259,51 +259,46 @@ static bool is_actionable_tile(uint8_t t) {
  * player's feet. This matches visual intuition — the tree you're pressed
  * against gets chopped, regardless of what direction you last moved in.
  */
+static bool tile_is_live_node(const World *w, int tx, int ty) {
+    if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) return false;
+    if (!is_actionable_tile(world_tile(w, tx, ty)))   return false;
+    if (w->node_respawn[ty * w->w + tx] > 0)          return false;
+    return true;
+}
+
+/*
+ * Strict front-of-player targeting. Two candidates, in order:
+ *   1) the tile in the player's facing cardinal direction;
+ *   2) the player's own tile_x/tile_y — collision slides the foot into a
+ *      pressed-against obstacle's AABB while keeping it outside the
+ *      obstacle's collision shape, so the obstacle ends up on the same
+ *      tile as the foot.
+ *
+ * If neither is a live actionable node, we return false and do nothing.
+ * This intentionally never reaches for tiles "behind" or "beside" the
+ * player — the player has to face what they want to interact with.
+ */
 static bool find_action_target(const GameState *s, const World *w,
                                int *out_tx, int *out_ty)
 {
-    float foot_x = s->td.x;
-    float foot_y = s->td.y + (float)TD_FEET_OFF;
-    float best_d = 1e9f;
-    int best_tx = -1, best_ty = -1;
-
-    /* Facing bias: when several adjacent tiles are equally close, prefer
-     * the one in the direction the player is pushing. screen_dir reflects
-     * the latest input; DIR_MAP resolves it to the world cardinal. */
     uint8_t world_dir = DIR_MAP[s->td.screen_dir & 3u][s->td_cam_bearing & 3u];
-    int face_dx = 0, face_dy = 0;
+    int fdx = 0, fdy = 0;
     switch (world_dir) {
-        case DIR_UP:    face_dy = -1; break;
-        case DIR_DOWN:  face_dy =  1; break;
-        case DIR_LEFT:  face_dx = -1; break;
-        case DIR_RIGHT: face_dx =  1; break;
+        case DIR_UP:    fdy = -1; break;
+        case DIR_DOWN:  fdy =  1; break;
+        case DIR_LEFT:  fdx = -1; break;
+        case DIR_RIGHT: fdx =  1; break;
     }
 
-    /* Include the player's own tile (dx=0, dy=0): collision can straddle
-     * the foot into a non-walkable tile's AABB while keeping it outside
-     * the collision shape. Tall grass (walkable) counts too. */
-    for (int dy = -1; dy <= 1; dy++) {
-        for (int dx = -1; dx <= 1; dx++) {
-            int tx = s->td.tile_x + dx;
-            int ty = s->td.tile_y + dy;
-            if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) continue;
-            if (!is_actionable_tile(world_tile(w, tx, ty))) continue;
-            if (w->node_respawn[ty * w->w + tx] > 0) continue;
-            float tcx = (float)(tx * TILE + TILE / 2);
-            float tcy = (float)(ty * TILE + TILE / 2);
-            float d   = hypotf(foot_x - tcx, foot_y - tcy);
-            /* Subtract a chunk for the tile directly in the facing cardinal,
-             * so it wins over a slightly-closer sideways neighbour. The
-             * value (half a tile) is big enough to beat collision wobble
-             * but small enough that a much closer tile still wins. */
-            if (dx == face_dx && dy == face_dy) d -= (float)(TILE / 2);
-            if (d < best_d) { best_d = d; best_tx = tx; best_ty = ty; }
-        }
-    }
-    if (best_tx < 0) return false;
-    *out_tx = best_tx;
-    *out_ty = best_ty;
-    return true;
+    int fx = s->td.tile_x + fdx;
+    int fy = s->td.tile_y + fdy;
+    if (tile_is_live_node(w, fx, fy)) { *out_tx = fx; *out_ty = fy; return true; }
+
+    int ox = s->td.tile_x;
+    int oy = s->td.tile_y;
+    if (tile_is_live_node(w, ox, oy)) { *out_tx = ox; *out_ty = oy; return true; }
+
+    return false;
 }
 
 void player_do_action(GameState *s, World *w) {
