@@ -66,6 +66,7 @@ add_definitions(-DPICO_BUILD)
 
 add_executable(grumblequest
     ../src/main.c
+    ../src/game_loop.c
     ${GAME_CORE_SOURCES}
     ../src/hal_pico.c
     ${PICO_ATLAS_SOURCES}

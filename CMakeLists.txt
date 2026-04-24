@@ -29,6 +29,7 @@ set(GAME_CORE_SOURCES
 
 add_executable(grumblequest_sim
     src/main.c
+    src/game_loop.c
     ${GAME_CORE_SOURCES}
     src/hal_sdl.c
 )

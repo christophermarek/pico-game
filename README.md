@@ -15,6 +15,26 @@ make test    # run tests
 make editor  # browser map editor at http://localhost:8765/tools/map_editor.html
 ```
 
+## Quick start — web / mobile (WebAssembly)
+
+Build the game as a WebAssembly bundle and play it in a browser, including
+on a phone with on-screen touch controls:
+
+```bash
+make web         # builds web/build/grumblequest.html
+make web-serve   # builds + serves at http://localhost:8000
+```
+
+Requires the [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html);
+`make web` prints install instructions if `emcc` isn't on `PATH`.
+
+To test from your phone on the same Wi-Fi, browse to
+`http://<your-machine-LAN-IP>:8000/grumblequest.html`. On-screen
+dpad + A/B/MENU controls appear automatically on touch devices.
+
+Save files live in the browser's `localStorage` (per-origin), so saves from
+localhost are separate from those on a LAN IP.
+
 ### Controls
 
 | Action          | Keys                         |

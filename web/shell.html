@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GrumbleQuest</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0514">
+<style>
+    :root {
+        --bg: #0a0514;
+        --panel: #14091e;
+        --ink: #e8d8ff;
+        --accent: #8b5cf6;
+        --btn: #2a1a3e;
+        --btn-active: #6d28d9;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+        margin: 0; padding: 0; height: 100%; width: 100%;
+        background: var(--bg); color: var(--ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        overflow: hidden; overscroll-behavior: none;
+        touch-action: none; user-select: none; -webkit-user-select: none;
+    }
+    body {
+        display: flex; flex-direction: column;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    #top-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 10px; font-size: 13px; color: var(--accent);
+    }
+    #top-bar .title { font-weight: bold; letter-spacing: 0.5px; }
+    #top-bar .hint { opacity: 0.6; font-size: 11px; }
+    #stage {
+        flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+        padding: 4px;
+    }
+    /* Square canvas that scales to its container, pixel-perfect via image-rendering. */
+    #canvas {
+        display: block;
+        width: min(92vw, calc(100vh - 320px));
+        height: min(92vw, calc(100vh - 320px));
+        max-width: 480px; max-height: 480px;
+        background: #000;
+        border: 2px solid var(--panel);
+        border-radius: 6px;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        outline: none;
+    }
+    #controls {
+        flex: 0 0 auto; padding: 10px 16px 18px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center; gap: 10px;
+    }
+    .dpad {
+        position: relative;
+        width: 150px; height: 150px;
+        justify-self: start;
+    }
+    .dpad .btn {
+        position: absolute;
+        width: 50px; height: 50px;
+        background: var(--btn);
+        border: 1px solid #3a2555;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--ink); font-size: 20px; font-weight: bold;
+    }
+    .dpad .up    { top: 0;    left: 50px; }
+    .dpad .down  { bottom: 0; left: 50px; }
+    .dpad .left  { top: 50px; left: 0;    }
+    .dpad .right { top: 50px; right: 0;   }
+    .face {
+        position: relative;
+        width: 150px; height: 150px;
+        justify-self: end;
+    }
+    .face .btn {
+        position: absolute;
+        width: 62px; height: 62px;
+        border-radius: 50%;
+        background: var(--btn);
+        border: 1px solid #3a2555;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--ink); font-size: 22px; font-weight: bold;
+    }
+    .face .b-btn { top: 10px;    right: 0;   }
+    .face .a-btn { bottom: 10px; right: 70px; }
+    .system {
+        grid-column: 1 / -1;
+        display: flex; gap: 10px; justify-content: center;
+    }
+    .system .btn {
+        padding: 10px 18px; font-size: 13px;
+        background: var(--btn); border: 1px solid #3a2555;
+        border-radius: 8px; color: var(--ink);
+        min-width: 90px;
+    }
+    .btn.pressed { background: var(--btn-active); border-color: var(--accent); }
+
+    /* Desktop-friendly: hide touch controls, widen canvas. */
+    @media (hover: hover) and (pointer: fine) {
+        #controls { display: none; }
+        #canvas {
+            width: min(90vmin, 720px); height: min(90vmin, 720px);
+        }
+        #top-bar .hint { display: inline; }
+    }
+    @media (hover: none) {
+        #top-bar .hint { display: none; }
+    }
+
+    #loading {
+        position: fixed; inset: 0; z-index: 10;
+        background: var(--bg); color: var(--ink);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; letter-spacing: 1px;
+    }
+    #loading.hidden { display: none; }
+</style>
+</head>
+<body>
+    <div id="loading">LOADING…</div>
+
+    <div id="top-bar">
+        <span class="title">GrumbleQuest</span>
+        <span class="hint">Arrows · Z = A · X = B · Tab = menu</span>
+    </div>
+
+    <div id="stage">
+        <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+
+    <div id="controls">
+        <div class="dpad" aria-label="direction pad">
+            <button class="btn up"    data-key="ArrowUp">↑</button>
+            <button class="btn down"  data-key="ArrowDown">↓</button>
+            <button class="btn left"  data-key="ArrowLeft">←</button>
+            <button class="btn right" data-key="ArrowRight">→</button>
+        </div>
+        <div class="face" aria-label="action buttons">
+            <button class="btn b-btn" data-key="KeyX">B</button>
+            <button class="btn a-btn" data-key="Space">A</button>
+        </div>
+        <div class="system">
+            <button class="btn" data-key="Tab">MENU</button>
+            <button class="btn" data-key="BracketLeft">◀ CAM</button>
+            <button class="btn" data-key="BracketRight">CAM ▶</button>
+        </div>
+    </div>
+
+<script>
+/*
+ * Touch → synthetic KeyboardEvent. SDL2 (via Emscripten) listens for key
+ * events on the document, so dispatching a fully-populated KeyboardEvent
+ * there is enough to drive SDL_GetKeyboardState. We track which keys are
+ * already "down" to avoid duplicate keydowns on touchmove, and we release
+ * on both touchend and touchcancel so a swipe-off doesn't leave a button
+ * stuck.
+ */
+const KEY_INFO = {
+    'ArrowUp':      { key: 'ArrowUp',    keyCode: 38 },
+    'ArrowDown':    { key: 'ArrowDown',  keyCode: 40 },
+    'ArrowLeft':    { key: 'ArrowLeft',  keyCode: 37 },
+    'ArrowRight':   { key: 'ArrowRight', keyCode: 39 },
+    'Space':        { key: ' ',          keyCode: 32 },
+    'KeyX':         { key: 'x',          keyCode: 88 },
+    'KeyZ':         { key: 'z',          keyCode: 90 },
+    'Tab':          { key: 'Tab',        keyCode: 9  },
+    'BracketLeft':  { key: '[',          keyCode: 219 },
+    'BracketRight': { key: ']',          keyCode: 221 },
+};
+const down = new Set();
+
+function fireKey(type, code) {
+    const info = KEY_INFO[code];
+    if (!info) return;
+    const ev = new KeyboardEvent(type, {
+        key: info.key, code: code, keyCode: info.keyCode,
+        which: info.keyCode, bubbles: true, cancelable: true,
+    });
+    document.dispatchEvent(ev);
+    window.dispatchEvent(ev);
+}
+
+function press(code) {
+    if (down.has(code)) return;
+    down.add(code);
+    fireKey('keydown', code);
+}
+function release(code) {
+    if (!down.has(code)) return;
+    down.delete(code);
+    fireKey('keyup', code);
+}
+
+document.querySelectorAll('#controls .btn').forEach(btn => {
+    const code = btn.dataset.key;
+    const on  = (e) => { e.preventDefault(); btn.classList.add('pressed'); press(code); };
+    const off = (e) => { e.preventDefault(); btn.classList.remove('pressed'); release(code); };
+    btn.addEventListener('touchstart',  on,  { passive: false });
+    btn.addEventListener('touchend',    off, { passive: false });
+    btn.addEventListener('touchcancel', off, { passive: false });
+    btn.addEventListener('mousedown',   on);
+    btn.addEventListener('mouseup',     off);
+    btn.addEventListener('mouseleave',  off);
+});
+
+/* Stop the page from scrolling or zooming while the game is running. */
+document.addEventListener('touchmove',  e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+/* Keep Tab from moving focus out of the canvas on desktop. */
+window.addEventListener('keydown', e => {
+    if (e.code === 'Tab') e.preventDefault();
+});
+
+var Module = {
+    canvas: (function() {
+        const c = document.getElementById('canvas');
+        c.addEventListener('webglcontextlost', (e) => {
+            alert('WebGL context lost. Reload to continue.');
+            e.preventDefault();
+        }, false);
+        return c;
+    })(),
+    print:    (...args) => console.log('[gq]', ...args),
+    printErr: (...args) => console.error('[gq]', ...args),
+    onRuntimeInitialized: () => {
+        document.getElementById('loading').classList.add('hidden');
+    },
+};
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>
