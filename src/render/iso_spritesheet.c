@@ -41,8 +41,6 @@ static const PngFrame PNG_TD_PLAYER[8] = {
     { 224, 0, 32, 32, -16, -14 }, /* DIR_RIGHT walk1 */
 };
 
-static const PngFrame PNG_DEPLETED = { 0, 144, 64, 48, -32, -24 };
-
 static void try_load_atlas(PngAtlas *a, const char *p0, const char *p1)
 {
     if (a->tried) return;
@@ -228,13 +226,6 @@ bool iso_draw_tile_onlay(uint8_t tile_id, int cx, int cy)
     iso_tile_frame(tile_id, 0, &f);
     f.oy = overlay_oy(tile_id);
     draw_png_frame(&g_tiles, &f, cx, cy);
-    return true;
-}
-
-bool iso_draw_depleted_mark(int cx, int cy)
-{
-    if (!load_tiles()) return false;
-    draw_png_frame(&g_tiles, &PNG_DEPLETED, cx, cy);
     return true;
 }
 

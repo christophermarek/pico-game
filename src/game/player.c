@@ -258,7 +258,7 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
  * returns a list of hits from the tool's bounding region — the raycast
  * here is the degenerate single-ray case.
  */
-#define TARGET_REACH_PX  (TILE * 3 / 2)   /* ≤ 1.5 tiles forward reach  */
+#define TARGET_REACH_PX  TILE             /* ≤ 1 tile forward reach     */
 #define TARGET_RAY_STEP  2                /* ray sample stride (pixels) */
 
 typedef enum {
@@ -270,8 +270,7 @@ typedef enum {
 static TargetKind tile_kind(const World *w, int tx, int ty) {
     if (tx < 0 || tx >= w->w || ty < 0 || ty >= w->h) return TARGET_NONE;
     if (action_for_tile(world_tile(w, tx, ty)) == NULL) return TARGET_NONE;
-    return (w->node_respawn[ty * w->w + tx] > 0) ? TARGET_DEPLETED
-                                                 : TARGET_LIVE;
+    return world_node_depleted(w, tx, ty) ? TARGET_DEPLETED : TARGET_LIVE;
 }
 
 /* True if moving the player's foot by (ox, oy) pixels collides with an

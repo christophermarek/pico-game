@@ -80,7 +80,7 @@ bool world_hit_node(World *w, int x, int y)
     if (w->node_hp[idx] == 0) return false;
     w->node_hp[idx]--;
     if (w->node_hp[idx] == 0) {
-        w->node_respawn[idx] = NODE_RESPAWN_TICKS;
+        w->tile_destroy_timer[idx] = TILE_DESTROY_FRAMES;
         return true;
     }
     return false;
@@ -96,18 +96,8 @@ void world_anim_tick(World *w)
 {
     int cells = w->w * w->h;
     for (int i = 0; i < cells; i++) {
-        if (w->tile_hit_timer[i] > 0) w->tile_hit_timer[i]--;
+        if (w->tile_hit_timer[i] > 0)     w->tile_hit_timer[i]--;
+        if (w->tile_destroy_timer[i] > 0) w->tile_destroy_timer[i]--;
     }
 }
 
-void world_tick(World *w)
-{
-    int cells = w->w * w->h;
-    for (int i = 0; i < cells; i++) {
-        if (w->node_respawn[i] > 0) {
-            w->node_respawn[i]--;
-            if (w->node_respawn[i] == 0)
-                w->node_hp[i] = world_node_max_hp(w->td_map[i]);
-        }
-    }
-}

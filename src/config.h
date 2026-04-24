@@ -17,9 +17,9 @@
  * FRAME_MS drives rendering (33 ms @ 30 FPS).
  * TICK_MS drives world-economy updates (energy regen, respawn countdowns, the
  *   day counter). Everything timed in ticks scales with this — derived values
- *   below (TICKS_PER_DAY, NODE_RESPAWN_TICKS, SAVE_EVERY_TICKS) are tuned
- *   against TICK_MS = 2000, so a full in-game day is ~2 minutes and the
- *   energy bar fills in ~3.3 minutes of idle time.
+ *   below (TICKS_PER_DAY, SAVE_EVERY_TICKS) are tuned against
+ *   TICK_MS = 2000, so a full in-game day is ~2 minutes and the energy
+ *   bar fills in ~3.3 minutes of idle time.
  * ACTION_TICKS is counted in *render frames*, not game ticks, so skill
  *   actions stay a constant ~1 s regardless of TICK_MS tuning.
  */
@@ -93,9 +93,6 @@
 /* Renderer */
 #define TD_FEET_OFF  7.0f    /* iso depth-sort Y offset for player feet */
 #define TD_ISO_CULL  100     /* extra pixels beyond screen edge for tile culling */
-
-/* Node respawn (TICK_MS = 2000 ⇒ 60 s before a depleted tile regrows) */
-#define NODE_RESPAWN_TICKS 30
 
 /* Item fly animation */
 #define MAX_ITEM_FLIES    4

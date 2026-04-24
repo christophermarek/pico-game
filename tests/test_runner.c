@@ -75,16 +75,17 @@ static void test_world(void) {
     T(w.node_hp[idx] == 3);
     T(!world_hit_node(&w, 4, 13));    /* hit 1 — still alive */
     T(w.node_hp[idx] == 2);
-    T(w.node_respawn[idx] == 0);
+    T(!world_node_depleted(&w, 4, 13));
     T(!world_hit_node(&w, 4, 13));    /* hit 2 — still alive */
     T(w.node_hp[idx] == 1);
     T(world_hit_node(&w, 4, 13));     /* hit 3 — returns true (depleted) */
-    T(w.node_respawn[idx] > 0);
+    T(world_node_depleted(&w, 4, 13));
+    T(w.tile_destroy_timer[idx] == TILE_DESTROY_FRAMES);
 
-    /* Respawn restores HP. */
-    for (int i = 0; i < NODE_RESPAWN_TICKS; i++) world_tick(&w);
-    T(w.node_respawn[idx] == 0);
-    T(w.node_hp[idx] == world_node_max_hp(T_TREE));
+    /* Depletion is permanent — no respawn, HP stays at 0. */
+    for (int i = 0; i < 60; i++) world_anim_tick(&w);
+    T(w.node_hp[idx] == 0);
+    T(w.tile_destroy_timer[idx] == 0); /* destroy burst timer ran out */
 
     /* Hit-flash timer advances via world_anim_tick. */
     world_anim_on_hit(&w, 4, 13);

@@ -7,8 +7,7 @@
       "grid": [
         ["tiles/water_0", "tiles/water_1", "tiles/water_2", "tiles/water_3"],
         ["tiles/grass",   "tiles/path",    "tiles/sand",    "tiles/tree"],
-        ["tiles/rock",    "tiles/ore",     "tiles/flower",  "tiles/tgrass"],
-        ["tiles/depleted", null,            null,            null]
+        ["tiles/rock",    "tiles/ore",     "tiles/flower",  "tiles/tgrass"]
       ]
     },
     {

@@ -21,6 +21,42 @@ static void draw_hit_flash(int sx, int sy, uint8_t tile_id)
     hal_fill_rect(sx,     cy - 3, 1, 6, C_WHITE);
 }
 
+/*
+ * Burst-of-particles played once when a node is finished off. 8 dots on
+ * a circle expand outward over TILE_DESTROY_FRAMES and fade through a
+ * tile-type-coloured gradient. Drawn on bare ground (the onlay already
+ * cleared on depletion).
+ */
+static void draw_destroy_burst(int sx, int sy, uint8_t tile_id,
+                               uint8_t timer_left)
+{
+    /* Colour per node — picked to match the sprite's dominant tone. */
+    uint16_t core, rim;
+    switch (tile_id) {
+        case T_TREE:   core = HEX(0x86efac); rim = HEX(0x3f6212); break; /* leaf */
+        case T_ROCK:   core = HEX(0xe5e7eb); rim = HEX(0x6b7280); break; /* stone */
+        case T_ORE:    core = HEX(0xfbbf24); rim = HEX(0x92400e); break; /* ore spark */
+        case T_TGRASS: core = HEX(0xbef264); rim = HEX(0x3f6212); break; /* blade */
+        case T_WATER:  core = HEX(0xbae6fd); rim = HEX(0x1e3a8a); break; /* splash */
+        default:       core = C_WHITE;       rim = HEX(0x3a3a3a); break;
+    }
+
+    int phase = TILE_DESTROY_FRAMES - (int)timer_left;   /* 0..N-1 */
+    int r     = phase + 2;                                /* expanding px */
+    uint16_t c = (phase < TILE_DESTROY_FRAMES / 2) ? core : rim;
+
+    /* 8 directions on a rough iso-flattened ring (y squashed 2:1). */
+    static const int8_t DIRS[8][2] = {
+        {  2,  0}, {  2,  1}, {  0,  1}, { -2,  1},
+        { -2,  0}, { -2, -1}, {  0, -1}, {  2, -1},
+    };
+    for (int i = 0; i < 8; i++) {
+        int px = sx + (DIRS[i][0] * r) / 2;
+        int py = sy - 8 + (DIRS[i][1] * r) / 2;
+        hal_fill_rect(px - 1, py - 1, 2, 2, c);
+    }
+}
+
 /* Row of pips above the ground line showing remaining node HP. */
 static void draw_hp_pips(int sx, int sy, uint8_t hp, uint8_t max_hp)
 {
@@ -240,30 +276,32 @@ static void render_topdown(GameState *s, const World *w)
             player_drawn = true;
         }
 
-        bool depleted = (w->node_respawn[idx] > 0);
-
-        /* Tall grass: on depletion, the whole sprite disappears — the grass
-         * ground already drew in the full pass, so we skip onlay AND stump.
-         * Everything else draws its overlay sprite; trees keep the stump. */
-        if (depleted && tile == T_TGRASS) continue;
+        /* Depleted nodes clear entirely — skip the onlay, leaving bare
+         * floor. Still play the destroy burst if the timer is running
+         * (one-shot particle shower on the final hit). */
+        if (world_node_depleted(w, tx, ty)) {
+            if (w->tile_destroy_timer[idx] > 0)
+                draw_destroy_burst(sx, sy, tile, w->tile_destroy_timer[idx]);
+            continue;
+        }
 
         int shake_ox = 0;
         if (s->skilling && s->action_node_x == tx && s->action_node_y == ty)
             shake_ox = ((s->frame_count / 3) & 1) ? 1 : -1;
 
+        /* Tall-grass sway: 1 px wobble when the player is moving through
+         * this tile. Cheap per-tile check, no new state. */
+        if (tile == T_TGRASS && s->td.tile_x == tx && s->td.tile_y == ty &&
+            s->td.walk_frame > 0.01f)
+            shake_ox += ((s->frame_count / 3) & 1) ? 1 : -1;
+
         iso_draw_tile_onlay(tile, sx + shake_ox, sy);
 
-        if (depleted) {
-            if (tile == T_TREE) iso_draw_depleted_mark(sx, sy);
-            /* Rocks/ore/water don't get the stump — their onlay itself
-             * reads as "used" when we skip HP feedback. */
-        } else {
-            if (w->tile_hit_timer[idx] > 0)
-                draw_hit_flash(sx, sy, tile);
-            uint8_t max_hp = world_node_max_hp(tile);
-            if (max_hp > 1 && w->node_hp[idx] < max_hp)
-                draw_hp_pips(sx, sy, w->node_hp[idx], max_hp);
-        }
+        if (w->tile_hit_timer[idx] > 0)
+            draw_hit_flash(sx, sy, tile);
+        uint8_t max_hp = world_node_max_hp(tile);
+        if (max_hp > 1 && w->node_hp[idx] < max_hp)
+            draw_hp_pips(sx, sy, w->node_hp[idx], max_hp);
     }
     if (!player_drawn) {
         iso_draw_td_player_char(player_sx, player_sy, s->td.screen_dir,
