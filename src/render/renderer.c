@@ -120,6 +120,45 @@ static void draw_crack_overlay(int sx, int sy, uint8_t hp, uint8_t max_hp)
     hal_fill_rect(cx,     cy - 5, 1, 1, c);
 }
 
+/*
+ * Tool held in the player's hand while skilling. Tool is picked from the
+ * target-tile type; position is offset by screen facing; a cheap swing
+ * oscillation runs off frame_count.
+ */
+static void render_action_tool(const GameState *s, const World *w,
+                               int player_sx, int player_sy)
+{
+    if (!s->skilling) return;
+
+    uint8_t tile = world_tile(w, s->action_node_x, s->action_node_y);
+    item_id_t tool;
+    switch (tile) {
+        case T_TREE:   tool = ITEM_AXE;         break;
+        case T_ROCK:
+        case T_ORE:    tool = ITEM_PICKAXE;     break;
+        case T_WATER:  tool = ITEM_FISHING_ROD; break;
+        case T_TGRASS: tool = ITEM_SHEARS;      break;
+        default: return;
+    }
+
+    /* Tool icon top-left (16x16), offset from player feet by facing. */
+    int tx, ty;
+    switch (s->td.screen_dir) {
+        case DIR_LEFT:  tx = player_sx - 16; ty = player_sy - 12; break;
+        case DIR_RIGHT: tx = player_sx;      ty = player_sy - 12; break;
+        case DIR_UP:    tx = player_sx - 2;  ty = player_sy - 18; break;
+        case DIR_DOWN:
+        default:        tx = player_sx - 6;  ty = player_sy - 4;  break;
+    }
+
+    /* Swing: ±2px orthogonal to the facing axis. */
+    int swing = ((s->frame_count / 3) & 1) ? -2 : 2;
+    if (s->td.screen_dir == DIR_LEFT || s->td.screen_dir == DIR_RIGHT) ty += swing;
+    else                                                                tx += swing;
+
+    iso_draw_item_icon(tool, tx, ty);
+}
+
 /* Parabola-arc item sprites flying from a node to the hotbar. */
 static void render_item_flies(const GameState *s, const TdCamBasis *cam)
 {
@@ -247,6 +286,8 @@ static void render_topdown(GameState *s, const World *w)
                     &player_sx, &player_sy);
     iso_draw_td_player_char(player_sx, player_sy, s->td.screen_dir,
                             (uint8_t)s->td.walk_frame);
+
+    render_action_tool(s, w, player_sx, player_sy);
 
     if (s->skilling) {
         float progress = 1.0f - (float)s->action_ticks_left / (float)ACTION_TICKS;

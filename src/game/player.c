@@ -86,12 +86,9 @@ static inline bool td_collides(const World *w, float x, float y) {
 }
 
 static void facing_tile(const GameState *s, int *out_tx, int *out_ty) {
-    /* Recompute world direction at call time so camera rotations while the
-     * player is standing still don't leave td.dir stale. */
-    uint8_t world_dir = DIR_MAP[s->td.screen_dir & 3u][s->td_cam_bearing & 3u];
     int tx = s->td.tile_x;
     int ty = s->td.tile_y;
-    switch (world_dir) {
+    switch (s->td.dir) {
         case DIR_UP:    ty--; break;
         case DIR_DOWN:  ty++; break;
         case DIR_LEFT:  tx--; break;
