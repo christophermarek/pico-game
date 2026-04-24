@@ -130,6 +130,13 @@ static void draw_tile_hitboxes(const GameState *s, const World *w,
     }
 }
 
+/* Two arrows:
+ *  - yellow world-space line, foot → facing-tile centre. Shows WHERE the
+ *    action lands in the world (the arrow shifts visually when the
+ *    camera rotates, but always points at the same world tile).
+ *  - green SCREEN-space arrow off the sprite, ±20 px in the direction
+ *    the sprite is facing on the monitor. Unambiguous "this is
+ *    screen_dir" indicator that stays glued to the character. */
 static void draw_facing_arrow(const GameState *s, const TdCamBasis *cam)
 {
     int psx, psy;
@@ -147,6 +154,18 @@ static void draw_facing_arrow(const GameState *s, const TdCamBasis *cam)
     int fsx, fsy;
     world_to_screen(s, cam, ftx, fty, &fsx, &fsy);
     draw_line(psx, psy, fsx, fsy, HEX(0xfbbf24));
+
+    int sx = 0, sy = 0;
+    switch (s->td.screen_dir) {
+        case DIR_DOWN:  sy = +20; break;
+        case DIR_UP:    sy = -20; break;
+        case DIR_LEFT:  sx = -20; break;
+        case DIR_RIGHT: sx = +20; break;
+    }
+    uint16_t green = HEX(0x22c55e);
+    draw_line(psx, psy - 8, psx + sx, psy - 8 + sy, green);
+    /* 3×3 tip marker at the arrow head. */
+    hal_fill_rect(psx + sx - 1, psy - 8 + sy - 1, 3, 3, green);
 }
 
 static void draw_collision_panel(const GameState *s, const World *w,
