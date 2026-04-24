@@ -41,6 +41,14 @@
           "items/shears"
         ]
       ]
+    },
+    {
+      "output": "assets_ui.png",
+      "cell_w": 8,
+      "cell_h": 8,
+      "grid": [
+        [ "ui/heart", "ui/bolt" ]
+      ]
     }
   ]
 }

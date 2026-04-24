@@ -29,3 +29,12 @@ bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame);
 bool iso_draw_item_icon(item_id_t id, int sx, int sy);
 bool iso_draw_item_icon_scaled(item_id_t id, int sx, int sy,
                                int sn, int sd, IconOrient orient);
+
+/* Small HUD glyphs — 8x8, edit via assets/sprites/ui/ PNGs. */
+typedef enum {
+    UI_ICON_HEART = 0,
+    UI_ICON_BOLT,
+    UI_ICON_COUNT,
+} UiIcon;
+
+bool iso_draw_ui_icon(UiIcon icon, int sx, int sy);

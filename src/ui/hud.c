@@ -1,5 +1,4 @@
 #include "hud.h"
-#include "icons.h"
 #include "hal.h"
 #include "colors.h"
 #include "config.h"
@@ -47,11 +46,11 @@ static void draw_stats(const GameState *s) {
     int x  = HUD_STAT_X;
     int y  = HUD_STAT_Y;
 
-    draw_icon(ICON_HEART, x, y, C_HP_GREEN);
+    iso_draw_ui_icon(UI_ICON_HEART, x, y);
     draw_bar(x + 10, y + 1, HUD_BAR_W, HUD_BAR_H,
              s->hp, s->max_hp, C_HP_GREEN);
 
-    draw_icon(ICON_BOLT, x, y + HUD_BAR_ROW_GAP, C_ENERGY_BLUE);
+    iso_draw_ui_icon(UI_ICON_BOLT, x, y + HUD_BAR_ROW_GAP);
     draw_bar(x + 10, y + HUD_BAR_ROW_GAP + 1, HUD_BAR_W, HUD_BAR_H,
              s->energy, STAT_MAX, C_ENERGY_BLUE);
 }
@@ -77,21 +76,17 @@ static void draw_log(const GameState *s) {
     font_draw_str(str, x, HUD_STAT_Y, C_TEXT_WHITE, 1);
 }
 
-/* ── Coordinates (top-right) ─────────────────────────────────────────────── */
+/* ── Debug coordinates (top-right, debug mode only) ─────────────────────── */
 
 static void draw_top_right(const GameState *s) {
+    if (!s->debug_mode) return;
+    static const char DIR_CH[4] = { 'D', 'U', 'L', 'R' };
     char coords[28];
-    if (s->debug_mode) {
-        static const char DIR_CH[4] = { 'D', 'U', 'L', 'R' };
-        snprintf(coords, sizeof(coords), "%d,%d s%c w%c c%d",
-                 (int)s->td.tile_x, (int)s->td.tile_y,
-                 DIR_CH[s->td.screen_dir & 3],
-                 DIR_CH[s->td.dir        & 3],
-                 (int)s->td_cam_bearing);
-    } else {
-        snprintf(coords, sizeof(coords), "%d,%d",
-                 (int)s->td.tile_x, (int)s->td.tile_y);
-    }
+    snprintf(coords, sizeof(coords), "%d,%d s%c w%c c%d",
+             (int)s->td.tile_x, (int)s->td.tile_y,
+             DIR_CH[s->td.screen_dir & 3],
+             DIR_CH[s->td.dir        & 3],
+             (int)s->td_cam_bearing);
     draw_str_right(coords, DISPLAY_W - 4, HUD_STAT_Y, C_TEXT_DIM);
 }
 

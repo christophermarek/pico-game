@@ -15,7 +15,7 @@ typedef struct {
     bool tried;
 } PngAtlas;
 
-static PngAtlas g_tiles, g_chars, g_items;
+static PngAtlas g_tiles, g_chars, g_items, g_ui;
 
 #define ISO_TILE_W  64
 #define ISO_TILE_H  48
@@ -68,6 +68,12 @@ static bool load_items(void)
 {
     try_load_atlas(&g_items, "assets_items.png", "build/assets_items.png");
     return g_items.loaded;
+}
+
+static bool load_ui(void)
+{
+    try_load_atlas(&g_ui, "assets_ui.png", "build/assets_ui.png");
+    return g_ui.loaded;
 }
 
 static void draw_png_frame(const PngAtlas *a, const PngFrame *f, int ax, int ay)
@@ -271,5 +277,24 @@ bool iso_draw_item_icon_scaled(item_id_t id, int sx, int sy,
     PngFrame f;
     item_frame(id, &f);
     draw_png_frame_scaled(&g_items, &f, sx, sy, sn, sd, orient);
+    return true;
+}
+
+#define UI_ICON_W 8
+#define UI_ICON_H 8
+
+bool iso_draw_ui_icon(UiIcon icon, int sx, int sy)
+{
+    if (icon < 0 || icon >= UI_ICON_COUNT) return false;
+    if (!load_ui()) return false;
+    PngFrame f = {
+        .x  = (int)icon * UI_ICON_W,
+        .y  = 0,
+        .w  = UI_ICON_W,
+        .h  = UI_ICON_H,
+        .ox = 0,
+        .oy = 0,
+    };
+    draw_png_frame(&g_ui, &f, sx, sy);
     return true;
 }
