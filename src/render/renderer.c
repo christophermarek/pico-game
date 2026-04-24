@@ -155,7 +155,20 @@ static void render_action_tool(const GameState *s, const World *w,
         default:        orient = ICON_ORIENT_R; break;
     }
 
-    iso_draw_item_icon_scaled(a->tool,
+    /* Find the best-tier item of the required kind in the player's bag,
+     * so the drawn icon reflects what's actually swinging. */
+    item_id_t tool_item = ITEM_NONE;
+    uint8_t   best_tier = 0;
+    for (int i = 0; i < INV_SLOTS; i++) {
+        item_id_t id = s->inv.slots[i].id;
+        if (id == ITEM_NONE) continue;
+        const item_def_t *d = &ITEM_DEFS[id];
+        if (d->tool == a->tool && d->tier > best_tier) {
+            tool_item = id; best_tier = d->tier;
+        }
+    }
+
+    iso_draw_item_icon_scaled(tool_item,
                               cx - TOOL_ICON_DRAWN / 2,
                               cy - TOOL_ICON_DRAWN / 2,
                               TOOL_ICON_NUM, TOOL_ICON_DEN, orient);

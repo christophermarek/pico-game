@@ -235,11 +235,11 @@ void menu_render(GameState *s) {
                 /* Atlas not loaded — fall back to the item's first letter. */
                 char ch[2] = { ITEM_DEFS[sl->id].name[0], '\0' };
                 font_draw_str(ch, icon_x + 4, icon_y + 5,
-                              ITEM_DEFS[sl->id].is_tool ? C_GOLD : C_TEXT_MAIN, 1);
+                              item_is_tool(&ITEM_DEFS[sl->id]) ? C_GOLD : C_TEXT_MAIN, 1);
             }
 
             /* Count to the right of the icon (resources only; tools have no count). */
-            if (!ITEM_DEFS[sl->id].is_tool && sl->count > 1) {
+            if (!item_is_tool(&ITEM_DEFS[sl->id]) && sl->count > 1) {
                 char cnt[5]; int n = 0, v = sl->count;
                 if (v >= 100) cnt[n++] = (char)('0' + v / 100);
                 if (v >= 10)  cnt[n++] = (char)('0' + (v / 10) % 10);
@@ -254,7 +254,7 @@ void menu_render(GameState *s) {
             const inv_slot_t *sel = &s->inv.slots[s->menu_cursor];
             if (sel->id != ITEM_NONE && sel->count > 0) {
                 font_draw_str(ITEM_DEFS[sel->id].name, 5, info_y, C_TEXT_WHITE, 1);
-                if (!ITEM_DEFS[sel->id].is_tool) {
+                if (!item_is_tool(&ITEM_DEFS[sel->id])) {
                     char cnt[12]; int n = 0, v = sel->count;
                     cnt[n++] = 'x';
                     if (v >= 100) cnt[n++] = (char)('0' + v / 100);

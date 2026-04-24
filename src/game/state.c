@@ -3,8 +3,31 @@
 #include "hal.h"
 #include <string.h>
 
+/*
+ * OSRS XP curve, levels 1..99. Reference formula:
+ *   xp(L) = floor( sum_{i=1}^{L-1} floor(i + 300 * 2^(i/7)) / 4 )
+ * Precomputed so runtime is a 4-byte table lookup, no float math.
+ */
+static const uint32_t XP_TABLE[99] = {
+             0u,         83u,        174u,        276u,        388u,        512u,        650u,        801u,
+           969u,       1154u,       1358u,       1584u,       1833u,       2107u,       2411u,       2746u,
+          3115u,       3523u,       3973u,       4470u,       5018u,       5624u,       6291u,       7028u,
+          7842u,       8740u,       9730u,      10824u,      12031u,      13363u,      14833u,      16456u,
+         18247u,      20224u,      22406u,      24815u,      27473u,      30408u,      33648u,      37224u,
+         41171u,      45529u,      50339u,      55649u,      61512u,      67983u,      75127u,      83014u,
+         91721u,     101333u,     111945u,     123660u,     136594u,     150872u,     166636u,     184040u,
+        203254u,     224466u,     247886u,     273742u,     302288u,     333804u,     368599u,     407015u,
+        449428u,     496254u,     547953u,     605032u,     668051u,     737627u,     814445u,     899257u,
+        992895u,    1096278u,    1210421u,    1336443u,    1475581u,    1629200u,    1798808u,    1986068u,
+       2192818u,    2421087u,    2673114u,    2951373u,    3258594u,    3597792u,    3972294u,    4385776u,
+       4842295u,    5346332u,    5902831u,    6517253u,    7195629u,    7944614u,    8771558u,    9684577u,
+      10692629u,   11805606u,   13034431u,
+};
+
 uint32_t xp_for_level(uint8_t level) {
-    return (uint32_t)level * level * 10u + (uint32_t)level * 20u;
+    if (level < 1)  level = 1;
+    if (level > SKILL_LEVEL_CAP) level = SKILL_LEVEL_CAP;
+    return XP_TABLE[level - 1u];
 }
 
 void state_init(GameState *s) {

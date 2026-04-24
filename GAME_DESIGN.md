@@ -421,6 +421,99 @@ The design above is the contract. Order we build:
 9. **Workshop + steel + diamond groundwork.** Beats 7 & 8
    foundations.
 10. **Boss + ending screen.** Beat 8 complete. **Ship.**
+11. **Production-readiness pass.** Full codebase review before we cut
+    any "1.0" tag. See the review checklist below.
 
 Between each milestone: playtest, update this doc if something locked
 turned out to be wrong.
+
+---
+
+## Production-readiness review (milestone 11, explicit)
+
+Before tagging 1.0 we do a full pass, not incremental cleanup. The pass
+is structured — same checklist every time — so reviewers (human or
+agent) run the same playbook and produce comparable reports.
+
+### Scope
+
+Every file under `src/`, `tests/`, `tools/`, `assets/`, plus the
+top-level `Makefile`, `CMakeLists.txt`, `pico/CMakeLists.txt`,
+`.gitignore`, and the docs. No skipping.
+
+### Three-agent review protocol
+
+Run in parallel, each gets the full diff / file set as context:
+
+1. **Reuse / duplication.** Look for logic that's duplicated across
+   files, inline helpers that should use an existing utility, tables
+   that should merge, switch statements repeated in different
+   callers. Output: file:line list + concrete consolidation.
+2. **Code quality.** Dead parameters, stale comments, unused fields,
+   stringly-typed values where an enum exists, structs that could be
+   smaller, functions that should be static, redundant state. Output:
+   file:line + specific fix.
+3. **Efficiency + Pico-fitness.** Per-frame float math in hot paths,
+   per-frame scans that should be event-driven, unbounded memory,
+   large stack locals (Pico has 4 KB), stdio in the game-loop path,
+   heap allocations anywhere. Output: file:line + measured or
+   estimated cost.
+
+### Artifact & file hygiene (always cut)
+
+Explicitly delete if found:
+
+- Dead commented-out code blocks
+- Comments that narrate what the code obviously does
+- Unused `static` helpers, unused `#define`s, unused typedefs, unused
+  struct fields
+- `TODO` / `FIXME` that have no owner and no plan
+- Build artefacts under `build/` committed to git
+- `.DS_Store`, `__pycache__`, `.pyc`, editor swap files
+- `pico_assets/*` stale atlas dumps that no longer match `manifest.json`
+- Placeholder-generator scripts (we commit placeholders, not generators)
+- Any file the build doesn't reference and isn't listed as an asset
+
+### Correctness checks (the rules)
+
+- Every public function in a `.h` has a one-sentence doc comment or a
+  name so obvious the comment would just repeat it.
+- Every `.h` is self-contained (compiles standalone) and minimises
+  transitive includes.
+- `static` everything that isn't called from another `.c`.
+- No global mutable state outside `GameState`, `World`, and
+  module-local `static` scratch buffers. No new file-scope `static`
+  state without a comment explaining why.
+- No heap allocation in the game loop. Verify with a grep for
+  `malloc`/`calloc`/`realloc`/`strdup`.
+- No `fprintf` / `printf` / `stdio` behind `PICO_BUILD`.
+- `hal_fill_rect` / `hal_pixel` are the ONLY drawing primitives the
+  game touches. Anything else → HAL boundary violation.
+- All per-frame float math (hypotf, sinf, cosf, division) is
+  accounted for; flag anything that runs every frame without a
+  profile justification comment.
+
+### Structure & organisation
+
+- Folders: `src/game/`, `src/render/`, `src/ui/`, `src/` for the HAL
+  and main. Nothing else. If a file wants to live elsewhere, argue
+  it in the PR.
+- Naming: `snake_case` functions, `UPPER_SNAKE` macros, `PascalCase`
+  types. No exceptions except legacy field names in existing
+  structs (fix in the review pass if spotted).
+- No file over 500 lines without a justification comment at the top.
+- Headers import only what they need; implementation files close
+  their includes on the last line that uses them.
+
+### Deliverables of the review
+
+- Single commit with all the deletions + consolidations.
+- Short `REVIEW_YYYY_MM_DD.md` summary (NOT retained after tag — it's
+  a changelog for that pass) listing what was found and what was cut.
+- Test suite still green; sim still runs identically.
+- `GAME_DESIGN.md` updated if any systems turned out to be redundant
+  or unused at tag time.
+
+The review is not incremental maintenance. It's a discrete milestone
+with its own "done" criteria, and it ships **in its own PR** separate
+from any feature work.

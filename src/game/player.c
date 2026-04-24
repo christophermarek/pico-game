@@ -367,9 +367,44 @@ static TargetKind find_action_target(const GameState *s, const World *w,
     return TARGET_NONE;
 }
 
-/* Slot index where a given tool icon lives (AXE→4, PICKAXE→5, etc.). */
-static uint8_t tool_slot(item_id_t tool) {
-    return (uint8_t)(TOOL_SLOT_START + (tool - ITEM_AXE));
+/* Canonical hotbar slot for a tool kind (axe → 4, pickaxe → 5, rod → 6,
+ * shears → 7). Matches inventory_init_default layout. Used for the
+ * hotbar active-slot highlight during skilling. */
+static uint8_t hotbar_slot_for_kind(tool_kind_t k) {
+    switch (k) {
+    case TOOL_AXE:     return TOOL_SLOT_START + 0;
+    case TOOL_PICKAXE: return TOOL_SLOT_START + 1;
+    case TOOL_ROD:     return TOOL_SLOT_START + 2;
+    case TOOL_SHEARS:  return TOOL_SLOT_START + 3;
+    case TOOL_SWORD:   return TOOL_SLOT_START + 0; /* no dedicated sword slot yet */
+    default:           return TOOL_SLOT_START;
+    }
+}
+
+static const char *SKILL_DISPLAY_NAME[SKILL_COUNT] = {
+    [SK_MINING]  = "Mining",
+    [SK_FISHING] = "Fishing",
+    [SK_WOODCUT] = "Woodcut",
+};
+
+static const char *TOOL_DISPLAY_NAME[] = {
+    [TOOL_NONE]    = "tool",
+    [TOOL_AXE]     = "axe",
+    [TOOL_PICKAXE] = "pickaxe",
+    [TOOL_ROD]     = "rod",
+    [TOOL_SHEARS]  = "shears",
+    [TOOL_SWORD]   = "sword",
+};
+
+/* Compose a log message into s->log_msg. Keeps ALL messages out of
+ * banged-together character buffers scattered through the codebase. */
+static void log_fmt(GameState *s, const char *a, const char *b) {
+    char msg[36];
+    int i = 0;
+    while (*a && i < (int)sizeof(msg) - 1) msg[i++] = *a++;
+    while (*b && i < (int)sizeof(msg) - 1) msg[i++] = *b++;
+    msg[i] = '\0';
+    state_log(s, msg);
 }
 
 void player_do_action(GameState *s, World *w) {
@@ -381,25 +416,33 @@ void player_do_action(GameState *s, World *w) {
     const NodeAction *a = action_for_tile(world_tile(w, tx, ty));
     if (!a) return; /* shouldn't happen — find_action_target filters */
 
-    if (!inventory_has_tool(&s->inv, a->tool)) {
-        char msg[36];
-        const char *n = ITEM_DEFS[a->tool].name;
+    /* Level gate. */
+    if (s->skills[a->skill].level < a->level_required) {
+        char buf[36];
         int i = 0;
-        msg[i++] = 'N'; msg[i++] = 'e'; msg[i++] = 'e'; msg[i++] = 'd'; msg[i++] = ' ';
-        while (*n && i < 33) msg[i++] = *n++;
-        msg[i++] = '!'; msg[i] = '\0';
-        state_log(s, msg);
+        const char *p = "Your ";  while (*p && i < 35) buf[i++] = *p++;
+        p = SKILL_DISPLAY_NAME[a->skill]; while (*p && i < 35) buf[i++] = *p++;
+        p = " is too low";        while (*p && i < 35) buf[i++] = *p++;
+        buf[i] = '\0';
+        state_log(s, buf);
+        return;
+    }
+
+    /* Tool gate — any tier of the right kind counts. */
+    uint8_t tier = inventory_best_tool_tier(&s->inv, a->tool);
+    if (tier == 0) {
+        log_fmt(s, "Need a ", TOOL_DISPLAY_NAME[a->tool]);
         return;
     }
 
     state_log(s, a->msg_start);
 
-    s->active_slot       = tool_slot(a->tool);
+    s->active_slot       = hotbar_slot_for_kind(a->tool);
     s->skilling          = true;
     s->active_skill      = a->skill;
     s->action_node_x     = (int16_t)tx;
     s->action_node_y     = (int16_t)ty;
-    s->action_ticks_left = ACTION_TICKS;
+    s->action_ticks_left = action_ticks_for_tier(tier);
 }
 
 bool player_peek_action_target(const GameState *s, const World *w,

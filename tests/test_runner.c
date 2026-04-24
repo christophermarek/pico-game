@@ -102,14 +102,16 @@ static void test_inventory(void) {
     Inventory inv;
     inventory_init_default(&inv);
 
-    /* Tools pre-loaded in slots 4–7. */
-    T(inv.slots[TOOL_SLOT_START + 0].id == ITEM_AXE);
-    T(inv.slots[TOOL_SLOT_START + 1].id == ITEM_PICKAXE);
-    T(inv.slots[TOOL_SLOT_START + 2].id == ITEM_FISHING_ROD);
+    /* Development loadout pre-places the tier-1 tool kit. */
+    T(inv.slots[TOOL_SLOT_START + 0].id == ITEM_BRONZE_AXE);
+    T(inv.slots[TOOL_SLOT_START + 1].id == ITEM_BRONZE_PICKAXE);
+    T(inv.slots[TOOL_SLOT_START + 2].id == ITEM_BRONZE_ROD);
     T(inv.slots[TOOL_SLOT_START + 3].id == ITEM_SHEARS);
-    T(inventory_has_tool(&inv, ITEM_AXE));
+    T(inventory_has_tool(&inv, ITEM_BRONZE_AXE));
     T(inventory_has_tool(&inv, ITEM_SHEARS));
     T(!inventory_has_tool(&inv, ITEM_COIN));
+    T(inventory_best_tool_tier(&inv, TOOL_AXE) == 1);
+    T(inventory_best_tool_tier(&inv, TOOL_SWORD) == 0); /* no starter sword */
 
     /* First resource lands in a free non-tool slot; returns that slot. */
     int s1 = inventory_add(&inv, ITEM_OAK_LOG, 1);

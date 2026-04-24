@@ -143,7 +143,7 @@ static void draw_hotbar(const GameState *s) {
         }
 
         /* Count badge (skip for tools and count=1 resources) */
-        if (!ITEM_DEFS[slot->id].is_tool && slot->count > 1) {
+        if (!item_is_tool(&ITEM_DEFS[slot->id]) && slot->count > 1) {
             char cnt[5];
             snprintf(cnt, sizeof(cnt), "%u", (unsigned)slot->count);
             int cw = font_str_width(cnt, 1);
