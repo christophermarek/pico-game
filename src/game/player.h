@@ -9,3 +9,9 @@ void player_stop_action(GameState *s);
 
 bool player_collide_who(const World *w, float x, float y,
                         int *out_tx, int *out_ty, char *out_kind);
+
+/* Probe the tile that player_do_action would act on right now, without
+ * starting an action. Returns true for a live actionable node, false
+ * otherwise (including depleted). Used by debug overlay. */
+bool player_peek_action_target(const GameState *s, const World *w,
+                               int *out_tx, int *out_ty);

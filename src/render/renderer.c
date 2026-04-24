@@ -153,15 +153,21 @@ static void render_action_tool(const GameState *s, const World *w,
     int lift  = (phase == 0) ? -2 : (phase == 1) ? -1 : (phase == 2) ? 0 : -1;
     cy += lift;
 
-    /* Flip the tool sprite when the player faces screen-left so the
-     * blade/head points AWAY from the body (our items are drawn facing
-     * right in the atlas). */
-    bool flip = (s->td.screen_dir == DIR_LEFT);
+    /* Pick an orientation so the blade/head always points away from the
+     * body. Atlas art is right-facing. */
+    IconOrient orient;
+    switch (s->td.screen_dir) {
+        case DIR_LEFT:  orient = ICON_ORIENT_L; break;
+        case DIR_UP:    orient = ICON_ORIENT_U; break;
+        case DIR_DOWN:  orient = ICON_ORIENT_D; break;
+        case DIR_RIGHT:
+        default:        orient = ICON_ORIENT_R; break;
+    }
 
     iso_draw_item_icon_scaled(a->tool,
                               cx - TOOL_ICON_DRAWN / 2,
                               cy - TOOL_ICON_DRAWN / 2,
-                              TOOL_ICON_NUM, TOOL_ICON_DEN, flip);
+                              TOOL_ICON_NUM, TOOL_ICON_DEN, orient);
 }
 
 /* Parabola-arc item sprites flying from a node to the hotbar. */

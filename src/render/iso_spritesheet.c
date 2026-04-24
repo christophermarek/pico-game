@@ -90,8 +90,15 @@ static void draw_png_frame(const PngAtlas *a, const PngFrame *f, int ax, int ay)
     }
 }
 
+/*
+ * orient selects how the output pixel (dx, dy) maps back to the source
+ * frame. For rotations (D/U), the output's w is compared against the
+ * source's h (and vice-versa) — this is safe because all rotation-using
+ * callers are square. A non-square sprite passed with D/U would read
+ * outside the source; we document that limitation on the public API.
+ */
 static void draw_png_frame_scaled(const PngAtlas *a, const PngFrame *f, int ax, int ay,
-                                  int sn, int sd, bool flip_x)
+                                  int sn, int sd, IconOrient orient)
 {
     if (!a->loaded || !a->img.rgba || sn <= 0 || sd <= 0) return;
     if (f->x < 0 || f->y < 0 || f->x + f->w > a->img.w || f->y + f->h > a->img.h) return;
@@ -106,13 +113,25 @@ static void draw_png_frame_scaled(const PngAtlas *a, const PngFrame *f, int ax, 
     for (int dy = 0; dy < out_h; dy++) {
         int screen_y = oy0 + dy;
         if (screen_y < 0 || screen_y >= DISPLAY_H) continue;
-        int src_y = f->y + (dy * f->h) / out_h;
         for (int dx = 0; dx < out_w; dx++) {
             int screen_x = ox0 + dx;
             if (screen_x < 0 || screen_x >= DISPLAY_W) continue;
-            int read_dx = flip_x ? (out_w - 1 - dx) : dx;
-            int src_x = f->x + (read_dx * f->w) / out_w;
-            int src = (src_y * a->img.w + src_x) * 4;
+
+            int sample_x, sample_y;
+            switch (orient) {
+                default:
+                case ICON_ORIENT_R:
+                    sample_x = dx;              sample_y = dy;            break;
+                case ICON_ORIENT_L:
+                    sample_x = out_w - 1 - dx;  sample_y = dy;            break;
+                case ICON_ORIENT_D:              /* 90° CW */
+                    sample_x = dy;              sample_y = out_w - 1 - dx; break;
+                case ICON_ORIENT_U:              /* 90° CCW */
+                    sample_x = out_h - 1 - dy;  sample_y = dx;            break;
+            }
+            int src_x = f->x + (sample_x * f->w) / out_w;
+            int src_y = f->y + (sample_y * f->h) / out_h;
+            int src   = (src_y * a->img.w + src_x) * 4;
             if (a->img.rgba[src + 3] < 16) continue;
             hal_pixel(screen_x, screen_y,
                       RGB565(a->img.rgba[src], a->img.rgba[src+1], a->img.rgba[src+2]));
@@ -218,7 +237,8 @@ bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame)
     if (!load_chars()) return false;
     uint8_t d = (dir > DIR_RIGHT) ? DIR_DOWN : dir;
     draw_png_frame_scaled(&g_chars, &PNG_TD_PLAYER[d * 2u + (walk_frame & 1u)],
-                          sx, sy, CHAR_SCALE_NUM, CHAR_SCALE_DEN, false);
+                          sx, sy, CHAR_SCALE_NUM, CHAR_SCALE_DEN,
+                          ICON_ORIENT_R);
     return true;
 }
 
@@ -237,18 +257,19 @@ static void item_frame(item_id_t id, PngFrame *f)
 
 bool iso_draw_item_icon(item_id_t id, int sx, int sy)
 {
-    return iso_draw_item_icon_scaled(id, sx, sy, 1, 1, false);
+    return iso_draw_item_icon_scaled(id, sx, sy, 1, 1, ICON_ORIENT_R);
 }
 
-/* Scale num/den (e.g. 2/3 ⇒ 16→~11 px). flip_x mirrors horizontally — used
- * for the tool-in-hand render so the tool points the way the player faces. */
+/* sn/sd = scale (e.g. 2/3 ⇒ 16→~11 px). orient picks which of the four
+ * right/left/down/up presentations the atlas-right-facing source maps to.
+ * Items are 16×16 so rotation stays in-bounds. */
 bool iso_draw_item_icon_scaled(item_id_t id, int sx, int sy,
-                               int sn, int sd, bool flip_x)
+                               int sn, int sd, IconOrient orient)
 {
     if (id == ITEM_NONE || id >= ITEM_COUNT) return false;
     if (!load_items()) return false;
     PngFrame f;
     item_frame(id, &f);
-    draw_png_frame_scaled(&g_items, &f, sx, sy, sn, sd, flip_x);
+    draw_png_frame_scaled(&g_items, &f, sx, sy, sn, sd, orient);
     return true;
 }

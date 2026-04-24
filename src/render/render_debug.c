@@ -269,12 +269,26 @@ static void draw_collision_panel(const GameState *s, const World *w,
     }
 }
 
+/* Yellow diamond around the tile player_do_action would pick right now.
+ * Gives an unambiguous visual answer to "what does A target?". */
+static void draw_action_target(const GameState *s, const World *w,
+                               const TdCamBasis *cam)
+{
+    int tx, ty;
+    if (!player_peek_action_target(s, w, &tx, &ty)) return;
+    float cx = (float)(tx * TILE + TILE / 2);
+    float cy = (float)(ty * TILE + TILE / 2);
+    float h  = (float)(TILE / 2);
+    draw_world_rect(s, cam, cx - h, cy - h, cx + h, cy + h, HEX(0xfbbf24));
+}
+
 void render_debug_overworld(const GameState *s, const World *w,
                             const TdCamBasis *cam)
 {
     draw_tile_hitboxes(s, w, cam);
     draw_hitbox(s, cam);
     draw_facing_arrow(s, cam);
+    draw_action_target(s, w, cam);
     draw_collision_panel(s, w, cam);
 }
 

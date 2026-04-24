@@ -359,6 +359,12 @@ void player_do_action(GameState *s, World *w) {
     s->action_ticks_left = ACTION_TICKS;
 }
 
+bool player_peek_action_target(const GameState *s, const World *w,
+                               int *out_tx, int *out_ty)
+{
+    return find_action_target(s, w, out_tx, out_ty) == TARGET_LIVE;
+}
+
 void player_stop_action(GameState *s) {
     s->skilling          = false;
     s->action_ticks_left = 0;
