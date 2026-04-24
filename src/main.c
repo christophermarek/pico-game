@@ -8,6 +8,10 @@
 #include "game/save.h"
 #include "render/renderer.h"
 #include "ui/menu.h"
+#ifndef PICO_BUILD
+#include <stdio.h>
+#include <stdlib.h>
+#endif
 
 #define SAVE_EVERY_TICKS 6u
 
@@ -17,7 +21,15 @@ static World     world;
 int main(void) {
     hal_init();
 
-    world_init(&world);
+    if (!world_init(&world)) {
+#ifndef PICO_BUILD
+        fprintf(stderr, "fatal: map file not found (assets/maps/map.bin)\n");
+        hal_deinit();
+        return 1;
+#else
+        while (1) {}  /* halt — no map on device */
+#endif
+    }
     state_init(&state);
     save_read(&state);
 
@@ -56,6 +68,8 @@ int main(void) {
             }
         }
 
+        world_anim_tick(&world);
+        state_anim_tick(&state);
         render_frame(&state, &world);
     }
 

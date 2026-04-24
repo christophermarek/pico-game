@@ -2,6 +2,7 @@
 #include "hal.h"
 #include "colors.h"
 #include "config.h"
+#include "../game/items.h"
 
 typedef struct {
     int x, y, w, h;
@@ -14,7 +15,7 @@ typedef struct {
     bool tried;
 } PngAtlas;
 
-static PngAtlas g_tiles, g_chars;
+static PngAtlas g_tiles, g_chars, g_items;
 
 #define ISO_TILE_W  64
 #define ISO_TILE_H  48
@@ -61,6 +62,12 @@ static bool load_chars(void)
 {
     try_load_atlas(&g_chars, "assets_chars.png", "build/assets_chars.png");
     return g_chars.loaded;
+}
+
+static bool load_items(void)
+{
+    try_load_atlas(&g_items, "assets_items.png", "build/assets_items.png");
+    return g_items.loaded;
 }
 
 static void draw_png_frame(const PngAtlas *a, const PngFrame *f, int ax, int ay)
@@ -211,5 +218,25 @@ bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame)
     uint8_t d = (dir > DIR_RIGHT) ? DIR_DOWN : dir;
     draw_png_frame_scaled(&g_chars, &PNG_TD_PLAYER[d * 2u + (walk_frame & 1u)],
                           sx, sy, CHAR_SCALE_NUM, CHAR_SCALE_DEN);
+    return true;
+}
+
+#define ITEM_ICON_W 16
+#define ITEM_ICON_H 16
+
+bool iso_draw_item_icon(item_id_t id, int sx, int sy)
+{
+    if (id == ITEM_NONE || id >= ITEM_COUNT) return false;
+    if (!load_items()) return false;
+    /* Sheet: one row, col = (id - 1). */
+    PngFrame f = {
+        .x  = (int)(id - 1) * ITEM_ICON_W,
+        .y  = 0,
+        .w  = ITEM_ICON_W,
+        .h  = ITEM_ICON_H,
+        .ox = 0,
+        .oy = 0,
+    };
+    draw_png_frame(&g_items, &f, sx, sy);
     return true;
 }

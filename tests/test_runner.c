@@ -15,6 +15,7 @@
 #include "game/tick.h"
 #include "game/save.h"
 #include "game/skills.h"
+#include "game/items.h"
 
 #include "render/renderer.h"
 #include "render/font.h"
@@ -64,15 +65,121 @@ static void test_state(void) {
 
 static void test_world(void) {
     World w;
-    world_init(&w);
+    T(world_init(&w));                /* load succeeds: map.bin present */
     T(world_walkable(&w, 14, 9));
 
+    /* Multi-hit depletion: a tree takes 3 hits before it's marked depleted. */
     int idx = 4 + 13 * MAP_W;
-    world_deplete_node(&w, 4, 13);
-    T(w.node_respawn[idx] > 0);
-    for (int i = 0; i < NODE_RESPAWN_TICKS; i++)
-        world_tick(&w);
+    w.td_map[idx]  = T_TREE;
+    w.node_hp[idx] = world_node_max_hp(T_TREE);
+    T(w.node_hp[idx] == 3);
+    T(!world_hit_node(&w, 4, 13));    /* hit 1 — still alive */
+    T(w.node_hp[idx] == 2);
     T(w.node_respawn[idx] == 0);
+    T(!world_hit_node(&w, 4, 13));    /* hit 2 — still alive */
+    T(w.node_hp[idx] == 1);
+    T(world_hit_node(&w, 4, 13));     /* hit 3 — returns true (depleted) */
+    T(w.node_respawn[idx] > 0);
+
+    /* Respawn restores HP. */
+    for (int i = 0; i < NODE_RESPAWN_TICKS; i++) world_tick(&w);
+    T(w.node_respawn[idx] == 0);
+    T(w.node_hp[idx] == world_node_max_hp(T_TREE));
+
+    /* Hit-flash timer advances via world_anim_tick. */
+    world_anim_on_hit(&w, 4, 13);
+    T(w.tile_hit_timer[idx] == TILE_HIT_FRAMES);
+    world_anim_tick(&w);
+    T(w.tile_hit_timer[idx] == TILE_HIT_FRAMES - 1);
+
+    /* Out-of-bounds hit is a no-op, not a crash. */
+    T(!world_hit_node(&w, -1, -1));
+    T(!world_hit_node(&w, MAP_W, MAP_H));
+}
+
+static void test_inventory(void) {
+    Inventory inv;
+    inventory_init_default(&inv);
+
+    /* Tools pre-loaded in slots 4–7. */
+    T(inv.slots[TOOL_SLOT_START + 0].id == ITEM_AXE);
+    T(inv.slots[TOOL_SLOT_START + 1].id == ITEM_PICKAXE);
+    T(inv.slots[TOOL_SLOT_START + 2].id == ITEM_FISHING_ROD);
+    T(inv.slots[TOOL_SLOT_START + 3].id == ITEM_SHEARS);
+    T(inventory_has_tool(&inv, ITEM_AXE));
+    T(inventory_has_tool(&inv, ITEM_SHEARS));
+    T(!inventory_has_tool(&inv, ITEM_COIN));
+
+    /* First resource lands in a free non-tool slot; returns that slot. */
+    int s1 = inventory_add(&inv, ITEM_OAK_LOG, 1);
+    T(s1 >= 0 && s1 != TOOL_SLOT_START);
+    T(!(s1 >= TOOL_SLOT_START && s1 < TOOL_SLOT_START + 4));
+    T(inv.slots[s1].id == ITEM_OAK_LOG && inv.slots[s1].count == 1);
+
+    /* Same item stacks into the existing slot. */
+    int s2 = inventory_add(&inv, ITEM_OAK_LOG, 5);
+    T(s2 == s1);
+    T(inv.slots[s1].count == 6);
+    T(inventory_count(&inv, ITEM_OAK_LOG) == 6);
+
+    /* Different item takes a new slot. */
+    int s3 = inventory_add(&inv, ITEM_STONE, 1);
+    T(s3 >= 0 && s3 != s1);
+
+    /* Invalid args return -1. */
+    T(inventory_add(&inv, ITEM_NONE, 1) == -1);
+    T(inventory_add(&inv, ITEM_OAK_LOG, 0) == -1);
+
+    /* Fill-to-full: every non-tool slot maxed with oak logs. New distinct
+     * item has no empty slot and no matching stack to join. */
+    Inventory full;
+    inventory_init_default(&full);
+    for (int i = 0; i < INV_SLOTS; i++) {
+        if (i >= TOOL_SLOT_START && i < TOOL_SLOT_START + 4) continue;
+        full.slots[i].id    = ITEM_OAK_LOG;
+        full.slots[i].count = ITEM_DEFS[ITEM_OAK_LOG].max_stack;
+    }
+    T(inventory_add(&full, ITEM_COIN, 1) == -1);
+    /* And more oak_log has nowhere to stack (every slot is at max). */
+    T(inventory_add(&full, ITEM_OAK_LOG, 1) == -1);
+}
+
+static void test_item_fly(void) {
+    GameState s;
+    state_init(&s);
+
+    /* Spawn a fly targeting hotbar slot 2. */
+    state_spawn_item_fly(&s, 32.0f, 32.0f, ITEM_OAK_LOG, 2);
+    T(s.item_flies[0].active);
+    T(s.item_flies[0].timer == ITEM_FLY_FRAMES);
+    T(s.item_flies[0].slot == 2);
+
+    /* Tick to completion — slot flash should fire on landing. */
+    for (int i = 0; i < ITEM_FLY_FRAMES; i++) state_anim_tick(&s);
+    T(!s.item_flies[0].active);
+    T(s.slot_flash[2] == SLOT_FLASH_FRAMES);  /* full flash duration visible */
+
+    /* Flash decays over SLOT_FLASH_FRAMES ticks. */
+    for (int i = 0; i < SLOT_FLASH_FRAMES; i++) state_anim_tick(&s);
+    T(s.slot_flash[2] == 0);
+
+    /* Bag-slot fly (slot >= HOTBAR_SLOTS) does NOT trigger any slot flash. */
+    state_spawn_item_fly(&s, 0.0f, 0.0f, ITEM_STONE, HOTBAR_SLOTS + 3);
+    for (int i = 0; i < ITEM_FLY_FRAMES; i++) state_anim_tick(&s);
+    for (int i = 0; i < HOTBAR_SLOTS; i++) T(s.slot_flash[i] == 0);
+
+    /* Pool saturation — 5th spawn with 4 active flies silently drops. */
+    GameState s2;
+    state_init(&s2);
+    for (int i = 0; i < MAX_ITEM_FLIES; i++)
+        state_spawn_item_fly(&s2, 0.0f, 0.0f, ITEM_STONE, 0);
+    int active_before = 0;
+    for (int i = 0; i < MAX_ITEM_FLIES; i++) if (s2.item_flies[i].active) active_before++;
+    T(active_before == MAX_ITEM_FLIES);
+    state_spawn_item_fly(&s2, 0.0f, 0.0f, ITEM_STONE, 0);  /* no free slot */
+    int active_after = 0;
+    for (int i = 0; i < MAX_ITEM_FLIES; i++) if (s2.item_flies[i].active) active_after++;
+    T(active_after == MAX_ITEM_FLIES);
 }
 
 static void test_skills(void) {
@@ -172,6 +279,8 @@ int main(void) {
     test_colors();
     test_state();
     test_world();
+    test_inventory();
+    test_item_fly();
     test_skills();
     test_game_tick();
     test_save_roundtrip();

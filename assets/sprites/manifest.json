@@ -23,6 +23,24 @@
           "chars/player_right_0", "chars/player_right_1"
         ]
       ]
+    },
+    {
+      "output": "assets_items.png",
+      "cell_w": 16,
+      "cell_h": 16,
+      "grid": [
+        [
+          "items/oak_log",
+          "items/stone",
+          "items/iron_ore",
+          "items/raw_fish",
+          "items/coin",
+          "items/axe",
+          "items/pickaxe",
+          "items/fishing_rod",
+          "items/shears"
+        ]
+      ]
     }
   ]
 }

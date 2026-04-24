@@ -2,6 +2,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "config.h"
+#include "items.h"
+
+typedef struct {
+    float     wx, wy;   /* world-pixel spawn position (node center) */
+    int8_t    slot;     /* destination hotbar slot; -1 = bag/ignore */
+    item_id_t item;
+    uint8_t   timer;    /* ITEM_FLY_FRAMES → 0; 0 = inactive */
+    bool      active;
+} ItemFly;
 
 typedef struct {
     uint32_t xp;
@@ -17,8 +26,9 @@ typedef struct {
 } PlayerTD;
 
 typedef enum {
-    MTAB_SKILLS   = 0,
-    MTAB_SETTINGS = 1,
+    MTAB_SKILLS    = 0,
+    MTAB_SETTINGS  = 1,
+    MTAB_INVENTORY = 2,
 } MenuTab;
 
 typedef struct GameState {
@@ -51,6 +61,11 @@ typedef struct GameState {
 
     uint32_t total_steps;
 
+    Inventory inv;
+
+    ItemFly  item_flies[MAX_ITEM_FLIES];
+    uint8_t  slot_flash[HOTBAR_SLOTS];  /* per-slot border flash countdown */
+
     bool     debug_mode;
     uint8_t  settings_cursor;
 
@@ -62,3 +77,5 @@ typedef struct GameState {
 void     state_init(GameState *s);
 uint32_t xp_for_level(uint8_t level);
 void     state_log(GameState *s, const char *msg);
+void     state_spawn_item_fly(GameState *s, float wx, float wy, item_id_t item, int slot);
+void     state_anim_tick(GameState *s);
