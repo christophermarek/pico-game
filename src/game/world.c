@@ -65,8 +65,12 @@ uint8_t world_tile(const World *w, int x, int y)
 
 bool world_walkable(const World *w, int x, int y)
 {
+    /* Whitelist: only these tile types have ground you can stand on.
+     * Everything else (water, obstacles, any unrecognised / "air" tile
+     * value) blocks movement. */
     uint8_t t = world_tile(w, x, y);
-    return !(t == T_TREE || t == T_ROCK || t == T_ORE || t == T_WATER);
+    return t == T_GRASS || t == T_PATH || t == T_SAND ||
+           t == T_FLOWER || t == T_TGRASS;
 }
 
 bool world_hit_node(World *w, int x, int y)

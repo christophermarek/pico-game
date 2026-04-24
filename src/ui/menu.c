@@ -3,6 +3,7 @@
 #include "colors.h"
 #include "config.h"
 #include "../render/font.h"
+#include "../render/iso_spritesheet.h"
 #include "../game/skills.h"
 #include "../game/state.h"
 #include "../game/items.h"
@@ -198,62 +199,52 @@ void menu_render(GameState *s) {
 
         font_draw_str("Hotbar", gx, gy - 1, C_TEXT_DIM, 1);
         gy += 8;
-        for (int i = 0; i < HOTBAR_SLOTS; i++) {
-            int col = i % 4, row = i / 4;
-            int sx = gx + col * col_w, sy = gy + row * row_h;
-            const inv_slot_t *sl = &s->inv.slots[i];
-            bool filled   = (sl->id != ITEM_NONE && sl->count > 0);
-            bool selected = ((int)s->menu_cursor == i);
-            bool is_active = (s->active_slot == i);
-            uint16_t bg  = (i >= TOOL_SLOT_START && filled) ? HEX(0x1a1040) : C_BG;
-            uint16_t bdr = selected  ? C_WHITE
-                         : is_active ? C_BORDER_ACT
-                         : filled    ? C_BORDER
-                                     : HEX(0x1e1e3a);
-            hal_fill_rect(sx, sy, col_w - 2, row_h - 2, bg);
-            hal_fill_rect(sx,             sy,            col_w - 2, 1, bdr);
-            hal_fill_rect(sx,             sy + row_h - 3, col_w - 2, 1, bdr);
-            hal_fill_rect(sx,             sy,            1, row_h - 2, bdr);
-            hal_fill_rect(sx + col_w - 3, sy,            1, row_h - 2, bdr);
-            if (filled) {
-                font_draw_str(ITEM_DEFS[sl->id].name, sx + 2, sy + 3,
-                              ITEM_DEFS[sl->id].is_tool ? C_GOLD : C_TEXT_MAIN, 1);
-                if (!ITEM_DEFS[sl->id].is_tool && sl->count > 1) {
-                    char cnt[5]; int n = 0, v = sl->count;
-                    if (v >= 100) cnt[n++] = (char)('0' + v / 100);
-                    if (v >= 10)  cnt[n++] = (char)('0' + (v / 10) % 10);
-                    cnt[n++] = (char)('0' + v % 10); cnt[n] = '\0';
-                    font_draw_str(cnt, sx + 2, sy + 12, C_TEXT_DIM, 1);
-                }
+        for (int i = 0; i < HOTBAR_SLOTS + BAG_SLOTS; i++) {
+            if (i == HOTBAR_SLOTS) {
+                gy += 2 * row_h + 4;
+                font_draw_str("Bag", gx, gy - 1, C_TEXT_DIM, 1);
+                gy += 8;
             }
-        }
-
-        gy += 2 * row_h + 4;
-        font_draw_str("Bag", gx, gy - 1, C_TEXT_DIM, 1);
-        gy += 8;
-        for (int i = 0; i < BAG_SLOTS; i++) {
-            int col = i % 4, row = i / 4;
+            int local = (i < HOTBAR_SLOTS) ? i : (i - HOTBAR_SLOTS);
+            int col = local % 4, row = local / 4;
             int sx = gx + col * col_w, sy = gy + row * row_h;
-            if (sy + row_h > info_y - 2) continue; /* don't draw over info bar */
-            const inv_slot_t *sl = &s->inv.slots[HOTBAR_SLOTS + i];
-            bool filled   = (sl->id != ITEM_NONE && sl->count > 0);
-            bool selected = ((int)s->menu_cursor == HOTBAR_SLOTS + i);
-            uint16_t bdr = selected ? C_WHITE : filled ? C_BORDER : HEX(0x1e1e3a);
-            hal_fill_rect(sx, sy, col_w - 2, row_h - 2, C_BG);
-            hal_fill_rect(sx,             sy,            col_w - 2, 1, bdr);
+            if (sy + row_h > info_y - 2) continue;
+
+            const inv_slot_t *sl = &s->inv.slots[i];
+            bool filled    = (sl->id != ITEM_NONE && sl->count > 0);
+            bool selected  = ((int)s->menu_cursor == i);
+            bool is_active = (i < HOTBAR_SLOTS && s->active_slot == i);
+            bool tool_tint = (i >= TOOL_SLOT_START && i < TOOL_SLOT_START + 4 && filled);
+            uint16_t bg    = tool_tint ? HEX(0x1a1040) : C_BG;
+            uint16_t bdr   = selected  ? C_WHITE
+                           : is_active ? C_BORDER_ACT
+                           : filled    ? C_BORDER
+                                       : HEX(0x1e1e3a);
+            hal_fill_rect(sx, sy, col_w - 2, row_h - 2, bg);
+            hal_fill_rect(sx,             sy,             col_w - 2, 1, bdr);
             hal_fill_rect(sx,             sy + row_h - 3, col_w - 2, 1, bdr);
-            hal_fill_rect(sx,             sy,            1, row_h - 2, bdr);
-            hal_fill_rect(sx + col_w - 3, sy,            1, row_h - 2, bdr);
-            if (filled) {
-                font_draw_str(ITEM_DEFS[sl->id].name, sx + 2, sy + 3,
-                              C_TEXT_MAIN, 1);
-                if (sl->count > 1) {
-                    char cnt[5]; int n = 0, v = sl->count;
-                    if (v >= 100) cnt[n++] = (char)('0' + v / 100);
-                    if (v >= 10)  cnt[n++] = (char)('0' + (v / 10) % 10);
-                    cnt[n++] = (char)('0' + v % 10); cnt[n] = '\0';
-                    font_draw_str(cnt, sx + 2, sy + 12, C_TEXT_DIM, 1);
-                }
+            hal_fill_rect(sx,             sy,             1, row_h - 2, bdr);
+            hal_fill_rect(sx + col_w - 3, sy,             1, row_h - 2, bdr);
+
+            if (!filled) continue;
+
+            /* 16×16 icon, left-aligned inside the slot with a small margin. */
+            int icon_x = sx + 2;
+            int icon_y = sy + (row_h - 2 - 16) / 2;
+            if (!iso_draw_item_icon(sl->id, icon_x, icon_y)) {
+                /* Atlas not loaded — fall back to the item's first letter. */
+                char ch[2] = { ITEM_DEFS[sl->id].name[0], '\0' };
+                font_draw_str(ch, icon_x + 4, icon_y + 5,
+                              ITEM_DEFS[sl->id].is_tool ? C_GOLD : C_TEXT_MAIN, 1);
+            }
+
+            /* Count to the right of the icon (resources only; tools have no count). */
+            if (!ITEM_DEFS[sl->id].is_tool && sl->count > 1) {
+                char cnt[5]; int n = 0, v = sl->count;
+                if (v >= 100) cnt[n++] = (char)('0' + v / 100);
+                if (v >= 10)  cnt[n++] = (char)('0' + (v / 10) % 10);
+                cnt[n++] = (char)('0' + v % 10); cnt[n] = '\0';
+                font_draw_str(cnt, icon_x + 18, sy + 7, C_TEXT_WHITE, 1);
             }
         }
 

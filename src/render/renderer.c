@@ -61,51 +61,6 @@ static int cmp_td_cell(const void *a, const void *b)
 }
 
 /*
- * Procedural crack lines drawn over a damaged tile's surface.
- * sx,sy = tile screen center. cx,cy = diamond face center (~8px up from sy).
- * Three stages of damage; each stage adds more dark pixel dashes.
- */
-static void draw_crack_overlay(int sx, int sy, uint8_t hp, uint8_t max_hp)
-{
-    uint8_t stage;
-    if      (hp * 2 >= max_hp) stage = 1;   /* > 50% remaining */
-    else if (hp > 1)           stage = 2;   /* 1 < hp < 50%    */
-    else                       stage = 3;   /* last hit left    */
-
-    int cx = sx, cy = sy - 8;
-    uint16_t c = HEX(0x000000);
-
-    /* Stage 1 — hairline crack across the face centre */
-    hal_fill_rect(cx - 3, cy + 1, 1, 1, c);
-    hal_fill_rect(cx - 2, cy,     1, 1, c);
-    hal_fill_rect(cx - 1, cy - 1, 1, 1, c);
-    hal_fill_rect(cx,     cy - 2, 1, 1, c);
-    hal_fill_rect(cx + 1, cy - 1, 1, 1, c);
-    hal_fill_rect(cx + 2, cy,     1, 1, c);
-
-    if (stage < 2) return;
-
-    /* Stage 2 — secondary branch extending left/down */
-    hal_fill_rect(cx - 4, cy + 2, 1, 1, c);
-    hal_fill_rect(cx - 3, cy + 3, 1, 1, c);
-    hal_fill_rect(cx - 2, cy + 3, 1, 1, c);
-    hal_fill_rect(cx + 3, cy - 2, 1, 1, c);
-    hal_fill_rect(cx + 4, cy - 3, 1, 1, c);
-
-    if (stage < 3) return;
-
-    /* Stage 3 — heavy: extra branches toward all four diamond points */
-    hal_fill_rect(cx + 2, cy + 1, 1, 1, c);
-    hal_fill_rect(cx + 3, cy + 2, 1, 1, c);
-    hal_fill_rect(cx + 5, cy + 3, 1, 1, c);
-    hal_fill_rect(cx - 5, cy + 1, 1, 1, c);
-    hal_fill_rect(cx - 6, cy,     1, 1, c);
-    hal_fill_rect(cx,     cy - 3, 1, 1, c);
-    hal_fill_rect(cx,     cy - 4, 1, 1, c);
-    hal_fill_rect(cx,     cy - 5, 1, 1, c);
-}
-
-/*
  * Tool held while skilling. Camera-aware because every position it uses
  * comes from td_basis_world_pixel_to_screen — the target's screen pos
  * rotates naturally with the camera so the offset vector always points
@@ -306,10 +261,8 @@ static void render_topdown(GameState *s, const World *w)
             if (w->tile_hit_timer[idx] > 0)
                 draw_hit_flash(sx, sy, tile);
             uint8_t max_hp = world_node_max_hp(tile);
-            if (max_hp > 1 && w->node_hp[idx] < max_hp) {
-                draw_crack_overlay(sx, sy, w->node_hp[idx], max_hp);
+            if (max_hp > 1 && w->node_hp[idx] < max_hp)
                 draw_hp_pips(sx, sy, w->node_hp[idx], max_hp);
-            }
         }
     }
     if (!player_drawn) {
