@@ -335,6 +335,9 @@ void player_do_action(GameState *s, World *w) {
         case T_TGRASS: state_log(s, "Shearing grass..."); break;
     }
 
+    /* Tools live in slots TOOL_SLOT_START..+3 in AXE, PICKAXE, ROD, SHEARS
+     * order — the same enum order items.h uses. */
+    s->active_slot       = (uint8_t)(TOOL_SLOT_START + (required_tool - ITEM_AXE));
     s->skilling          = true;
     s->active_skill      = skill_id;
     s->action_node_x     = (int16_t)tx;

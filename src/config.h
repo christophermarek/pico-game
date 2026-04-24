@@ -12,11 +12,21 @@
 /* Simulator */
 #define SIM_SCALE   3
 
-/* Timing */
+/* Timing
+ *
+ * FRAME_MS drives rendering (33 ms @ 30 FPS).
+ * TICK_MS drives world-economy updates (energy regen, respawn countdowns, the
+ *   day counter). Everything timed in ticks scales with this — derived values
+ *   below (TICKS_PER_DAY, NODE_RESPAWN_TICKS, SAVE_EVERY_TICKS) are tuned
+ *   against TICK_MS = 2000, so a full in-game day is ~2 minutes and the
+ *   energy bar fills in ~3.3 minutes of idle time.
+ * ACTION_TICKS is counted in *render frames*, not game ticks, so skill
+ *   actions stay a constant ~1 s regardless of TICK_MS tuning.
+ */
 #define TARGET_FPS   30
 #define FRAME_MS     (1000 / TARGET_FPS)
-#define TICK_MS      10000   /* game tick every 10 s */
-#define ACTION_TICKS 30      /* frames per skill action (~1 s at 30 FPS) */
+#define TICK_MS      2000
+#define ACTION_TICKS 30
 
 /* Stats */
 #define STAT_MAX    100
@@ -60,9 +70,10 @@
 #define XP_FISHING_BASE  20
 #define XP_FISHING_RAND  10
 
-/* Per-tick economy */
-#define ENERGY_REGEN_PER_TICK    1
-#define TICKS_PER_DAY           20
+/* Per-tick economy (TICK_MS = 2000 ⇒ 1 tick = 2 s) */
+#define ENERGY_REGEN_PER_TICK   1      /* 1/2 s ⇒ 200 s to refill full energy */
+#define TICKS_PER_DAY           60     /* day = 120 s (2 min)                 */
+#define SAVE_EVERY_TICKS        30u    /* autosave every 60 s                 */
 
 /* HUD — overlay mode (no reserved strip; world renders full 240x240) */
 #define HUD_LOG_TIMEOUT_MS   3000u
@@ -88,8 +99,8 @@
 #define TD_FEET_OFF  7.0f    /* iso depth-sort Y offset for player feet */
 #define TD_ISO_CULL  100     /* extra pixels beyond screen edge for tile culling */
 
-/* Node respawn */
-#define NODE_RESPAWN_TICKS 60
+/* Node respawn (TICK_MS = 2000 ⇒ 60 s before a depleted tile regrows) */
+#define NODE_RESPAWN_TICKS 30
 
 /* Item fly animation */
 #define MAX_ITEM_FLIES    4

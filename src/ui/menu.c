@@ -9,20 +9,26 @@
 #include "../game/world.h"
 
 #define TAB_COUNT 3
-#define SETTINGS_ITEM_COUNT 2
-#define SETTINGS_DEBUG 0
-#define SETTINGS_RESET 1
+
+typedef enum {
+    SETTINGS_DEBUG = 0,
+    SETTINGS_RESET,
+    SETTINGS_ITEM_COUNT,
+} SettingsItem;
 
 static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "SETTINGS", "BAG" };
 
+/* Scope the prior-mode stash here — only open/close care about it. */
+static GameMode g_menu_prev_mode;
+
 void menu_open(GameState *s) {
-    s->prev_mode   = s->mode;
-    s->mode        = MODE_MENU;
-    s->menu_cursor = 0;
+    g_menu_prev_mode = s->mode;
+    s->mode          = MODE_MENU;
+    s->menu_cursor   = 0;
 }
 
 void menu_close(GameState *s) {
-    s->mode = s->prev_mode;
+    s->mode = g_menu_prev_mode;
 }
 
 static void draw_int(int x, int y, int val, uint16_t color) {
@@ -95,6 +101,9 @@ void menu_update(GameState *s, World *w, const Input *inp) {
                     (s->menu_cursor % 4) > 0)
                 s->menu_cursor--;
         }
+        /* A on a hotbar slot sets it as the active tool. */
+        if (inp->a_press && s->menu_cursor < HOTBAR_SLOTS)
+            s->active_slot = s->menu_cursor;
         break;
     }
     case MTAB_SETTINGS:
@@ -195,8 +204,12 @@ void menu_render(GameState *s) {
             const inv_slot_t *sl = &s->inv.slots[i];
             bool filled   = (sl->id != ITEM_NONE && sl->count > 0);
             bool selected = ((int)s->menu_cursor == i);
+            bool is_active = (s->active_slot == i);
             uint16_t bg  = (i >= TOOL_SLOT_START && filled) ? HEX(0x1a1040) : C_BG;
-            uint16_t bdr = selected ? C_WHITE : filled ? C_BORDER : HEX(0x1e1e3a);
+            uint16_t bdr = selected  ? C_WHITE
+                         : is_active ? C_BORDER_ACT
+                         : filled    ? C_BORDER
+                                     : HEX(0x1e1e3a);
             hal_fill_rect(sx, sy, col_w - 2, row_h - 2, bg);
             hal_fill_rect(sx,             sy,            col_w - 2, 1, bdr);
             hal_fill_rect(sx,             sy + row_h - 3, col_w - 2, 1, bdr);

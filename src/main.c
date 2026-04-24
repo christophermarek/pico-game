@@ -13,8 +13,6 @@
 #include <stdlib.h>
 #endif
 
-#define SAVE_EVERY_TICKS 6u
-
 static GameState state;
 static World     world;
 

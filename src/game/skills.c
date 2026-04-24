@@ -9,13 +9,17 @@ const SkillInfo SKILL_INFO[SKILL_COUNT] = {
     [SK_WOODCUT] = { "Woodcut", "[W]" },
 };
 
-/* LCG — seeded lazily from hal_ticks_ms so XP rolls aren't identical across runs. */
+/* LCG seeded lazily from hal_ticks_ms so XP rolls vary across runs.
+ * RNG_SEED_FALLBACK guards the rare case hal_ticks_ms() returns 0 at
+ * startup — LCGs lock up if seeded with zero. */
+#define RNG_SEED_MIX      0xA1B2C3D4u
+#define RNG_SEED_FALLBACK 0x13579BDFu
 static uint32_t rng_state;
 
 static uint32_t rng_next(void) {
     if (rng_state == 0) {
-        rng_state = hal_ticks_ms() ^ 0xA1B2C3D4u;
-        if (rng_state == 0) rng_state = 0xDEADBEEFu;
+        rng_state = hal_ticks_ms() ^ RNG_SEED_MIX;
+        if (rng_state == 0) rng_state = RNG_SEED_FALLBACK;
     }
     rng_state = rng_state * 1664525u + 1013904223u;
     return rng_state;

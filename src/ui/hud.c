@@ -153,8 +153,11 @@ static void draw_hotbar(const GameState *s) {
         uint16_t bg = (is_tool_slot && has_item) ? HEX(0x1a1040) : C_BG_DARK;
         hal_fill_rect(sx, y0, sw, sw, bg);
 
-        /* Border — flash white when an item just landed in this slot. */
+        /* Border — priority: item-land flash > active-slot highlight >
+         * filled default > empty dim. */
+        bool is_active = (s->active_slot == i);
         uint16_t border = (s->slot_flash[i] > 0) ? C_WHITE
+                        : is_active             ? C_BORDER_ACT
                         : has_item              ? C_BORDER
                         :                         HEX(0x1e1e3a);
         hal_fill_rect(sx,          y0,          sw,  1,  border);

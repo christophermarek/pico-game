@@ -10,10 +10,11 @@ uint32_t xp_for_level(uint8_t level) {
 void state_init(GameState *s) {
     memset(s, 0, sizeof(*s));
 
-    s->mode    = MODE_TOPDOWN;
-    s->hp      = STAT_MAX;
-    s->max_hp  = STAT_MAX;
-    s->energy  = STAT_MAX;
+    s->mode        = MODE_TOPDOWN;
+    s->hp          = STAT_MAX;
+    s->max_hp      = STAT_MAX;
+    s->energy      = STAT_MAX;
+    s->active_slot = TOOL_SLOT_START; /* axe by default */
 
     for (int i = 0; i < SKILL_COUNT; i++)
         s->skills[i].level = 1;

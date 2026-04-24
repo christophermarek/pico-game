@@ -17,9 +17,10 @@ Items that land in bag slots (8–27) have no visual landing feedback — the fl
 Add a "BG" tab icon in `src/ui/hud.c` (alongside SK/ST) and route bag-slot item flies to it.
 Also add `bag_flash` counter to `GameState` for landing pulse.
 
-### Day/night cycle + energy regen pacing
-`TICKS_PER_DAY = 20` and `TICK_MS = 10000` → a day is 200 s (3.3 min).
-Decide if that's right. Energy only regens on tick — consider smoothing or tuning the rate.
+### Day/night cycle + energy regen pacing — tuned
+`TICK_MS = 2000`, `TICKS_PER_DAY = 60`, `NODE_RESPAWN_TICKS = 30`,
+`SAVE_EVERY_TICKS = 30`. A full day is 120 s (2 min); energy refills in ~200 s
+of idle time; depleted nodes respawn in 60 s. Revisit during real playtesting.
 
 ---
 
@@ -60,9 +61,10 @@ Allow player to drop an item (deselect from inventory → place as world entity)
 ### Pico map-not-found diagnostic
 `while(1){}` halt gives no feedback on hardware. Add LED blink or display error string.
 
-### Selected hotbar slot (active slot)
-Currently no slot is "selected" — pressing a hotbar key to equip isn't wired.
-Add `uint8_t active_slot` to `GameState`, render it with a bright border, use it for tool dispatch in `player_do_action`.
+### Selected hotbar slot (active slot) — done
+`state.active_slot` tracks the last-used tool. HUD hotbar and BAG-tab grid
+both highlight it with `C_BORDER_ACT`. Explicit set via A on a hotbar slot in
+the BAG menu; auto-set when a skill action starts.
 
 ---
 

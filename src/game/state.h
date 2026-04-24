@@ -33,10 +33,10 @@ typedef enum {
 
 typedef struct GameState {
     GameMode mode;
-    GameMode prev_mode;
 
     PlayerTD td;
     uint8_t  td_cam_bearing;
+    uint8_t  active_slot;       /* hotbar slot highlighted after the last action */
 
     int16_t  hp, max_hp;
     uint8_t  energy;
