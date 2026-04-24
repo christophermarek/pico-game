@@ -5,9 +5,10 @@
 #include "hal.h"
 
 const SkillInfo SKILL_INFO[SKILL_COUNT] = {
-    [SK_MINING]  = { "Mining",  "[M]" },
-    [SK_FISHING] = { "Fishing", "[F]" },
-    [SK_WOODCUT] = { "Woodcut", "[W]" },
+    [SK_MINING]   = { "Mining",   "[M]" },
+    [SK_FISHING]  = { "Fishing",  "[F]" },
+    [SK_WOODCUT]  = { "Woodcut",  "[W]" },
+    [SK_SMELTING] = { "Smelting", "[S]" },
 };
 
 /* LCG seeded lazily from hal_ticks_ms so XP rolls vary across runs.

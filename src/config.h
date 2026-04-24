@@ -60,7 +60,8 @@
 #define SK_MINING        0
 #define SK_FISHING       1
 #define SK_WOODCUT       2
-#define SKILL_COUNT      3
+#define SK_SMELTING      3   /* forge + campfire smelt XP               */
+#define SKILL_COUNT      4
 #define SKILL_LEVEL_CAP  99
 
 #define XP_WOODCUT_BASE  25
@@ -125,8 +126,9 @@
 typedef enum {
     MODE_TOPDOWN = 0,
     MODE_MENU,
-    MODE_DIALOG,   /* NPC text box */
-    MODE_SHOP,     /* shopkeeper buy menu */
+    MODE_DIALOG,   /* NPC text box                          */
+    MODE_SHOP,     /* shopkeeper buy menu                   */
+    MODE_CRAFT,    /* workbench / forge / campfire recipes  */
 } GameMode;
 
 /* Player direction */

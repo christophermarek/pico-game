@@ -15,6 +15,7 @@ set(GAME_CORE_SOURCES
     src/game/state.c
     src/game/items.c
     src/game/actions.c
+    src/game/recipes.c
     src/game/npcs.c
     src/game/world.c
     src/game/player.c
@@ -29,6 +30,7 @@ set(GAME_CORE_SOURCES
     src/ui/menu.c
     src/ui/dialog.c
     src/ui/shop.c
+    src/ui/craft.c
 )
 
 add_executable(grumblequest_sim

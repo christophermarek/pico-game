@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "craft.h"
 #include "hal.h"
 #include "colors.h"
 #include "config.h"
@@ -13,6 +14,7 @@
 
 typedef enum {
     SETTINGS_DEBUG = 0,
+    SETTINGS_CRAFT_DEV,  /* dev-only shortcut: all recipes in one menu  */
     SETTINGS_RESET,
     SETTINGS_ITEM_COUNT,
 } SettingsItem;
@@ -115,6 +117,8 @@ void menu_update(GameState *s, World *w, const Input *inp) {
         if (inp->a_press) {
             if (s->settings_cursor == SETTINGS_DEBUG) {
                 s->debug_mode = !s->debug_mode;
+            } else if (s->settings_cursor == SETTINGS_CRAFT_DEV) {
+                craft_open(s, STATION_COUNT);  /* dev: show every recipe */
             } else if (s->settings_cursor == SETTINGS_RESET) {
                 bool dbg = s->debug_mode;
                 world_init(w);
@@ -177,6 +181,15 @@ void menu_render(GameState *s) {
         font_draw_str("Debug Mode", 10, content_y + 6, C_TEXT_WHITE, 1);
         font_draw_str(s->debug_mode ? "ON" : "OFF", 200, content_y + 6,
                       s->debug_mode ? C_HP_GREEN : C_TEXT_DIM, 1);
+        content_y += 26;
+
+        bool     csel = (s->settings_cursor == SETTINGS_CRAFT_DEV);
+        uint16_t cbdr = csel ? C_BORDER_ACT : C_BORDER;
+        hal_fill_rect(5, content_y,      230, 20, C_BG);
+        hal_fill_rect(5, content_y,      230,  1, cbdr);
+        hal_fill_rect(5, content_y + 19, 230,  1, cbdr);
+        font_draw_str("Crafting (dev)", 10, content_y + 6,
+                      csel ? C_TEXT_WHITE : C_TEXT_DIM, 1);
         content_y += 26;
 
         bool     rsel = (s->settings_cursor == SETTINGS_RESET);

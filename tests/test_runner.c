@@ -36,7 +36,7 @@ static void test_config(void) {
     T(DISPLAY_W == 240 && DISPLAY_H == 240);
     T(MAP_W > 0 && MAP_H > 0);
     T(MAP_CELLS == MAP_W * MAP_H);
-    T(SKILL_COUNT == 3);
+    T(SKILL_COUNT == 4);
     T(TICK_MS > 0 && ACTION_TICKS > 0);
     T(FRAME_MS > 0);
     T(MODE_TOPDOWN < MODE_MENU);

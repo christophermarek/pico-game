@@ -9,6 +9,7 @@
 #include "../ui/menu.h"
 #include "../ui/dialog.h"
 #include "../ui/shop.h"
+#include "../ui/craft.h"
 #include "../game/actions.h"
 #include "../game/npcs.h"
 #include "../game/world.h"
@@ -369,6 +370,11 @@ void render_frame(GameState *s, const World *w) {
         render_topdown(s, w);
         hud_draw(s);
         shop_render(s);
+        break;
+    case MODE_CRAFT:
+        render_topdown(s, w);
+        hud_draw(s);
+        craft_render(s);
         break;
     }
     if (s->debug_mode) render_debug_fps();
