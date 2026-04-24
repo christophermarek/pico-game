@@ -121,11 +121,12 @@ static void draw_crack_overlay(int sx, int sy, uint8_t hp, uint8_t max_hp)
 }
 
 /*
- * Tool held in the player's hand while skilling. Tool is picked from the
- * target-tile type; position is offset by screen facing; a cheap swing
- * oscillation runs off frame_count.
+ * Tool held while skilling. Icon is placed a fraction of the way from the
+ * player toward the action node (so it points at what's being hit, even
+ * when the target is behind/below where the player last moved).
  */
 static void render_action_tool(const GameState *s, const World *w,
+                               const TdCamBasis *cam,
                                int player_sx, int player_sy)
 {
     if (!s->skilling) return;
@@ -141,22 +142,25 @@ static void render_action_tool(const GameState *s, const World *w,
         default: return;
     }
 
-    /* Tool icon top-left (16x16), offset so it sits in the player's "hand". */
-    int tx, ty;
-    switch (s->td.screen_dir) {
-        case DIR_LEFT:  tx = player_sx - 18; ty = player_sy - 14; break;
-        case DIR_RIGHT: tx = player_sx + 2;  ty = player_sy - 14; break;
-        case DIR_UP:    tx = player_sx + 2;  ty = player_sy - 18; break;
-        case DIR_DOWN:
-        default:        tx = player_sx - 10; ty = player_sy - 6;  break;
-    }
+    /* Project the target node centre to screen and aim ~55% of the way
+     * toward it from the player's torso (player_sy - 10). */
+    float node_wx = (float)(s->action_node_x * TILE + TILE / 2);
+    float node_wy = (float)(s->action_node_y * TILE + TILE / 2);
+    int   node_sx, node_sy;
+    td_basis_world_pixel_to_screen(cam, s->td.x, s->td.y,
+                                   node_wx, node_wy, &node_sx, &node_sy);
 
-    /* Chop animation: rise/fall a few pixels cycling over ~8 frames. */
-    int phase = (s->frame_count / 2) & 3;   /* 0..3 */
+    int torso_y = player_sy - 10;
+    int cx = player_sx + (node_sx - player_sx) * 55 / 100;
+    int cy = torso_y   + (node_sy - torso_y)   * 55 / 100;
+
+    /* Chop lift: 4-phase vertical oscillation. */
+    int phase = (s->frame_count / 2) & 3;
     int lift  = (phase == 0) ? -4 : (phase == 1) ? -2 : (phase == 2) ? 0 : -2;
-    ty += lift;
+    cy += lift;
 
-    iso_draw_item_icon(tool, tx, ty);
+    /* iso_draw_item_icon takes top-left; the icon is 16×16, so offset to centre. */
+    iso_draw_item_icon(tool, cx - 8, cy - 8);
 }
 
 /* Parabola-arc item sprites flying from a node to the hotbar. */
@@ -270,25 +274,30 @@ static void render_topdown(GameState *s, const World *w)
         if (!player_drawn && player_sy <= sy) {
             iso_draw_td_player_char(player_sx, player_sy, s->td.screen_dir,
                                     (uint8_t)s->td.walk_frame);
-            render_action_tool(s, w, player_sx, player_sy);
+            render_action_tool(s, w, &cam, player_sx, player_sy);
             player_drawn = true;
         }
 
-        /* Shake: oscillate ±1px while the player is actioning this node. */
+        bool depleted = (w->node_respawn[idx] > 0);
+
+        /* Tall grass: on depletion, the whole sprite disappears — the grass
+         * ground already drew in the full pass, so we skip onlay AND stump.
+         * Everything else draws its overlay sprite; trees keep the stump. */
+        if (depleted && tile == T_TGRASS) continue;
+
         int shake_ox = 0;
         if (s->skilling && s->action_node_x == tx && s->action_node_y == ty)
             shake_ox = ((s->frame_count / 3) & 1) ? 1 : -1;
 
         iso_draw_tile_onlay(tile, sx + shake_ox, sy);
 
-        if (w->node_respawn[idx] > 0) {
-            iso_draw_depleted_mark(sx, sy);
+        if (depleted) {
+            if (tile == T_TREE) iso_draw_depleted_mark(sx, sy);
+            /* Rocks/ore/water don't get the stump — their onlay itself
+             * reads as "used" when we skip HP feedback. */
         } else {
-            /* Hit flash: brief + cross at the node's visual centre. */
             if (w->tile_hit_timer[idx] > 0)
                 draw_hit_flash(sx, sy, tile);
-
-            /* HP pips + crack overlay: visible when node has taken at least one hit. */
             uint8_t max_hp = world_node_max_hp(tile);
             if (max_hp > 1 && w->node_hp[idx] < max_hp) {
                 draw_crack_overlay(sx, sy, w->node_hp[idx], max_hp);
@@ -299,7 +308,7 @@ static void render_topdown(GameState *s, const World *w)
     if (!player_drawn) {
         iso_draw_td_player_char(player_sx, player_sy, s->td.screen_dir,
                                 (uint8_t)s->td.walk_frame);
-        render_action_tool(s, w, player_sx, player_sy);
+        render_action_tool(s, w, &cam, player_sx, player_sy);
     }
 
     if (s->skilling) {

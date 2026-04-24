@@ -8,9 +8,9 @@ Branch merged: `claude/recursing-taussig-0c14c3` → main (PR #5).
 ## High priority
 
 ### Replace placeholder item sprites
-All 9 item icons are generated placeholders (`tools/gen_placeholder_items.py`).
+All 9 item icons are placeholders in `assets/sprites/items/`.
 Real 16×16 pixel-art sprites needed for: oak_log, stone, iron_ore, raw_fish, coin, axe, pickaxe, fishing_rod, shears.
-Drop replacements in `assets/sprites/items/` and re-run `make sprites`.
+Drop replacements over the existing files and re-run `make sprites`.
 
 ### Add a BG tab icon to the HUD
 Items that land in bag slots (8–27) have no visual landing feedback — the fly arc disappears off-screen.
