@@ -10,16 +10,16 @@
 #include "../game/items.h"
 #include "../game/world.h"
 
-#define TAB_COUNT 3
+#define TAB_COUNT 4
 
 typedef enum {
     SETTINGS_DEBUG = 0,
-    SETTINGS_CRAFT_DEV,  /* dev-only shortcut: all recipes in one menu  */
     SETTINGS_RESET,
     SETTINGS_ITEM_COUNT,
 } SettingsItem;
 
-static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "SETTINGS", "BAG" };
+/* Tab order matches state.h's MenuTab enum: SKILLS, BAG, CRAFT, SETTINGS. */
+static const char *TAB_NAMES[TAB_COUNT] = { "SKILLS", "BAG", "CRAFT", "SETTINGS" };
 
 /* Scope the prior-mode stash here — only open/close care about it. */
 static GameMode g_menu_prev_mode;
@@ -28,6 +28,10 @@ void menu_open(GameState *s) {
     g_menu_prev_mode = s->mode;
     s->mode          = MODE_MENU;
     s->menu_cursor   = 0;
+    /* CRAFT tab: when opened from the main menu, show every recipe.
+     * Workbench/forge/etc interactions set their own station filter
+     * via craft_set_station() before opening the menu. */
+    craft_set_station(STATION_COUNT);
 }
 
 void menu_close(GameState *s) {
@@ -109,6 +113,13 @@ void menu_update(GameState *s, World *w, const Input *inp) {
             s->active_slot = s->menu_cursor;
         break;
     }
+    case MTAB_CRAFT: {
+        /* Craft owns input while crafting; we still let B close the
+         * menu when no craft is active (handled below by craft return). */
+        bool swallowed = craft_tab_update(s, w, inp);
+        if (swallowed) return;   /* mid-craft — block tab switch & B-close */
+        break;
+    }
     case MTAB_SETTINGS:
         if (inp->up   && !prev_u && s->settings_cursor > 0)
             s->settings_cursor--;
@@ -117,8 +128,6 @@ void menu_update(GameState *s, World *w, const Input *inp) {
         if (inp->a_press) {
             if (s->settings_cursor == SETTINGS_DEBUG) {
                 s->debug_mode = !s->debug_mode;
-            } else if (s->settings_cursor == SETTINGS_CRAFT_DEV) {
-                craft_open(s, STATION_COUNT);  /* dev: show every recipe */
             } else if (s->settings_cursor == SETTINGS_RESET) {
                 bool dbg = s->debug_mode;
                 world_init(w);
@@ -172,6 +181,10 @@ void menu_render(GameState *s) {
         }
         break;
 
+    case MTAB_CRAFT:
+        craft_tab_render(s, content_y, DISPLAY_H - content_y - 4);
+        break;
+
     case MTAB_SETTINGS: {
         bool     dsel = (s->settings_cursor == SETTINGS_DEBUG);
         uint16_t dbdr = dsel ? C_BORDER_ACT : C_BORDER;
@@ -181,15 +194,6 @@ void menu_render(GameState *s) {
         font_draw_str("Debug Mode", 10, content_y + 6, C_TEXT_WHITE, 1);
         font_draw_str(s->debug_mode ? "ON" : "OFF", 200, content_y + 6,
                       s->debug_mode ? C_HP_GREEN : C_TEXT_DIM, 1);
-        content_y += 26;
-
-        bool     csel = (s->settings_cursor == SETTINGS_CRAFT_DEV);
-        uint16_t cbdr = csel ? C_BORDER_ACT : C_BORDER;
-        hal_fill_rect(5, content_y,      230, 20, C_BG);
-        hal_fill_rect(5, content_y,      230,  1, cbdr);
-        hal_fill_rect(5, content_y + 19, 230,  1, cbdr);
-        font_draw_str("Crafting (dev)", 10, content_y + 6,
-                      csel ? C_TEXT_WHITE : C_TEXT_DIM, 1);
         content_y += 26;
 
         bool     rsel = (s->settings_cursor == SETTINGS_RESET);
@@ -284,6 +288,6 @@ void menu_render(GameState *s) {
     }
     }
 
-    if (s->menu_tab != MTAB_SETTINGS)
+    if (s->menu_tab != MTAB_SETTINGS && s->menu_tab != MTAB_CRAFT)
         font_draw_str("B:Close", 190, DISPLAY_H - 12, C_TEXT_DIM, 1);
 }

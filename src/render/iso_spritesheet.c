@@ -285,6 +285,25 @@ bool iso_draw_npc(uint8_t npc_kind, int sx, int sy)
     return true;
 }
 
+/* Structures live on rows 6-7 of the iso-tiles atlas; layout matches
+ * the manifest.json grid. STK_NONE = 0 returns false. Order:
+ * workbench, shack, chest, campfire, forge, workshop. */
+bool iso_draw_structure(uint8_t kind, int cx, int cy)
+{
+    if (kind == 0) return false;
+    int idx = (int)kind - 1;        /* WORKBENCH→0 .. WORKSHOP→5 */
+    if (idx < 0 || idx >= 6) return false;
+    if (!load_tiles()) return false;
+    int col = idx % 4, row = 6 + (idx / 4);
+    PngFrame f = {
+        .x = col * ISO_TILE_W, .y = row * ISO_TILE_H,
+        .w = ISO_TILE_W,       .h = ISO_TILE_H,
+        .ox = ISO_TILE_OX,     .oy = -ISO_TILE_H / 2,
+    };
+    draw_png_frame(&g_tiles, &f, cx, cy);
+    return true;
+}
+
 #define ITEM_ICON_W 16
 #define ITEM_ICON_H 16
 

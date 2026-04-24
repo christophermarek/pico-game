@@ -24,6 +24,7 @@ set(GAME_CORE_SOURCES
     ../src/game/actions.c
     ../src/game/recipes.c
     ../src/game/npcs.c
+    ../src/game/structures.c
     ../src/game/world.c
     ../src/game/player.c
     ../src/game/skills.c

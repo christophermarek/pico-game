@@ -3,9 +3,12 @@
 #include "items.h"
 #include "actions.h"
 #include "npcs.h"
+#include "structures.h"
 #include "td_cam.h"
 #include "config.h"
 #include "../ui/dialog.h"
+#include "../ui/craft.h"
+#include "../ui/menu.h"
 #include <math.h>
 
 /*
@@ -95,6 +98,19 @@ static inline bool td_collides(const World *w, float x, float y) {
     return collide_at(w, x, y, NULL, NULL, NULL);
 }
 
+/* Whole-tile block — placed structures occupy their tile fully. Foot
+ * tile is computed the same way world_walkable consumers do. */
+static inline bool struct_blocks(const GameState *s, float x, float y) {
+    int tx = (int)(x / (float)TILE);
+    int ty = (int)((y + (float)TD_FEET_OFF) / (float)TILE);
+    return structure_at(s, tx, ty) != NULL;
+}
+
+static inline bool td_blocked(const GameState *s, const World *w,
+                              float x, float y) {
+    return td_collides(w, x, y) || struct_blocks(s, x, y);
+}
+
 
 /*
  * Tangent-slide: against a circle obstacle, a player sitting tangent and
@@ -131,11 +147,11 @@ static void tangent_slide(GameState *s, const World *w, float dx, float dy,
 
     float snx = s->td.x + sdx;
     float sny = s->td.y + sdy;
-    if (!td_collides(w, snx, s->td.y)) {
+    if (!td_blocked(s, w, snx, s->td.y)) {
         s->td.x = snx;
         s->dbg_blocked_x = false;
     }
-    if (!td_collides(w, s->td.x, sny)) {
+    if (!td_blocked(s, w, s->td.x, sny)) {
         s->td.y = sny;
         s->dbg_blocked_y = false;
     }
@@ -213,12 +229,12 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     s->dbg_blocked_y = false;
 
     if (dx != 0.0f) {
-        if (!td_collides(w, nx, s->td.y)) s->td.x = nx;
-        else                              s->dbg_blocked_x = true;
+        if (!td_blocked(s, w, nx, s->td.y)) s->td.x = nx;
+        else                                s->dbg_blocked_x = true;
     }
     if (dy != 0.0f) {
-        if (!td_collides(w, s->td.x, ny)) s->td.y = ny;
-        else                              s->dbg_blocked_y = true;
+        if (!td_blocked(s, w, s->td.x, ny)) s->td.y = ny;
+        else                                s->dbg_blocked_y = true;
     }
 
     if (s->dbg_blocked_x && s->dbg_blocked_y && (dx != 0.0f || dy != 0.0f))
@@ -247,12 +263,28 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     s->td.tile_y = (int16_t)((s->td.y + TD_FEET_OFF) / TILE);
 
     if (inp->a_press) {
-        /* NPC interaction beats resource gathering when both are
-         * available — if you're standing next to the shopkeeper, A
-         * opens dialog instead of chopping the tree behind them. */
+        /* Interaction priority on the topdown map:
+         *   1) NPC adjacent  → dialog
+         *   2) Station adjacent (workbench/forge/campfire/workshop)
+         *      → open the menu's CRAFT tab filtered to that station
+         *   3) otherwise → resource action (chop/mine/etc.)
+         */
         const Npc *npc = npc_adjacent(s->td.tile_x, s->td.tile_y);
-        if (npc) dialog_open(s, npc);
-        else     player_do_action(s, w);
+        if (npc) {
+            dialog_open(s, npc);
+            return;
+        }
+        const Structure *st = structure_adjacent(s, s->td.tile_x, s->td.tile_y);
+        if (st) {
+            CraftStation cs = structure_station((StructureKind)st->kind);
+            if (cs != STATION_COUNT) {
+                menu_open(s);             /* resets filter to all  */
+                craft_set_station(cs);    /* override with this station */
+                s->menu_tab = MTAB_CRAFT;
+                return;
+            }
+        }
+        player_do_action(s, w);
     }
 }
 

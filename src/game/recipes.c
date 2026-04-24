@@ -1,4 +1,5 @@
 #include "recipes.h"
+#include "structures.h"
 #include "../config.h"
 #include <stddef.h>
 
@@ -161,46 +162,46 @@ const Recipe RECIPES[] = {
         .output = ITEM_COOKED_SHARK, .output_count = 1,
     },
 
-    /* -------- Structures (workbench, except the workbench itself) --------
-     * Output is ITEM_NONE for now — placement lives in milestone 4;
-     * crafting a structure today simply logs "Crafted <name>" and
-     * consumes ingredients. Once placement lands, output becomes a
-     * placeable item or a direct world mutation. */
+    /* -------- Structures -------- *
+     * .places carries the StructureKind that gets placed in front of
+     * the player on craft completion. .output stays ITEM_NONE — the
+     * crafted "thing" is the structure on the map, not an inventory
+     * item. */
     {
         .name = "Workbench",
         .station = STATION_HAND,
         .inputs = { { ITEM_OAK_LOG, 10 }, { ITEM_STONE, 5 } },
-        .output = ITEM_NONE, .output_count = 0,
+        .places = STK_WORKBENCH,
     },
     {
         .name = "Shack",
         .station = STATION_WORKBENCH,
         .inputs = { { ITEM_OAK_LOG, 20 }, { ITEM_STONE, 15 } },
-        .output = ITEM_NONE, .output_count = 0,
+        .places = STK_SHACK,
     },
     {
         .name = "Chest",
         .station = STATION_WORKBENCH,
         .inputs = { { ITEM_OAK_LOG, 10 }, { ITEM_STONE, 2 } },
-        .output = ITEM_NONE, .output_count = 0,
+        .places = STK_CHEST,
     },
     {
         .name = "Campfire",
         .station = STATION_WORKBENCH,
         .inputs = { { ITEM_OAK_LOG, 8 }, { ITEM_STONE, 3 } },
-        .output = ITEM_NONE, .output_count = 0,
+        .places = STK_CAMPFIRE,
     },
     {
         .name = "Forge",
         .station = STATION_WORKBENCH,
         .inputs = { { ITEM_STONE, 25 }, { ITEM_IRON_ORE, 5 } },
-        .output = ITEM_NONE, .output_count = 0,
+        .places = STK_FORGE,
     },
     {
         .name = "Workshop",
         .station = STATION_WORKBENCH,
         .inputs = { { ITEM_STONE, 20 }, { ITEM_IRON_INGOT, 15 }, { ITEM_MAPLE_LOG, 10 } },
-        .output = ITEM_NONE, .output_count = 0,
+        .places = STK_WORKSHOP,
     },
 };
 const int RECIPES_COUNT = (int)(sizeof(RECIPES) / sizeof(RECIPES[0]));

@@ -38,6 +38,7 @@ void state_init(GameState *s) {
     s->max_hp      = STAT_MAX;
     s->energy      = STAT_MAX;
     s->active_slot = TOOL_SLOT_START; /* axe by default */
+    /* Structure slots start zeroed = STK_NONE — handled by the memset above. */
 
     for (int i = 0; i < SKILL_COUNT; i++)
         s->skills[i].level = 1;

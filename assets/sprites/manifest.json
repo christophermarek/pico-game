@@ -10,7 +10,9 @@
         ["tiles/rock",      "tiles/ore",      "tiles/flower",     "tiles/tgrass"],
         ["tiles/ore_copper","tiles/ore_tin",  "tiles/ore_silver", "tiles/ore_gold"],
         ["tiles/pine",      "tiles/maple",    "tiles/yew",        null],
-        ["tiles/water_river","tiles/water_deep","tiles/water_dark",null]
+        ["tiles/water_river","tiles/water_deep","tiles/water_dark",null],
+        ["structures/workbench","structures/shack","structures/chest","structures/campfire"],
+        ["structures/forge","structures/workshop",null,null]
       ]
     },
     {

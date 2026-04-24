@@ -9,9 +9,9 @@
 #include "../ui/menu.h"
 #include "../ui/dialog.h"
 #include "../ui/shop.h"
-#include "../ui/craft.h"
 #include "../game/actions.h"
 #include "../game/npcs.h"
+#include "../game/structures.h"
 #include "../game/world.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -326,7 +326,20 @@ static void render_topdown(GameState *s, const World *w)
         render_action_tool(s, w, &cam, player_sx, player_sy);
     }
 
-    /* NPCs — drawn after all tile onlays and the player. Simple pass for
+    /* Structures — placed after tile onlays so they sit on the floor.
+     * Same MVP shortcut as NPCs (no per-structure depth sort yet). */
+    for (int i = 0; i < MAX_STRUCTURES; i++) {
+        const Structure *st = &s->structures[i];
+        if (st->kind == STK_NONE) continue;
+        int sx, sy;
+        td_basis_world_pixel_to_screen(&cam, s->td.x, s->td.y,
+                                       (float)(st->tile_x * TILE + TILE / 2),
+                                       (float)(st->tile_y * TILE + TILE / 2),
+                                       &sx, &sy);
+        iso_draw_structure(st->kind, sx, sy);
+    }
+
+    /* NPCs — drawn after structures and the player. Simple pass for
      * MVP (no per-NPC depth sort). Upgrade when we have enough NPCs
      * that overlap with foreground obstacles matters. */
     for (int i = 0; i < npc_count(); i++) {
@@ -370,11 +383,6 @@ void render_frame(GameState *s, const World *w) {
         render_topdown(s, w);
         hud_draw(s);
         shop_render(s);
-        break;
-    case MODE_CRAFT:
-        render_topdown(s, w);
-        hud_draw(s);
-        craft_render(s);
         break;
     }
     if (s->debug_mode) render_debug_fps();

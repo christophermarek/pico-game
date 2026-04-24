@@ -10,7 +10,6 @@
 #include "ui/menu.h"
 #include "ui/dialog.h"
 #include "ui/shop.h"
-#include "ui/craft.h"
 #ifndef PICO_BUILD
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +55,6 @@ int main(void) {
             case MODE_MENU:    menu_update(&state, &world, &inp);      break;
             case MODE_DIALOG:  dialog_update(&state, &inp);             break;
             case MODE_SHOP:    shop_update(&state, &inp);               break;
-            case MODE_CRAFT:   craft_update(&state, &inp);              break;
         }
 
         if (inp.start_press && state.mode == MODE_TOPDOWN)

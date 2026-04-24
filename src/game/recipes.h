@@ -27,14 +27,21 @@ typedef struct {
     uint8_t   count;
 } RecipeInput;
 
+/* Recipe.places sentinel — "this recipe doesn't build a structure".
+ * Matches StructureKind STK_NONE; using 0 keeps recipes.h
+ * independent of structures.h and lines up with the default-zero of
+ * uninitialised C designated-initialiser fields. */
+#define RECIPE_NO_PLACE 0
+
 typedef struct {
     const char   *name;
     CraftStation  station;
     RecipeInput   inputs[RECIPE_MAX_INPUTS]; /* unused entries have id == ITEM_NONE */
     item_id_t     output;
     uint8_t       output_count;
-    uint8_t       skill_xp;   /* 0 = no XP; otherwise Smelting XP for smelt rows */
-    uint8_t       craft_ticks; /* frames the craft takes; 0 = default 60     */
+    uint8_t       skill_xp;    /* 0 = no XP; otherwise Smelting XP for smelt rows  */
+    uint8_t       craft_ticks; /* frames the craft takes; 0 = default 60           */
+    uint8_t       places;      /* StructureKind to place; RECIPE_NO_PLACE for none */
 } Recipe;
 
 extern const Recipe RECIPES[];

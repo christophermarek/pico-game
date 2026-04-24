@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "config.h"
 #include "items.h"
+#include "structures.h"
 
 typedef struct {
     float     wx, wy;   /* world-pixel spawn position (node center) */
@@ -27,8 +28,9 @@ typedef struct {
 
 typedef enum {
     MTAB_SKILLS    = 0,
-    MTAB_SETTINGS  = 1,
-    MTAB_INVENTORY = 2,
+    MTAB_INVENTORY = 1,
+    MTAB_CRAFT     = 2,
+    MTAB_SETTINGS  = 3,
 } MenuTab;
 
 typedef struct GameState {
@@ -62,6 +64,8 @@ typedef struct GameState {
     uint32_t total_steps;
 
     Inventory inv;
+
+    Structure structures[MAX_STRUCTURES];
 
     ItemFly  item_flies[MAX_ITEM_FLIES];
     uint8_t  slot_flash[HOTBAR_SLOTS];  /* per-slot border flash countdown */

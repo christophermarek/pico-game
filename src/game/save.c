@@ -1,10 +1,11 @@
 #include "save.h"
 #include "items.h"
+#include "structures.h"
 #include "hal.h"
 #include <string.h>
 
 #define SAVE_MAGIC   0x4735513Eu
-#define SAVE_VERSION 11u  /* bump when SaveData layout changes */
+#define SAVE_VERSION 12u  /* bump when SaveData layout changes */
 
 /*
  * Persistence-only slice of GameState. Transient state (debug telemetry,
@@ -27,6 +28,7 @@ typedef struct {
 
     bool      debug_mode;
     Inventory inv;
+    Structure structures[MAX_STRUCTURES];
 } SaveData;
 
 typedef struct {
@@ -54,6 +56,7 @@ bool save_write(const GameState *s) {
     sf.data.total_steps     = s->total_steps;
     sf.data.debug_mode      = s->debug_mode;
     sf.data.inv             = s->inv;
+    memcpy(sf.data.structures, s->structures, sizeof(sf.data.structures));
 
     return hal_save(&sf, sizeof(sf));
 }
@@ -75,5 +78,6 @@ bool save_read(GameState *s) {
     s->total_steps    = sf.data.total_steps;
     s->debug_mode     = sf.data.debug_mode;
     s->inv            = sf.data.inv;
+    memcpy(s->structures, sf.data.structures, sizeof(s->structures));
     return true;
 }
