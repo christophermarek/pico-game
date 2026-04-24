@@ -29,7 +29,8 @@ static const uint8_t DIR_MAP[4][4] = {
 #define OBSTACLE_REACH_MAX ((OBSTACLE_R > OBSTACLE_HALF) ? OBSTACLE_R : OBSTACLE_HALF)
 
 static inline bool tile_is_circle(uint8_t tile_id) {
-    return tile_id == T_TREE;
+    return tile_id == T_TREE || tile_id == T_TREE_PINE ||
+           tile_id == T_TREE_MAPLE || tile_id == T_TREE_YEW;
 }
 
 /*

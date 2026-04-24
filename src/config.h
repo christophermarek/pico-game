@@ -100,15 +100,26 @@
 #define SLOT_FLASH_FRAMES 8
 
 /* Tile IDs */
-#define T_GRASS      0
-#define T_PATH       1
-#define T_WATER      2
-#define T_SAND       3
-#define T_TREE       4
-#define T_ROCK       5
-#define T_FLOWER     6
-#define T_TGRASS     7
-#define T_ORE        8
+#define T_GRASS        0
+#define T_PATH         1
+#define T_WATER        2   /* pond — tier-1 fishing */
+#define T_SAND         3
+#define T_TREE         4   /* oak — tier-1 woodcut   */
+#define T_ROCK         5   /* stone — tier-1 mining  */
+#define T_FLOWER       6
+#define T_TGRASS       7
+#define T_ORE          8   /* iron — tier-2 mining   */
+/* Tiered gathering nodes per GAME_DESIGN.md */
+#define T_ORE_COPPER   9
+#define T_ORE_TIN      10
+#define T_ORE_SILVER   11
+#define T_ORE_GOLD     12
+#define T_TREE_PINE    13
+#define T_TREE_MAPLE   14
+#define T_TREE_YEW     15
+#define T_WATER_RIVER  16
+#define T_WATER_DEEP   17
+#define T_WATER_DARK   18
 
 /* Game mode */
 typedef enum {

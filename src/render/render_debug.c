@@ -77,7 +77,8 @@ static void draw_world_rect(const GameState *s, const TdCamBasis *cam,
 }
 
 static inline bool tile_is_circle(uint8_t tile_id) {
-    return tile_id == T_TREE;
+    return tile_id == T_TREE || tile_id == T_TREE_PINE ||
+           tile_id == T_TREE_MAPLE || tile_id == T_TREE_YEW;
 }
 
 static void draw_obstacle_shape(const GameState *s, const TdCamBasis *cam,

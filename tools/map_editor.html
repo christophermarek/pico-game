@@ -58,16 +58,28 @@
 <script>
 const MAX_W = 30, MAX_H = 20;
 
+// Keys 0–9 cover the first row of the palette; the rest are chosen via
+// mouse click. Keep this list in sync with config.h's T_* constants.
 const TILES = [
-  { id: 0, name: 'Grass',     key: '0', color: '#4a7c59' },
-  { id: 1, name: 'Path',      key: '1', color: '#c8a96e' },
-  { id: 2, name: 'Water',     key: '2', color: '#2c7bb6' },
-  { id: 3, name: 'Sand',      key: '3', color: '#f0d89e' },
-  { id: 4, name: 'Tree',      key: '4', color: '#2d5a27' },
-  { id: 5, name: 'Rock',      key: '5', color: '#808080' },
-  { id: 6, name: 'Flower',    key: '6', color: '#e05090' },
-  { id: 7, name: 'TallGrass', key: '7', color: '#3a6b4a' },
-  { id: 8, name: 'Ore',       key: '8', color: '#c8960c' },
+  { id:  0, name: 'Grass',      key: '0', color: '#4a7c59' },
+  { id:  1, name: 'Path',       key: '1', color: '#c8a96e' },
+  { id:  2, name: 'Water/Pond', key: '2', color: '#2c7bb6' },
+  { id:  3, name: 'Sand',       key: '3', color: '#f0d89e' },
+  { id:  4, name: 'Oak',        key: '4', color: '#2d5a27' },
+  { id:  5, name: 'Rock',       key: '5', color: '#808080' },
+  { id:  6, name: 'Flower',     key: '6', color: '#e05090' },
+  { id:  7, name: 'TallGrass',  key: '7', color: '#3a6b4a' },
+  { id:  8, name: 'Iron ore',   key: '8', color: '#a65a2e' },
+  { id:  9, name: 'Copper ore', key: '9', color: '#b87333' },
+  { id: 10, name: 'Tin ore',    key: '',  color: '#c8c8d2' },
+  { id: 11, name: 'Silver ore', key: '',  color: '#dcdce6' },
+  { id: 12, name: 'Gold ore',   key: '',  color: '#e6c33c' },
+  { id: 13, name: 'Pine',       key: '',  color: '#2e6e46' },
+  { id: 14, name: 'Maple',      key: '',  color: '#b45a28' },
+  { id: 15, name: 'Yew',        key: '',  color: '#1e462d' },
+  { id: 16, name: 'River',      key: '',  color: '#2c7bb6' },
+  { id: 17, name: 'Deep water', key: '',  color: '#19558c' },
+  { id: 18, name: 'Dark water', key: '',  color: '#0f193c' },
 ];
 
 const TILE_BY_ID = {};

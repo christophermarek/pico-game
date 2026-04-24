@@ -149,6 +149,10 @@ static bool iso_tile_id_on_sheet(uint8_t tile_id)
     case T_GRASS: case T_PATH:  case T_WATER: case T_SAND:
     case T_TREE:  case T_ROCK:  case T_ORE:
     case T_FLOWER: case T_TGRASS:
+    case T_ORE_COPPER: case T_ORE_TIN:
+    case T_ORE_SILVER: case T_ORE_GOLD:
+    case T_TREE_PINE: case T_TREE_MAPLE: case T_TREE_YEW:
+    case T_WATER_RIVER: case T_WATER_DEEP: case T_WATER_DARK:
         return true;
     default:
         return false;
@@ -157,15 +161,26 @@ static bool iso_tile_id_on_sheet(uint8_t tile_id)
 
 static bool tile_is_overlay(uint8_t tile_id)
 {
-    return tile_id == T_TREE   || tile_id == T_ROCK ||
-           tile_id == T_ORE    || tile_id == T_FLOWER ||
-           tile_id == T_TGRASS;
+    switch (tile_id) {
+    case T_TREE:  case T_ROCK: case T_ORE: case T_FLOWER: case T_TGRASS:
+    case T_ORE_COPPER: case T_ORE_TIN:
+    case T_ORE_SILVER: case T_ORE_GOLD:
+    case T_TREE_PINE: case T_TREE_MAPLE: case T_TREE_YEW:
+        return true;
+    default:
+        return false;
+    }
 }
 
 static uint8_t tile_floor_id(uint8_t tile_id)
 {
-    if (tile_id == T_ORE) return T_PATH;
-    return T_GRASS;
+    switch (tile_id) {
+    case T_ORE: case T_ORE_COPPER: case T_ORE_TIN:
+    case T_ORE_SILVER: case T_ORE_GOLD:
+        return T_PATH;   /* ores sit on dirt / stone, not grass */
+    default:
+        return T_GRASS;
+    }
 }
 
 static void iso_tile_frame(uint8_t tile_id, uint32_t tick, PngFrame *f)
@@ -177,16 +192,26 @@ static void iso_tile_frame(uint8_t tile_id, uint32_t tick, PngFrame *f)
 
     int col = 0, row = 0;
     switch (tile_id) {
-    case T_WATER:  col = (int)((tick / 15u) % 4u); row = 0; break;
-    case T_GRASS:  col = 0; row = 1; break;
-    case T_PATH:   col = 1; row = 1; break;
-    case T_SAND:   col = 2; row = 1; break;
-    case T_TREE:   col = 3; row = 1; break;
-    case T_ROCK:   col = 0; row = 2; break;
-    case T_ORE:    col = 1; row = 2; break;
-    case T_FLOWER: col = 2; row = 2; break;
-    case T_TGRASS: col = 3; row = 2; break;
-    default:       col = 0; row = 0; break;
+    case T_WATER:        col = (int)((tick / 15u) % 4u); row = 0; break;
+    case T_GRASS:        col = 0; row = 1; break;
+    case T_PATH:         col = 1; row = 1; break;
+    case T_SAND:         col = 2; row = 1; break;
+    case T_TREE:         col = 3; row = 1; break;
+    case T_ROCK:         col = 0; row = 2; break;
+    case T_ORE:          col = 1; row = 2; break;
+    case T_FLOWER:       col = 2; row = 2; break;
+    case T_TGRASS:       col = 3; row = 2; break;
+    case T_ORE_COPPER:   col = 0; row = 3; break;
+    case T_ORE_TIN:      col = 1; row = 3; break;
+    case T_ORE_SILVER:   col = 2; row = 3; break;
+    case T_ORE_GOLD:     col = 3; row = 3; break;
+    case T_TREE_PINE:    col = 0; row = 4; break;
+    case T_TREE_MAPLE:   col = 1; row = 4; break;
+    case T_TREE_YEW:     col = 2; row = 4; break;
+    case T_WATER_RIVER:  col = 0; row = 5; break;
+    case T_WATER_DEEP:   col = 1; row = 5; break;
+    case T_WATER_DARK:   col = 2; row = 5; break;
+    default:             col = 0; row = 0; break;
     }
     f->x = col * ISO_TILE_W;
     f->y = row * ISO_TILE_H;
@@ -202,8 +227,10 @@ static void iso_tile_frame(uint8_t tile_id, uint32_t tick, PngFrame *f)
 static int overlay_oy(uint8_t tile_id)
 {
     switch (tile_id) {
-    case T_TREE:   return -47;
-    default:       return -ISO_TILE_H / 2;
+    case T_TREE: case T_TREE_PINE: case T_TREE_MAPLE: case T_TREE_YEW:
+        return -47;
+    default:
+        return -ISO_TILE_H / 2;
     }
 }
 

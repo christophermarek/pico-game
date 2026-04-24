@@ -5,9 +5,12 @@
       "cell_w": 64,
       "cell_h": 48,
       "grid": [
-        ["tiles/water_0", "tiles/water_1", "tiles/water_2", "tiles/water_3"],
-        ["tiles/grass",   "tiles/path",    "tiles/sand",    "tiles/tree"],
-        ["tiles/rock",    "tiles/ore",     "tiles/flower",  "tiles/tgrass"]
+        ["tiles/water_0",   "tiles/water_1",  "tiles/water_2",    "tiles/water_3"],
+        ["tiles/grass",     "tiles/path",     "tiles/sand",       "tiles/tree"],
+        ["tiles/rock",      "tiles/ore",      "tiles/flower",     "tiles/tgrass"],
+        ["tiles/ore_copper","tiles/ore_tin",  "tiles/ore_silver", "tiles/ore_gold"],
+        ["tiles/pine",      "tiles/maple",    "tiles/yew",        null],
+        ["tiles/water_river","tiles/water_deep","tiles/water_dark",null]
       ]
     },
     {
@@ -29,15 +32,24 @@
       "cell_h": 16,
       "grid": [
         [
-          "items/oak_log",
-          "items/stone",
-          "items/iron_ore",
-          "items/raw_fish",
-          "items/coin",
-          "items/axe",
-          "items/pickaxe",
-          "items/fishing_rod",
-          "items/shears"
+          "items/oak_log",    "items/pine_log",  "items/maple_log",  "items/yew_log",
+          "items/stone",      "items/copper_ore","items/tin_ore",    "items/iron_ore",
+          "items/silver_ore", "items/gold_ore",  "items/coin",       "items/diamond_core"
+        ],
+        [
+          "items/bronze_ingot","items/iron_ingot","items/steel_ingot","items/diamond_ingot",
+          "items/axe",         "items/iron_axe",  "items/steel_axe",  "items/diamond_axe",
+          "items/pickaxe",     "items/iron_pickaxe","items/steel_pickaxe","items/diamond_pickaxe"
+        ],
+        [
+          "items/bronze_sword","items/iron_sword","items/steel_sword","items/diamond_sword",
+          "items/fishing_rod", "items/iron_rod",  "items/steel_rod",  "items/diamond_rod",
+          "items/shears",      "items/raw_fish",  "items/raw_trout",  "items/raw_salmon"
+        ],
+        [
+          "items/raw_shark",    "items/cooked_fish","items/cooked_trout","items/cooked_salmon",
+          "items/cooked_shark", null,                null,               null,
+          null,                 null,                null,               null
         ]
       ]
     },

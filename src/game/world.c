@@ -65,16 +65,22 @@ uint8_t world_tile(const World *w, int x, int y)
 
 bool world_walkable(const World *w, int x, int y)
 {
-    /* Ground tiles always pass. Obstacle tiles (trees, rocks, ore, water)
-     * block while alive but become walkable once depleted — once the
-     * node is gone the tile is just empty ground visually. Anything else
-     * (unrecognised / "air" values) stays non-walkable. */
+    /* Ground tiles always pass. Obstacle tiles (trees, rocks, ore, water
+     * of every tier) block while alive but become walkable once depleted —
+     * once the node is gone the tile is just empty ground visually.
+     * Unrecognised / "air" values stay non-walkable. */
     uint8_t t = world_tile(w, x, y);
-    if (t == T_GRASS || t == T_PATH || t == T_SAND ||
-        t == T_FLOWER || t == T_TGRASS) return true;
-    if (t == T_TREE || t == T_ROCK || t == T_ORE || t == T_WATER)
+    switch (t) {
+    case T_GRASS: case T_PATH: case T_SAND: case T_FLOWER: case T_TGRASS:
+        return true;
+    case T_TREE: case T_ROCK: case T_ORE: case T_WATER:
+    case T_ORE_COPPER: case T_ORE_TIN: case T_ORE_SILVER: case T_ORE_GOLD:
+    case T_TREE_PINE:  case T_TREE_MAPLE: case T_TREE_YEW:
+    case T_WATER_RIVER: case T_WATER_DEEP: case T_WATER_DARK:
         return world_node_depleted(w, x, y);
-    return false;
+    default:
+        return false;
+    }
 }
 
 bool world_hit_node(World *w, int x, int y)
