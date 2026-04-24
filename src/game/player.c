@@ -6,6 +6,26 @@
 #include "config.h"
 #include <math.h>
 
+/*
+ * Screen ↔ world cardinal map per bearing. The table rotates the cardinal
+ * 90° per bearing step and is its own inverse at each bearing (each column
+ * is a product of 2-cycles), so we use the SAME table for both lookups:
+ *
+ *   td.dir      = DIR_MAP[screen_dir][bearing]  (forward, on input)
+ *   screen_dir  = DIR_MAP[td.dir][bearing]      (inverse, on camera rotate)
+ *
+ * This is only used to keep the two fields in sync — targeting uses
+ * screen_dir directly via the iso inverse (no table), so the cardinal
+ * choice at iso-diagonal inputs doesn't affect gameplay.
+ */
+static const uint8_t DIR_MAP[4][4] = {
+    /* screen\bearing  0          1          2          3     */
+    /* DIR_DOWN  */ { DIR_DOWN,  DIR_LEFT,  DIR_UP,    DIR_RIGHT },
+    /* DIR_UP    */ { DIR_UP,    DIR_RIGHT, DIR_DOWN,  DIR_LEFT  },
+    /* DIR_LEFT  */ { DIR_LEFT,  DIR_DOWN,  DIR_RIGHT, DIR_UP    },
+    /* DIR_RIGHT */ { DIR_RIGHT, DIR_UP,    DIR_LEFT,  DIR_DOWN  },
+};
+
 #define OBSTACLE_REACH_MAX ((OBSTACLE_R > OBSTACLE_HALF) ? OBSTACLE_R : OBSTACLE_HALF)
 
 static inline bool tile_is_circle(uint8_t tile_id) {
@@ -142,19 +162,15 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     float      dwx, dwy;
     td_basis_screen_to_world_vel(&cam, vx, vy, &dwx, &dwy);
 
-    /* screen_dir = the cardinal closest to the screen input (what the
-     * sprite visually shows). td.dir = the cardinal closest to the
-     * resulting world motion (informational; targeting does NOT use it —
-     * it casts a ray from the foot in the screen-input direction, which
-     * is naturally camera-correct). */
+    /* screen_dir = sprite-facing cardinal, derived from the screen input.
+     * td.dir = world-space facing, held stable across camera rotations —
+     * player_camera_rotated() re-derives screen_dir after a bearing
+     * change so the sprite visually turns with the view. */
     if (vx != 0.0f || vy != 0.0f) {
         float ax = fabsf(vx), ay = fabsf(vy);
         if (ax > ay) s->td.screen_dir = (vx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
         else         s->td.screen_dir = (vy < 0.0f) ? DIR_UP   : DIR_DOWN;
-
-        float adx = fabsf(dwx), ady = fabsf(dwy);
-        if (adx > ady) s->td.dir = (dwx < 0.0f) ? DIR_LEFT : DIR_RIGHT;
-        else           s->td.dir = (dwy < 0.0f) ? DIR_UP   : DIR_DOWN;
+        s->td.dir = DIR_MAP[s->td.screen_dir & 3u][s->td_cam_bearing & 3u];
     }
 
     /*
@@ -389,6 +405,10 @@ bool player_peek_action_target(const GameState *s, const World *w,
                                int *out_tx, int *out_ty)
 {
     return find_action_target(s, w, out_tx, out_ty) == TARGET_LIVE;
+}
+
+void player_camera_rotated(GameState *s) {
+    s->td.screen_dir = DIR_MAP[s->td.dir & 3u][s->td_cam_bearing & 3u];
 }
 
 void player_stop_action(GameState *s) {

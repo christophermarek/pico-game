@@ -7,6 +7,11 @@ void player_update_td(GameState *s, const Input *inp, World *w);
 void player_do_action(GameState *s, World *w);
 void player_stop_action(GameState *s);
 
+/* Call after td_cam_bearing changes — keeps td.dir (world facing) stable
+ * and pivots the sprite (screen_dir) so the character visually turns with
+ * the view. */
+void player_camera_rotated(GameState *s);
+
 bool player_collide_who(const World *w, float x, float y,
                         int *out_tx, int *out_ty, char *out_kind);
 
