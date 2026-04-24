@@ -7,7 +7,10 @@
 #include "config.h"
 #include "../ui/hud.h"
 #include "../ui/menu.h"
+#include "../ui/dialog.h"
+#include "../ui/shop.h"
 #include "../game/actions.h"
+#include "../game/npcs.h"
 #include "../game/world.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -322,6 +325,20 @@ static void render_topdown(GameState *s, const World *w)
         render_action_tool(s, w, &cam, player_sx, player_sy);
     }
 
+    /* NPCs — drawn after all tile onlays and the player. Simple pass for
+     * MVP (no per-NPC depth sort). Upgrade when we have enough NPCs
+     * that overlap with foreground obstacles matters. */
+    for (int i = 0; i < npc_count(); i++) {
+        const Npc *n = npc_get(i);
+        int nsx, nsy;
+        td_basis_world_pixel_to_screen(&cam, s->td.x, s->td.y,
+                                       (float)(n->tile_x * TILE + TILE / 2),
+                                       (float)(n->tile_y * TILE + TILE / 2 +
+                                               (int)TD_FEET_OFF),
+                                       &nsx, &nsy);
+        iso_draw_npc((uint8_t)n->kind, nsx, nsy);
+    }
+
     if (s->skilling) {
         float progress = 1.0f - (float)s->action_ticks_left / (float)ACTION_TICKS;
         draw_skill_indicator(player_sx, player_sy - 30, progress);
@@ -341,6 +358,17 @@ void render_frame(GameState *s, const World *w) {
         break;
     case MODE_MENU:
         menu_render(s);
+        break;
+    case MODE_DIALOG:
+        /* Keep the world behind the dialog box. */
+        render_topdown(s, w);
+        hud_draw(s);
+        dialog_render(s);
+        break;
+    case MODE_SHOP:
+        render_topdown(s, w);
+        hud_draw(s);
+        shop_render(s);
         break;
     }
     if (s->debug_mode) render_debug_fps();

@@ -23,6 +23,9 @@
           "chars/player_up_0",    "chars/player_up_1",
           "chars/player_left_0",  "chars/player_left_1",
           "chars/player_right_0", "chars/player_right_1"
+        ],
+        [
+          "chars/shopkeeper_down", null, null, null, null, null, null, null
         ]
       ]
     },

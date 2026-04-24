@@ -125,6 +125,8 @@
 typedef enum {
     MODE_TOPDOWN = 0,
     MODE_MENU,
+    MODE_DIALOG,   /* NPC text box */
+    MODE_SHOP,     /* shopkeeper buy menu */
 } GameMode;
 
 /* Player direction */

@@ -8,6 +8,8 @@
 #include "game/save.h"
 #include "render/renderer.h"
 #include "ui/menu.h"
+#include "ui/dialog.h"
+#include "ui/shop.h"
 #ifndef PICO_BUILD
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +53,8 @@ int main(void) {
         switch (state.mode) {
             case MODE_TOPDOWN: player_update_td(&state, &inp, &world); break;
             case MODE_MENU:    menu_update(&state, &world, &inp);      break;
+            case MODE_DIALOG:  dialog_update(&state, &inp);             break;
+            case MODE_SHOP:    shop_update(&state, &inp);               break;
         }
 
         if (inp.start_press && state.mode == MODE_TOPDOWN)

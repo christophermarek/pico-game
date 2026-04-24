@@ -2,8 +2,10 @@
 #include "skills.h"
 #include "items.h"
 #include "actions.h"
+#include "npcs.h"
 #include "td_cam.h"
 #include "config.h"
+#include "../ui/dialog.h"
 #include <math.h>
 
 /*
@@ -244,8 +246,14 @@ void player_update_td(GameState *s, const Input *inp, World *w) {
     s->td.tile_x = (int16_t)(s->td.x / TILE);
     s->td.tile_y = (int16_t)((s->td.y + TD_FEET_OFF) / TILE);
 
-    if (inp->a_press)
-        player_do_action(s, w);
+    if (inp->a_press) {
+        /* NPC interaction beats resource gathering when both are
+         * available — if you're standing next to the shopkeeper, A
+         * opens dialog instead of chopping the tree behind them. */
+        const Npc *npc = npc_adjacent(s->td.tile_x, s->td.tile_y);
+        if (npc) dialog_open(s, npc);
+        else     player_do_action(s, w);
+    }
 }
 
 /*

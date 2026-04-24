@@ -41,6 +41,12 @@ static const PngFrame PNG_TD_PLAYER[8] = {
     { 224, 0, 32, 32, -16, -14 }, /* DIR_RIGHT walk1 */
 };
 
+/* NPC sprites live on row 2 of the chars sheet, indexed by NpcKind-1
+ * (NPC_NONE=0 has no sprite). Add a column when a new NPC ships. */
+static const PngFrame PNG_NPC[] = {
+    { 0, 32, 32, 32, -16, -14 }, /* NPC_SHOPKEEPER */
+};
+
 static void try_load_atlas(PngAtlas *a, const char *p0, const char *p1)
 {
     if (a->tried) return;
@@ -261,6 +267,19 @@ bool iso_draw_td_player_char(int sx, int sy, uint8_t dir, uint8_t walk_frame)
     if (!load_chars()) return false;
     uint8_t d = (dir > DIR_RIGHT) ? DIR_DOWN : dir;
     draw_png_frame_scaled(&g_chars, &PNG_TD_PLAYER[d * 2u + (walk_frame & 1u)],
+                          sx, sy, CHAR_SCALE_NUM, CHAR_SCALE_DEN,
+                          ICON_ORIENT_R);
+    return true;
+}
+
+bool iso_draw_npc(uint8_t npc_kind, int sx, int sy)
+{
+    if (npc_kind == 0) return false;
+    int idx = (int)npc_kind - 1;
+    if (idx < 0 || idx >= (int)(sizeof(PNG_NPC) / sizeof(PNG_NPC[0])))
+        return false;
+    if (!load_chars()) return false;
+    draw_png_frame_scaled(&g_chars, &PNG_NPC[idx],
                           sx, sy, CHAR_SCALE_NUM, CHAR_SCALE_DEN,
                           ICON_ORIENT_R);
     return true;
